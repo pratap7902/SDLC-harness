@@ -44,13 +44,14 @@ export function PersonaProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Nobody picked yet (or the saved person is gone after a re-seed): the first DRI, else the
-  // first person with an assignment.
+  // Nobody picked yet (or the saved person is gone after a re-seed): whoever has the most
+  // waiting on them, else the first DRI.
   useEffect(() => {
     if (people.kind !== 'ready' || !list.length) return;
     if (persona && list.some((p) => p.person === persona)) return;
+    const busiest = [...list].sort((a, b) => b.inbox - a.inbox)[0];
     const dri = list.find((p) => p.roles.some((r) => r.role === 'dri'));
-    setPersona((dri || list[0]).person);
+    setPersona((busiest && busiest.inbox ? busiest : dri || list[0]).person);
   }, [people.kind, list, persona, setPersona]);
 
   const value = useMemo(

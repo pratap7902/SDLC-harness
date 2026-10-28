@@ -40,7 +40,7 @@ def trim(value, depth=0, keep=2):
     return value
 
 
-def client(person="chandra", kind="human") -> TestClient:
+def client(person="priya", kind="human") -> TestClient:
     return TestClient(app, headers={"X-Actor": person, "X-Actor-Kind": kind})
 
 
@@ -48,7 +48,7 @@ def h(text: str) -> None:
     OUT.append(text)
 
 
-def show(method: str, path: str, *, who=("chandra", "human"), body=None, params=None, about: str = "", keep=2, expect=None, raw=False, title=None):
+def show(method: str, path: str, *, who=("priya", "human"), body=None, params=None, about: str = "", keep=2, expect=None, raw=False, title=None):
     r = client(*who).request(method, path, json=body, params=params)
     if expect is not None:
         assert r.status_code == expect, f"{method} {path}: {r.status_code} {r.text[:800]}"
@@ -191,7 +191,7 @@ def main() -> None:
     show(
         "GET",
         "/api/overview",
-        params={"person": "maya"},
+        params={"person": "arjun"},
         keep=2,
         about="**The Features list in one read.** Per initiative: phase, `people` (role → person), `involved` (the `person` holds a role or has an item), `next` (the next open human item — yours first, then what blocks work — with `person` and a short `label`), `prs` (`approved`/`total`, `stale` task refs), `gate_draft.state` (`drafting` · `waiting` · `ready` · `approved` · `reopened`), `drift`, `updated_at` (latest revision or review move), `agents` (`queued`, `leased`, lease `holders`). Across initiatives: `waiting` (every routed human item, inbox-shaped, sorted for `person`), `decisions` (the same without task PR approvals) and `my_pr_approvals`.",
     )
@@ -203,16 +203,16 @@ def main() -> None:
             "title": "Payment webhooks",
             "requirement": "# Payment webhooks\nMerchants want a webhook when a payment settles.",
             "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
-            "dri": "chandra",
-            "engg": "priya",
-            "product": "maya",
+            "dri": "priya",
+            "engg": "arjun",
+            "product": "meera",
             "qa": "sam",
         },
         about="**Start a feature** (the intake; `/new`). `requirement` (markdown), `title`, `dri`, `engg` are required; `slug` defaults from the title; `work_item_url` (Azure DevOps link), `product`, `design`, `qa`, `prd_refs` are optional. Pins `spec_snapshot` with its hash and writes the assignments. Returns the same body as `GET /api/initiatives/{slug}`. 422 lists every missing field in `error_data.errors`; 409 if an explicit `slug` exists.",
     )
     assert started["initiative"]["slug"] == "payment-webhooks"
     show("GET", "/api/initiatives/order-events", keep=3, about="**Initiative state**: the initiative with its `spec_snapshot`, `phase`, assignments, initiative-scope gates (rule by rule), tasks with their GATE_PR status and drift summary, counts by type and status, open refs, the current baseline, drift summary, stale narratives, and every catalog (phase → items with `disposition`: `addressed` · `not_applicable` · `UNASSESSED`).")
-    show("GET", "/api/initiatives/refund-events/draft", keep=2, about="**Draft review page** (touchpoint 1). `can_approve`, `approval_blockers[{rule, failing, detail}]` and `approver` drive the Approve button.")
+    show("GET", "/api/initiatives/menu-sync-retries/draft", keep=2, about="**Draft review page** (touchpoint 1). `can_approve`, `approval_blockers[{rule, failing, detail}]` and `approver` drive the Approve button.")
     show("GET", "/api/initiatives/order-events/draft", keep=2, title="GET /api/initiatives/order-events/draft (approved)", about="The same page once approved: `gate.status` PASSED, `baselines[]`, `approvals[]`; D-1 shows `superseded_by: [\"D-4\"]`.")
 
     h("## Records\n")
@@ -242,42 +242,43 @@ def main() -> None:
         who=("runner-sdk", "agent"),
         expect=422,
         title="POST /api/initiatives/order-events/records (rejected)",
-        body={"ops": [{"ref": "draft", "fields": {"lld": "Relay polls every 5s."}}, {"type": "acceptance_criterion", "fields": {"text": "Relay lag under 5s", "level": "integration", "source": ["D-4"]}}]},
+        body={"ops": [{"ref": "draft", "fields": {"lld": "Relay polls every 5s."}}, {"type": "acceptance_criterion", "fields": {"text": "Relay lag under 5s", "level": "integration", "source": ["D-2"]}}]},
         about="A rejected batch: **422**, nothing saved, each op's errors in `error_data.results[].errors` (ops that were fine say `not saved`). Here: after baseline B-1 an agent may not move the spec without `because` (a human-answered gap, a grounded decision, or a finding).",
     )
 
     h("## The human lane (touchpoint 2)\n")
-    show("GET", "/api/inbox/maya", about="One person's inbox across initiatives, overdue first. `kind`: `gap` (answer it), `decision` (rule it: MUST or escalated), `approval` (`target`: `draft` or a task; tasks carry `drift` and `digest`), `review_item` (`review_item_id`, `what_moved`), `manual_ac` (sign it). `route` says why it landed here (`role`, `domain`, `fallback` = routed to the DRI because nobody holds the role).")
+    show("GET", "/api/inbox/arjun", about="One person's inbox across initiatives, overdue first. `kind`: `gap` (answer it), `decision` (rule it: MUST or escalated), `approval` (`target`: `draft` or a task; tasks carry `drift` and `digest`), `review_item` (`review_item_id`, `what_moved`), `manual_ac` (sign it). `route` says why it landed here (`role`, `domain`, `fallback` = routed to the DRI because nobody holds the role).")
     show("GET", "/api/people", about="Everyone with an assignment and their inbox size (the inbox switcher).")
-    show("POST", "/api/initiatives/refund-events/gaps/G-1/answer", who=("maya", "human"), body={"choice": "per-refund", "answer": "One event per refund — finance reconciles against the provider report, which is per refund."}, about="**human** — answer a gap: `choice` (an option key) and/or `answer` (text; defaults to the option's label). Returns the write result; `review_items` lists what the answer put up for review and who it went to.")
-    show("POST", "/api/initiatives/refund-events/decisions/D-2/rule", who=("maya", "human"), body={"verdict": "One event per refund with a lines[] array", "rationale": "G-1: matches the provider report row for row."}, about="**human** — rule an OPEN or PROVISIONAL decision (MUST-level or escalated decisions can only be ruled here). A DECIDED decision returns 422: supersede it instead.")
+    show("POST", "/api/initiatives/menu-sync-retries/gaps/G-1/answer", who=("meera", "human"), body={"choice": "per-partner", "answer": "Per partner: one flaky partner must not starve the rest."}, about="**human** — answer a gap: `choice` (an option key) and/or `answer` (text; defaults to the option's label). Returns the write result; `review_items` lists what the answer put up for review and who it went to.")
+    show("POST", "/api/initiatives/menu-sync-retries/decisions/D-2/rule", who=("meera", "human"), body={"verdict": "Per partner: 5 retries per hour each", "rationale": "G-1: partner timeouts are uneven."}, about="**human** — rule an OPEN or PROVISIONAL decision (MUST-level or escalated decisions can only be ruled here). A DECIDED decision returns 422: supersede it instead.")
     r = client("runner-sdk", "agent").post("/api/initiatives/payment-webhooks/approvals", json={"target": "draft", "role": "dri"})
     h("### 403 for agents on human endpoints\n")
     h("`POST /api/initiatives/payment-webhooks/approvals` — X-Actor: runner-sdk · X-Actor-Kind: agent → **" + str(r.status_code) + "**\n")
     h("```json\n" + json.dumps(r.json(), indent=2, ensure_ascii=False) + "\n```\n")
-    show("POST", "/api/initiatives/payment-webhooks/approvals", who=("chandra", "human"), expect=201, body={"target": "draft", "role": "dri", "note": "Scope is right."}, about="**human** — approve. `role` dri → `target: \"draft\"` (creates baseline B-n: see `baseline` in the result); engg → a task ref, with `at_sha` = the PR head (the service pins the drift `digest`); qa → a manual AC. The caller must hold the role on the initiative, and the gate's other rules must pass — else 422 naming them.")
+    show("POST", "/api/initiatives/payment-webhooks/approvals", who=("priya", "human"), expect=201, body={"target": "draft", "role": "dri", "note": "Scope is right."}, about="**human** — approve. `role` dri → `target: \"draft\"` (creates baseline B-n: see `baseline` in the result); engg → a task ref, with `at_sha` = the PR head (the service pins the drift `digest`); qa → a manual AC. The caller must hold the role on the initiative, and the gate's other rules must pass — else 422 naming them.")
     show("POST", "/api/initiatives/payment-webhooks/criteria/AC-2/sign", who=("sam", "human"), body={"at_sha": "77ab01c"}, about="**human** (qa) — sign a manual AC at a sha.")
-    show("POST", "/api/initiatives/payment-webhooks/criteria/AC-1/retire", who=("chandra", "human"), body={"because": "Signature checks move to the shared webhook library."}, about="**human** — retire an AC (shows as `ac_retired` drift).")
-    out = show("POST", "/api/initiatives/payment-webhooks/snapshot", who=("chandra", "human"), body={"requirement": "# Payment webhooks\nMerchants want a webhook when a payment settles **or is refunded**.", "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410"}, keep=1, about="**human** — re-pin the requirement (a material change: the draft goes up for review, and the drift report shows `requirement_repinned`). Returns `{state, write}`.")
+    show("POST", "/api/initiatives/payment-webhooks/criteria/AC-1/retire", who=("priya", "human"), body={"because": "Signature checks move to the shared webhook library."}, about="**human** — retire an AC (shows as `ac_retired` drift).")
+    out = show("POST", "/api/initiatives/payment-webhooks/snapshot", who=("priya", "human"), body={"requirement": "# Payment webhooks\nMerchants want a webhook when a payment settles **or is refunded**.", "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410"}, keep=1, about="**human** — re-pin the requirement (a material change: the draft goes up for review, and the drift report shows `requirement_repinned`). Returns `{state, write}`.")
     assert out["write"]["review_items"]
 
     h("## Review queue\n")
     items = show("GET", "/api/initiatives/payment-webhooks/reviews", about="Open review items (`?status=open` default; `upheld`, `revised`, `dismissed`, `all`). Each: `cause` moved (`what_moved`), so `target` may no longer hold; `route_to` is who should look.")
-    show("POST", f"/api/initiatives/payment-webhooks/reviews/{items[0]['id']}/resolve", who=("chandra", "human"), body={"resolution": "upheld", "note": "Refunds are a separate initiative; the draft holds."}, about="Resolve: `upheld` (still holds — say why) · `revised` · `dismissed`. `note` required.")
+    show("POST", f"/api/initiatives/payment-webhooks/reviews/{items[0]['id']}/resolve", who=("priya", "human"), body={"resolution": "upheld", "note": "Refunds are a separate initiative; the draft holds."}, about="Resolve: `upheld` (still holds — say why) · `revised` · `dismissed`. `note` required.")
 
     h("## Drift, gates, tasks (touchpoint 3)\n")
-    show("GET", "/api/initiatives/order-events/tasks/T-1", keep=3, about="**Task page**: the task (detail), its GATE_PR (rule by rule), its task-scoped drift report (full shape below), the approver, test runs, findings, deploys.")
-    show("GET", "/api/initiatives/order-events/drift", params={"task": "T-1"}, keep=3, about="The task-scoped drift report. Without `task`: the whole initiative. `baseline=B-n`: from an older baseline up to the next one.")
-    show("GET", "/api/initiatives/order-events/drift", params={"task": "T-1", "format": "md"}, raw=True, about="The same report as the PR's sticky comment.")
+    show("GET", "/api/initiatives/order-events/tasks/T-3", keep=3, about="**Task page**: the task (detail), its GATE_PR (rule by rule), its task-scoped drift report (full shape below), the approver, test runs, findings, deploys.")
+    show("GET", "/api/initiatives/inventory-sync-v3/drift", params={"task": "T-1"}, keep=3, about="The task-scoped drift report. Without `task`: the whole initiative. `baseline=B-n`: from an older baseline up to the next one.")
+    show("GET", "/api/initiatives/inventory-sync-v3/drift", params={"task": "T-1", "format": "md"}, raw=True, about="The same report as the PR's sticky comment.")
     show("GET", "/api/initiatives/order-events/drift", params={"task": "T-2"}, keep=1, title="GET /api/initiatives/order-events/drift?task=T-2 (CLEAN)", about="A task with nothing changed in its scope: `status: CLEAN`, `other_changes` counts the initiative's changes outside it.")
+    show("GET", "/api/initiatives/loyalty-expiry/drift", keep=2, title="GET /api/initiatives/loyalty-expiry/drift (UNEXPLAINED)", about="An agent changed AC-4 after approval citing finding F-1; a human then rejected F-1, so the change lost its reason: `status: UNEXPLAINED`, the entry's `explanation` says why, the draft is REOPENED and GATE_PR blocks.")
     show("GET", "/api/initiatives/payment-webhooks/drift", keep=2, title="GET /api/initiatives/payment-webhooks/drift (initiative scope)", about="Initiative scope after an AC retirement and a requirement re-pin by humans.")
     show("GET", "/api/initiatives/order-events/gates", keep=3, about="Every gate: initiative gates once, task gates per task. Each: `{gate, scope, target, status, human_role, text, rules[{name, passed, failing, detail, args}], note, failing_rules}`.")
     show("GET", "/api/initiatives/order-events/tasks/T-2/gates")
-    show("GET", "/api/deploy-guard", params={"initiative": "order-events", "task": "T-1", "sha": "9f3c2e1a7b4d", "environment": "staging"}, about="CI/CD asks before a deploy: `decision` GO | NO-GO, `reasons`, each check.")
-    show("POST", "/api/deploy-guard", who=("github-actions", "system"), body={"initiative": "order-events", "task": "T-1", "sha": "0000000", "environment": "production"}, about="Same check, recorded as a `deploy` row (`deploy` in the response).")
+    show("GET", "/api/deploy-guard", params={"initiative": "order-events", "task": "T-3", "sha": "a41c09e", "environment": "staging"}, about="CI/CD asks before a deploy: `decision` GO | NO-GO, `reasons`, each check.")
+    show("POST", "/api/deploy-guard", who=("github-actions", "system"), body={"initiative": "order-events", "task": "T-3", "sha": "0000000", "environment": "production"}, about="Same check, recorded as a `deploy` row (`deploy` in the response).")
 
     h("## Worklist, next work, leases\n")
-    show("GET", "/api/initiatives/refund-events/worklist", about="Every open item of an initiative, both lanes (`agent` / `human`), grouped by kind, with leases.")
+    show("GET", "/api/initiatives/menu-sync-retries/worklist", about="Every open item of an initiative, both lanes (`agent` / `human`), grouped by kind, with leases.")
     show("GET", "/api/initiatives/order-events/next-work", who=("runner-sdk", "agent"), keep=1, about="What the caller may take now (not leased by someone else), priority order, each with a `context` bundle. `?kind=` and `?person=` filter; `GET /api/next-work` spans all initiatives.")
     show("POST", "/api/leases/claim", who=("runner-sdk", "agent"), body={"item_key": "task:order-events:T-2", "ttl_min": 15}, about="Lease an item. 409 with `error_data {holder, expires_at}` when someone else holds it.")
     show("POST", "/api/leases/task:order-events:T-2/heartbeat", who=("runner-sdk", "agent"), body={"ttl_min": 30})
@@ -290,7 +291,7 @@ def main() -> None:
     h("## Global scope: standards and learnings\n")
     show("GET", "/api/standards")
     show("GET", "/api/learnings")
-    show("POST", "/api/learnings/L-1/promote", who=("chandra", "human"), about="**human** — promote a learning.")
+    show("POST", "/api/learnings/L-1/promote", who=("priya", "human"), about="**human** — promote a learning.")
     show("POST", "/api/global/records", who=("runner-sdk", "agent"), body={"agent": "retro-skill", "ops": [{"type": "learning", "fields": {"text": "Replay endpoints need idempotency keys.", "source": "payment-webhooks:AC-2", "provenance": "QA sign-off"}}]}, about="Write standards / learnings (global scope, refs `STD-n` / `L-n`). Same op shape as record writes.")
 
     (ROOT / "docs").mkdir(exist_ok=True)

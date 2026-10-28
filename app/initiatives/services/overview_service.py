@@ -78,10 +78,10 @@ class OverviewService:
         tasks = g.of_type("task")
         approved, stale = [], []
         for t in tasks:
-            if g.gate("GATE_PR", task=t.ref).status == "PASSED":
+            if t.status == "DONE" or g.gate("GATE_PR", task=t.ref).status == "PASSED":
                 approved.append(t.ref)
                 continue
-            mine = [a for a in g.of_type("approval") if t.ref in (g.f(a, "target") or [])]
+            mine = [a for a in g.of_type("approval") if t.ref in (g.f(a, "target") or [])]  # approvals of this task
             if mine and all(a.status == "STALE" for a in mine):
                 stale.append(t.ref)
         return {

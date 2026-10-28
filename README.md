@@ -30,13 +30,16 @@ Agents connect with the checked-in [`.mcp.json`](./.mcp.json), or
 `claude mcp add --transport http srs http://localhost:8791/mcp`. Without MCP:
 `scripts/srs.py <tool> '<json args>'` (`scripts/srs.py --tools` lists them).
 
-The demo (`make seed`): **order-events** — a draft with three decisions, a product gap
-answered by maya, baseline B-1 approved by chandra; mid-build T-1 hits a deviation (G-2:
-use the platform CDC pipeline), priya answers, the runner supersedes D-1 with D-4 and adds
-AC-5 *because* D-4; T-1's drift report shows that chain with 0 unexplained, priya approved
-it at the PR head and the deploy guard says GO; T-2's drift report is CLEAN. **refund-events**
-— still in DRAFT with an open, overdue product gap and an open MUST decision in maya's
-inbox. People: chandra (dri), priya and omar (engg), maya (product), leo (design), sam (qa).
+The demo (`make seed`) is the prototype's story, written through the real write path (so
+drift, gates, routing and the review queue are derived). People: arjun (engg), priya (DRI),
+meera (product), sam (QA), nikhil (engg; DRI of payouts-v2), rahul (DRI).
+**order-events** — B-1 approved by priya (D-1 outbox, D-2 provisional, AC-1..AC-7); T-3
+approved at `a41c09e`; T-1 paused on an open deviation G-2 for arjun (CDC recommended).
+**menu-sync-retries** — draft rev 2, product gap G-1 open for meera. **loyalty-expiry** —
+reopened: AC-4 was changed citing finding F-1, which nikhil then rejected. **payouts-v2** —
+STD-3 changed, so D-2 is up for review for arjun; T-3's PR waits on him. **store-hours-api**
+— validating, manual AC-10 waits on sam. **webhook-signing** — being drafted.
+**inventory-sync-v3** — shipped.
 
 ## The three human touchpoints
 

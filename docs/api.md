@@ -104,7 +104,7 @@ The three human touchpoints:
 
 ### GET /health
 
-`GET /health` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /health` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -118,7 +118,7 @@ Response:
 
 Record types (fields with limits, vocabularies, `actor: human`, typed-link `targets`), status vocabularies, `open` statuses, pill colours. Lists trimmed to 1 here; the real response has every type and field.
 
-`GET /api/blueprint` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/blueprint` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -377,7 +377,7 @@ Response:
 
 Phases, the derived-status rules (plain English), per-phase catalogs, gates with their rules, routing and SLAs.
 
-`GET /api/blueprint/lifecycle` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/blueprint/lifecycle` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -627,25 +627,48 @@ Response:
 
 Every initiative with phase, people, counts, baseline and drift summary.
 
-`GET /api/initiatives` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/initiatives` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
 ```json
 [
   {
-    "slug": "refund-events",
-    "title": "Refund events",
-    "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4307",
-    "created_by": "chandra",
-    "created_at": "2026-10-26T09:00:00Z",
+    "slug": "webhook-signing",
+    "title": "Partner webhook signing",
+    "work_item_url": null,
+    "created_by": "rahul",
+    "created_at": "2026-10-28T20:58:00Z",
     "closed_at": null,
-    "snapshot_hash": "5af69c931f5fef779dccc74e7f345e7a5893c914b230e7fe34fe1e9f62084450",
+    "snapshot_hash": "fb19baa328a2fbf1d4b40b4ffad1ed5601d0af570b75c7d026fe828cfd4355c9",
     "phase": "DRAFT",
     "pill": "amber",
     "summary": "",
-    "dri": "chandra",
-    "engg": "omar",
+    "dri": "rahul",
+    "engg": "nikhil",
+    "counts": {
+      "open_gaps": 0,
+      "open_decisions": 0,
+      "tasks": 0,
+      "tasks_done": 0,
+      "open_review_items": 0
+    },
+    "baseline": null,
+    "drift": null
+  },
+  {
+    "slug": "menu-sync-retries",
+    "title": "Menu sync retries",
+    "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4833",
+    "created_by": "priya",
+    "created_at": "2026-10-27T19:04:00Z",
+    "closed_at": null,
+    "snapshot_hash": "983736abb1d556c54f443d0981e7f949ee35c12ade6549f074e46a54e65b9a17",
+    "phase": "DRAFT",
+    "pill": "amber",
+    "summary": "",
+    "dri": "priya",
+    "engg": "arjun",
     "counts": {
       "open_gaps": 1,
       "open_decisions": 1,
@@ -656,74 +679,107 @@ Response:
     "baseline": null,
     "drift": null
   },
-  {
-    "slug": "order-events",
-    "title": "Order events via an outbox",
-    "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4211",
-    "created_by": "chandra",
-    "created_at": "2026-10-22T09:00:00Z",
-    "closed_at": null,
-    "snapshot_hash": "2499256f05741306b27d444332efe0bd4a78f9ff702bd7fddc0f101f754f39c3",
-    "phase": "BUILD",
-    "pill": "amber",
-    "summary": "Replace order-table polling with order events (CloudEvents via an outbox).",
-    "dri": "chandra",
-    "engg": "priya",
-    "counts": {
-      "open_gaps": 0,
-      "open_decisions": 0,
-      "tasks": 2,
-      "tasks_done": 0,
-      "open_review_items": 0
-    },
-    "baseline": "B-1",
-    "drift": {
-      "changes": 3,
-      "explained": 3,
-      "unexplained": 0,
-      "pending_gaps": 0,
-      "pending_decisions": 0,
-      "other_changes": 0
-    }
-  }
+  "… (+5 more)"
 ]
 ```
 
-### GET /api/overview?person=maya
+### GET /api/overview?person=arjun
 
 **The Features list in one read.** Per initiative: phase, `people` (role → person), `involved` (the `person` holds a role or has an item), `next` (the next open human item — yours first, then what blocks work — with `person` and a short `label`), `prs` (`approved`/`total`, `stale` task refs), `gate_draft.state` (`drafting` · `waiting` · `ready` · `approved` · `reopened`), `drift`, `updated_at` (latest revision or review move), `agents` (`queued`, `leased`, lease `holders`). Across initiatives: `waiting` (every routed human item, inbox-shaped, sorted for `person`), `decisions` (the same without task PR approvals) and `my_pr_approvals`.
 
-`GET /api/overview?person=maya` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/overview?person=arjun` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
 ```json
 {
-  "person": "maya",
+  "person": "arjun",
   "summary": {
-    "features": 2,
-    "decisions_waiting": 2,
-    "agents_working": 2,
-    "agents_leased": 0
+    "features": 7,
+    "decisions_waiting": 7,
+    "agents_working": 5,
+    "agents_leased": 3
   },
   "initiatives": [
     {
-      "slug": "refund-events",
-      "title": "Refund events",
-      "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4307",
-      "created_by": "chandra",
-      "created_at": "2026-10-26T09:00:00Z",
+      "slug": "webhook-signing",
+      "title": "Partner webhook signing",
+      "work_item_url": null,
+      "created_by": "rahul",
+      "created_at": "2026-10-28T20:58:00Z",
       "closed_at": null,
-      "snapshot_hash": "5af69c931f5fef779dccc74e7f345e7a5893c914b230e7fe34fe1e9f62084450",
+      "snapshot_hash": "fb19baa328a2fbf1d4b40b4ffad1ed5601d0af570b75c7d026fe828cfd4355c9",
       "phase": "DRAFT",
       "pill": "amber",
       "summary": "",
-      "dri": "chandra",
-      "engg": "omar",
+      "dri": "rahul",
+      "engg": "nikhil",
       "people": {
-        "dri": "chandra",
-        "engg": "omar",
-        "product": "maya"
+        "dri": "rahul",
+        "engg": "nikhil"
+      },
+      "involved": false,
+      "counts": {
+        "open_gaps": 0,
+        "open_decisions": 0,
+        "tasks": 0,
+        "tasks_done": 0,
+        "open_review_items": 0,
+        "waiting": 0
+      },
+      "next": null,
+      "prs": {
+        "total": 0,
+        "approved": 0,
+        "approved_refs": [],
+        "stale": [],
+        "with_pr": 0,
+        "done": 0
+      },
+      "gate_draft": {
+        "status": "BLOCKED",
+        "state": "drafting",
+        "failing_rules": [
+          "catalog_addressed"
+        ],
+        "draft_rev": null,
+        "draft_status": null
+      },
+      "baseline": null,
+      "drift": null,
+      "updated_at": "2026-10-28T20:58:00Z",
+      "agents": {
+        "queued": 0,
+        "leased": 1,
+        "holders": [
+          "runner-sdk/draft-from-ticket"
+        ],
+        "working": [
+          {
+            "kind": "draft",
+            "ref": null,
+            "holder": "runner-sdk/draft-from-ticket"
+          }
+        ]
+      }
+    },
+    {
+      "slug": "menu-sync-retries",
+      "title": "Menu sync retries",
+      "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4833",
+      "created_by": "priya",
+      "created_at": "2026-10-27T19:04:00Z",
+      "closed_at": null,
+      "snapshot_hash": "983736abb1d556c54f443d0981e7f949ee35c12ade6549f074e46a54e65b9a17",
+      "phase": "DRAFT",
+      "pill": "amber",
+      "summary": "",
+      "dri": "priya",
+      "engg": "arjun",
+      "people": {
+        "dri": "priya",
+        "engg": "arjun",
+        "product": "meera"
       },
       "involved": true,
       "counts": {
@@ -732,17 +788,17 @@ Response:
         "tasks": 0,
         "tasks_done": 0,
         "open_review_items": 0,
-        "waiting": 2
+        "waiting": 1
       },
       "next": {
-        "key": "gap:refund-events:G-1",
+        "key": "gap:menu-sync-retries:G-1",
         "kind": "gap",
         "ref": "G-1",
-        "person": "maya",
+        "person": "meera",
         "label": "G-1 · gap",
-        "title": "Partial refunds: one event or one per line?",
-        "overdue": true,
-        "due_at": "2026-10-27T11:30:00Z"
+        "title": "Is the retry budget per partner or global?",
+        "overdue": false,
+        "due_at": "2026-10-29T17:04:00Z"
       },
       "prs": {
         "total": 0,
@@ -757,15 +813,14 @@ Response:
         "state": "waiting",
         "failing_rules": [
           "no_open_decision_in_draft_scope",
-          "no_open_gap_blocking_draft",
-          "… (+2 more)"
+          "no_open_gap_blocking_draft"
         ],
-        "draft_rev": 1,
+        "draft_rev": 2,
         "draft_status": "DRAFTING"
       },
       "baseline": null,
       "drift": null,
-      "updated_at": "2026-10-26T11:30:00Z",
+      "updated_at": "2026-10-28T17:04:00Z",
       "agents": {
         "queued": 1,
         "leased": 0,
@@ -779,374 +834,283 @@ Response:
         ]
       }
     },
+    "… (+5 more)"
+  ],
+  "waiting": [
     {
-      "slug": "order-events",
-      "title": "Order events via an outbox",
-      "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4211",
-      "created_by": "chandra",
-      "created_at": "2026-10-22T09:00:00Z",
-      "closed_at": null,
-      "snapshot_hash": "2499256f05741306b27d444332efe0bd4a78f9ff702bd7fddc0f101f754f39c3",
-      "phase": "BUILD",
-      "pill": "amber",
-      "summary": "Replace order-table polling with order events (CloudEvents via an outbox).",
-      "dri": "chandra",
-      "engg": "priya",
-      "people": {
-        "dri": "chandra",
-        "engg": "priya",
-        "product": "maya",
-        "design": "leo",
-        "qa": "sam"
+      "key": "gap:order-events:G-2",
+      "kind": "gap",
+      "initiative": "order-events",
+      "initiative_title": "Order events for downstream consumers",
+      "ref": "G-2",
+      "route": {
+        "person": "arjun",
+        "role": "engg",
+        "domain": "engg",
+        "fallback": false
       },
-      "involved": true,
-      "counts": {
-        "open_gaps": 0,
-        "open_decisions": 0,
-        "tasks": 2,
-        "tasks_done": 0,
-        "open_review_items": 0,
-        "waiting": 0
+      "person": "arjun",
+      "since": "2026-10-28T19:04:00Z",
+      "age_hours": 2.0,
+      "sla_hours": 24,
+      "due_at": "2026-10-29T19:04:00Z",
+      "overdue": false,
+      "priority": 10,
+      "title": "The outbox table can't be added to the orders schema in time",
+      "record": {
+        "ref": "G-2",
+        "type": "gap",
+        "title": "The outbox table can't be added to the orders schema in time",
+        "status": "OPEN",
+        "pill": "red",
+        "line": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
+        "rev": 1,
+        "fields": {
+          "question": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
+          "kind": "deviation",
+          "domain": "engg",
+          "level": "MUST",
+          "asked_by": "runner-sdk/implement-task",
+          "why_now": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.",
+          "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
+          "options": [
+            {
+              "key": "separate-schema",
+              "label": "Outbox in a separate schema",
+              "consequence": "No cross-schema transaction, so delivery is no longer exactly-once (breaks STD-1: the DRI has to approve an exception)."
+            },
+            {
+              "key": "cdc",
+              "label": "CDC via Debezium on the orders table",
+              "consequence": "No new table. Exactly-once from the binlog. Adds a connector to run and a lag to watch."
+            },
+            "… (+1 more)"
+          ],
+          "recommendation": "cdc",
+          "recommendation_why": "Keeps exactly-once without touching the DBA-owned schema; platform already runs Debezium.",
+          "blocks": [
+            "D-1",
+            "T-1"
+          ],
+          "proposed_change": "D-1 verdict: outbox → CDC via Debezium on the orders table. Add AC: CDC lag over 5 s for 2 min fires the alert. LLD event delivery section rewritten."
+        },
+        "created_by": "runner-sdk/implement-task",
+        "created_at": "2026-10-28T19:04:00Z",
+        "updated_by": "runner-sdk/implement-task",
+        "updated_at": "2026-10-28T19:04:00Z"
       },
-      "next": null,
-      "prs": {
-        "total": 2,
-        "approved": 1,
-        "approved_refs": [
-          "T-1"
-        ],
-        "stale": [],
-        "with_pr": 2,
-        "done": 0
+      "question": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
+      "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
+      "options": [
+        {
+          "key": "separate-schema",
+          "label": "Outbox in a separate schema",
+          "consequence": "No cross-schema transaction, so delivery is no longer exactly-once (breaks STD-1: the DRI has to approve an exception)."
+        },
+        {
+          "key": "cdc",
+          "label": "CDC via Debezium on the orders table",
+          "consequence": "No new table. Exactly-once from the binlog. Adds a connector to run and a lag to watch."
+        },
+        "… (+1 more)"
+      ],
+      "recommendation": "cdc",
+      "recommendation_why": "Keeps exactly-once without touching the DBA-owned schema; platform already runs Debezium.",
+      "blocks": [
+        "D-1",
+        "T-1"
+      ],
+      "level": "MUST"
+    },
+    {
+      "key": "approval:payouts-v2:T-3",
+      "kind": "approval",
+      "initiative": "payouts-v2",
+      "initiative_title": "Payouts v2: refunds ledger",
+      "ref": "T-3",
+      "route": {
+        "person": "arjun",
+        "role": "engg",
+        "domain": null,
+        "fallback": false
       },
-      "gate_draft": {
-        "status": "PASSED",
-        "state": "approved",
-        "failing_rules": [],
-        "draft_rev": 1,
-        "draft_status": "APPROVED"
-      },
-      "baseline": "B-1",
+      "person": "arjun",
+      "since": "2026-10-27T18:04:00Z",
+      "age_hours": 27.0,
+      "sla_hours": 48,
+      "due_at": "2026-10-29T18:04:00Z",
+      "overdue": false,
+      "priority": 20,
+      "title": "Review the drift of T-3: Refunds ledger API",
+      "gate": "GATE_PR",
+      "role": "engg",
+      "target": "T-3",
+      "pr_url": "https://github.com/navanta/payouts-svc/pull/77",
+      "pr_sha": "e19b0c4",
       "drift": {
-        "changes": 3,
-        "explained": 3,
+        "changes": 1,
+        "explained": 1,
         "unexplained": 0,
         "pending_gaps": 0,
         "pending_decisions": 0,
         "other_changes": 0
       },
-      "updated_at": "2026-10-27T15:00:00Z",
-      "agents": {
-        "queued": 1,
-        "leased": 0,
-        "holders": [],
-        "working": [
-          {
-            "kind": "tests",
-            "ref": "T-2",
-            "holder": null
-          }
-        ]
-      }
-    }
-  ],
-  "waiting": [
-    {
-      "key": "gap:refund-events:G-1",
-      "kind": "gap",
-      "initiative": "refund-events",
-      "initiative_title": "Refund events",
-      "ref": "G-1",
-      "route": {
-        "person": "maya",
-        "role": "product",
-        "domain": "product",
-        "fallback": false
-      },
-      "person": "maya",
-      "since": "2026-10-26T11:30:00Z",
-      "age_hours": 57.5,
-      "sla_hours": 24,
-      "due_at": "2026-10-27T11:30:00Z",
-      "overdue": true,
-      "priority": 10,
-      "title": "Partial refunds: one event or one per line?",
-      "record": {
-        "ref": "G-1",
-        "type": "gap",
-        "title": "Partial refunds: one event or one per line?",
-        "status": "OPEN",
-        "pill": "red",
-        "line": "When a customer is refunded 2 of 5 items, does finance want one event or one per refunded line?",
-        "rev": 1,
-        "fields": {
-          "question": "When a customer is refunded 2 of 5 items, does finance want one event or one per refunded line?",
-          "kind": "unknown",
-          "domain": "product",
-          "asked_by": "runner-sdk/draft-skill",
-          "why_now": "D-2 (a MUST decision) cannot be ruled without it; the schema depends on it.",
-          "context": "Order 90311: 5 items, items 2 and 4 refunded (€18.40 + €6.10). Per-refund: one event, lines[2]. Per-line: two events. The provider report lists one row per refund, not per line.",
-          "options": [
-            {
-              "key": "per-refund",
-              "label": "One event per refund",
-              "consequence": "matches the provider report row for row"
-            },
-            {
-              "key": "per-line",
-              "label": "One event per line",
-              "consequence": "finance aggregates lines to match the report"
-            }
-          ],
-          "recommendation": "per-refund",
-          "recommendation_why": "Reconciliation is against the provider report, which is per refund.",
-          "blocks": [
-            "D-2"
-          ]
-        },
-        "created_by": "runner-sdk/draft-skill",
-        "created_at": "2026-10-26T11:30:00Z",
-        "updated_by": "runner-sdk/draft-skill",
-        "updated_at": "2026-10-26T11:30:00Z"
-      },
-      "question": "When a customer is refunded 2 of 5 items, does finance want one event or one per refunded line?",
-      "context": "Order 90311: 5 items, items 2 and 4 refunded (€18.40 + €6.10). Per-refund: one event, lines[2]. Per-line: two events. The provider report lists one row per refund, not per line.",
-      "options": [
-        {
-          "key": "per-refund",
-          "label": "One event per refund",
-          "consequence": "matches the provider report row for row"
-        },
-        {
-          "key": "per-line",
-          "label": "One event per line",
-          "consequence": "finance aggregates lines to match the report"
-        }
-      ],
-      "recommendation": "per-refund",
-      "recommendation_why": "Reconciliation is against the provider report, which is per refund.",
-      "blocks": [
-        "D-2"
-      ],
-      "level": "MUST"
+      "digest": "8fe2ace47793d29c3be4cb80d40418f055bc0a01e12b4cd5927e700efe458766",
+      "stale_approvals": []
     },
-    {
-      "key": "decision:refund-events:D-2",
-      "kind": "decision",
-      "initiative": "refund-events",
-      "initiative_title": "Refund events",
-      "ref": "D-2",
-      "route": {
-        "person": "maya",
-        "role": "product",
-        "domain": "product",
-        "fallback": false
-      },
-      "person": "maya",
-      "since": "2026-10-26T11:30:00Z",
-      "age_hours": 57.5,
-      "sla_hours": 24,
-      "due_at": "2026-10-27T11:30:00Z",
-      "overdue": true,
-      "priority": 10,
-      "title": "Partial refund granularity",
-      "record": {
-        "ref": "D-2",
-        "type": "decision",
-        "title": "Partial refund granularity",
-        "status": "OPEN",
-        "pill": "red",
-        "line": null,
-        "rev": 1,
-        "fields": {
-          "question": "Is a partial refund one event, or one event per refunded line?",
-          "domain": "product",
-          "level": "MUST",
-          "options": [
-            {
-              "name": "per-refund",
-              "consequences": "one event with a lines[] array",
-              "cost_risk": "finance sums lines"
-            },
-            {
-              "name": "per-line",
-              "consequences": "one event per refunded line",
-              "cost_risk": "more events; simpler sums"
-            }
-          ]
-        },
-        "created_by": "runner-sdk/draft-skill",
-        "created_at": "2026-10-26T11:30:00Z",
-        "updated_by": "runner-sdk/draft-skill",
-        "updated_at": "2026-10-26T11:30:00Z"
-      },
-      "question": "Is a partial refund one event, or one event per refunded line?",
-      "options": [
-        {
-          "name": "per-refund",
-          "consequences": "one event with a lines[] array",
-          "cost_risk": "finance sums lines"
-        },
-        {
-          "name": "per-line",
-          "consequences": "one event per refunded line",
-          "cost_risk": "more events; simpler sums"
-        }
-      ],
-      "provisional_verdict": null,
-      "level": "MUST",
-      "blocks": []
-    }
+    "… (+6 more)"
   ],
   "decisions": [
     {
-      "key": "gap:refund-events:G-1",
+      "key": "gap:order-events:G-2",
       "kind": "gap",
-      "initiative": "refund-events",
-      "initiative_title": "Refund events",
-      "ref": "G-1",
+      "initiative": "order-events",
+      "initiative_title": "Order events for downstream consumers",
+      "ref": "G-2",
       "route": {
-        "person": "maya",
-        "role": "product",
-        "domain": "product",
+        "person": "arjun",
+        "role": "engg",
+        "domain": "engg",
         "fallback": false
       },
-      "person": "maya",
-      "since": "2026-10-26T11:30:00Z",
-      "age_hours": 57.5,
+      "person": "arjun",
+      "since": "2026-10-28T19:04:00Z",
+      "age_hours": 2.0,
       "sla_hours": 24,
-      "due_at": "2026-10-27T11:30:00Z",
-      "overdue": true,
+      "due_at": "2026-10-29T19:04:00Z",
+      "overdue": false,
       "priority": 10,
-      "title": "Partial refunds: one event or one per line?",
+      "title": "The outbox table can't be added to the orders schema in time",
       "record": {
-        "ref": "G-1",
+        "ref": "G-2",
         "type": "gap",
-        "title": "Partial refunds: one event or one per line?",
+        "title": "The outbox table can't be added to the orders schema in time",
         "status": "OPEN",
         "pill": "red",
-        "line": "When a customer is refunded 2 of 5 items, does finance want one event or one per refunded line?",
+        "line": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
         "rev": 1,
         "fields": {
-          "question": "When a customer is refunded 2 of 5 items, does finance want one event or one per refunded line?",
-          "kind": "unknown",
-          "domain": "product",
-          "asked_by": "runner-sdk/draft-skill",
-          "why_now": "D-2 (a MUST decision) cannot be ruled without it; the schema depends on it.",
-          "context": "Order 90311: 5 items, items 2 and 4 refunded (€18.40 + €6.10). Per-refund: one event, lines[2]. Per-line: two events. The provider report lists one row per refund, not per line.",
+          "question": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
+          "kind": "deviation",
+          "domain": "engg",
+          "level": "MUST",
+          "asked_by": "runner-sdk/implement-task",
+          "why_now": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.",
+          "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
           "options": [
             {
-              "key": "per-refund",
-              "label": "One event per refund",
-              "consequence": "matches the provider report row for row"
+              "key": "separate-schema",
+              "label": "Outbox in a separate schema",
+              "consequence": "No cross-schema transaction, so delivery is no longer exactly-once (breaks STD-1: the DRI has to approve an exception)."
             },
             {
-              "key": "per-line",
-              "label": "One event per line",
-              "consequence": "finance aggregates lines to match the report"
-            }
+              "key": "cdc",
+              "label": "CDC via Debezium on the orders table",
+              "consequence": "No new table. Exactly-once from the binlog. Adds a connector to run and a lag to watch."
+            },
+            "… (+1 more)"
           ],
-          "recommendation": "per-refund",
-          "recommendation_why": "Reconciliation is against the provider report, which is per refund.",
+          "recommendation": "cdc",
+          "recommendation_why": "Keeps exactly-once without touching the DBA-owned schema; platform already runs Debezium.",
           "blocks": [
-            "D-2"
-          ]
+            "D-1",
+            "T-1"
+          ],
+          "proposed_change": "D-1 verdict: outbox → CDC via Debezium on the orders table. Add AC: CDC lag over 5 s for 2 min fires the alert. LLD event delivery section rewritten."
         },
-        "created_by": "runner-sdk/draft-skill",
-        "created_at": "2026-10-26T11:30:00Z",
-        "updated_by": "runner-sdk/draft-skill",
-        "updated_at": "2026-10-26T11:30:00Z"
+        "created_by": "runner-sdk/implement-task",
+        "created_at": "2026-10-28T19:04:00Z",
+        "updated_by": "runner-sdk/implement-task",
+        "updated_at": "2026-10-28T19:04:00Z"
       },
-      "question": "When a customer is refunded 2 of 5 items, does finance want one event or one per refunded line?",
-      "context": "Order 90311: 5 items, items 2 and 4 refunded (€18.40 + €6.10). Per-refund: one event, lines[2]. Per-line: two events. The provider report lists one row per refund, not per line.",
+      "question": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
+      "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
       "options": [
         {
-          "key": "per-refund",
-          "label": "One event per refund",
-          "consequence": "matches the provider report row for row"
+          "key": "separate-schema",
+          "label": "Outbox in a separate schema",
+          "consequence": "No cross-schema transaction, so delivery is no longer exactly-once (breaks STD-1: the DRI has to approve an exception)."
         },
         {
-          "key": "per-line",
-          "label": "One event per line",
-          "consequence": "finance aggregates lines to match the report"
-        }
+          "key": "cdc",
+          "label": "CDC via Debezium on the orders table",
+          "consequence": "No new table. Exactly-once from the binlog. Adds a connector to run and a lag to watch."
+        },
+        "… (+1 more)"
       ],
-      "recommendation": "per-refund",
-      "recommendation_why": "Reconciliation is against the provider report, which is per refund.",
+      "recommendation": "cdc",
+      "recommendation_why": "Keeps exactly-once without touching the DBA-owned schema; platform already runs Debezium.",
       "blocks": [
-        "D-2"
+        "D-1",
+        "T-1"
       ],
       "level": "MUST"
     },
     {
-      "key": "decision:refund-events:D-2",
-      "kind": "decision",
-      "initiative": "refund-events",
-      "initiative_title": "Refund events",
-      "ref": "D-2",
+      "key": "review_item:payouts-v2:22",
+      "kind": "review_item",
+      "initiative": "payouts-v2",
+      "initiative_title": "Payouts v2: refunds ledger",
+      "ref": "22",
       "route": {
-        "person": "maya",
-        "role": "product",
-        "domain": "product",
+        "person": "arjun",
+        "role": "engg",
+        "domain": "engg",
         "fallback": false
       },
-      "person": "maya",
-      "since": "2026-10-26T11:30:00Z",
-      "age_hours": 57.5,
-      "sla_hours": 24,
-      "due_at": "2026-10-27T11:30:00Z",
-      "overdue": true,
-      "priority": 10,
-      "title": "Partial refund granularity",
-      "record": {
-        "ref": "D-2",
-        "type": "decision",
-        "title": "Partial refund granularity",
-        "status": "OPEN",
-        "pill": "red",
-        "line": null,
-        "rev": 1,
-        "fields": {
-          "question": "Is a partial refund one event, or one event per refunded line?",
-          "domain": "product",
-          "level": "MUST",
-          "options": [
-            {
-              "name": "per-refund",
-              "consequences": "one event with a lines[] array",
-              "cost_risk": "finance sums lines"
-            },
-            {
-              "name": "per-line",
-              "consequences": "one event per refunded line",
-              "cost_risk": "more events; simpler sums"
-            }
-          ]
-        },
-        "created_by": "runner-sdk/draft-skill",
-        "created_at": "2026-10-26T11:30:00Z",
-        "updated_by": "runner-sdk/draft-skill",
-        "updated_at": "2026-10-26T11:30:00Z"
-      },
-      "question": "Is a partial refund one event, or one event per refunded line?",
-      "options": [
-        {
-          "name": "per-refund",
-          "consequences": "one event with a lines[] array",
-          "cost_risk": "finance sums lines"
-        },
-        {
-          "name": "per-line",
-          "consequences": "one event per refunded line",
-          "cost_risk": "more events; simpler sums"
-        }
-      ],
-      "provisional_verdict": null,
-      "level": "MUST",
-      "blocks": []
-    }
+      "person": "arjun",
+      "since": "2026-10-28T01:04:00Z",
+      "age_hours": 20.0,
+      "sla_hours": 48,
+      "due_at": "2026-10-30T01:04:00Z",
+      "overdue": false,
+      "priority": 30,
+      "title": "D-2 ← G-1: does it still hold?",
+      "review_item_id": 22,
+      "target": "D-2",
+      "cause": "G-1",
+      "what_moved": "status OPEN → ANSWERED"
+    },
+    "… (+5 more)"
   ],
-  "my_pr_approvals": []
+  "my_pr_approvals": [
+    {
+      "key": "approval:payouts-v2:T-3",
+      "kind": "approval",
+      "initiative": "payouts-v2",
+      "initiative_title": "Payouts v2: refunds ledger",
+      "ref": "T-3",
+      "route": {
+        "person": "arjun",
+        "role": "engg",
+        "domain": null,
+        "fallback": false
+      },
+      "person": "arjun",
+      "since": "2026-10-27T18:04:00Z",
+      "age_hours": 27.0,
+      "sla_hours": 48,
+      "due_at": "2026-10-29T18:04:00Z",
+      "overdue": false,
+      "priority": 20,
+      "title": "Review the drift of T-3: Refunds ledger API",
+      "gate": "GATE_PR",
+      "role": "engg",
+      "target": "T-3",
+      "pr_url": "https://github.com/navanta/payouts-svc/pull/77",
+      "pr_sha": "e19b0c4",
+      "drift": {
+        "changes": 1,
+        "explained": 1,
+        "unexplained": 0,
+        "pending_gaps": 0,
+        "pending_decisions": 0,
+        "other_changes": 0
+      },
+      "digest": "8fe2ace47793d29c3be4cb80d40418f055bc0a01e12b4cd5927e700efe458766",
+      "stale_approvals": []
+    }
+  ]
 }
 ```
 
@@ -1154,7 +1118,7 @@ Response:
 
 **Start a feature** (the intake; `/new`). `requirement` (markdown), `title`, `dri`, `engg` are required; `slug` defaults from the title; `work_item_url` (Azure DevOps link), `product`, `design`, `qa`, `prd_refs` are optional. Pins `spec_snapshot` with its hash and writes the assignments. Returns the same body as `GET /api/initiatives/{slug}`. 422 lists every missing field in `error_data.errors`; 409 if an explicit `slug` exists.
 
-`POST /api/initiatives` — X-Actor: chandra · X-Actor-Kind: human → **201**
+`POST /api/initiatives` — X-Actor: priya · X-Actor-Kind: human → **201**
 
 Request:
 
@@ -1163,9 +1127,9 @@ Request:
   "title": "Payment webhooks",
   "requirement": "# Payment webhooks\nMerchants want a webhook when a payment settles.",
   "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
-  "dri": "chandra",
-  "engg": "priya",
-  "product": "maya",
+  "dri": "priya",
+  "engg": "arjun",
+  "product": "meera",
   "qa": "sam"
 }
 ```
@@ -1178,25 +1142,25 @@ Response:
     "slug": "payment-webhooks",
     "title": "Payment webhooks",
     "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
-    "created_by": "chandra",
-    "created_at": "2026-10-28T20:57:02Z",
+    "created_by": "priya",
+    "created_at": "2026-10-28T21:04:59Z",
     "closed_at": null,
-    "snapshot_hash": "b835450258d62ac782e2582e0efbbe31afd448f3d9e96b7495dfee02c5093bef",
+    "snapshot_hash": "4819a51d18b1885e7069af337413116f0b43c40c2e62aa11f9be548b464a1d0f",
     "phase": "DRAFT",
     "pill": "amber",
     "summary": "",
     "spec_snapshot": {
       "requirement": "# Payment webhooks\nMerchants want a webhook when a payment settles.",
       "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
-      "created_by": "chandra",
-      "at": "2026-10-28T20:57:02Z"
+      "created_by": "priya",
+      "at": "2026-10-28T21:04:59Z"
     }
   },
   "phase": "DRAFT",
   "assignments": [
     {
       "ref": "A-1",
-      "person": "chandra",
+      "person": "priya",
       "role": "dri",
       "scope": [
         "initiative"
@@ -1205,7 +1169,7 @@ Response:
     },
     {
       "ref": "A-2",
-      "person": "priya",
+      "person": "arjun",
       "role": "engg",
       "scope": [
         "initiative"
@@ -1367,7 +1331,7 @@ Response:
 
 **Initiative state**: the initiative with its `spec_snapshot`, `phase`, assignments, initiative-scope gates (rule by rule), tasks with their GATE_PR status and drift summary, counts by type and status, open refs, the current baseline, drift summary, stale narratives, and every catalog (phase → items with `disposition`: `addressed` · `not_applicable` · `UNASSESSED`).
 
-`GET /api/initiatives/order-events` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/initiatives/order-events` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -1375,27 +1339,27 @@ Response:
 {
   "initiative": {
     "slug": "order-events",
-    "title": "Order events via an outbox",
-    "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4211",
-    "created_by": "chandra",
-    "created_at": "2026-10-22T09:00:00Z",
+    "title": "Order events for downstream consumers",
+    "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4821",
+    "created_by": "priya",
+    "created_at": "2026-10-22T21:04:00Z",
     "closed_at": null,
-    "snapshot_hash": "2499256f05741306b27d444332efe0bd4a78f9ff702bd7fddc0f101f754f39c3",
+    "snapshot_hash": "c6c6167c468f9e6860e0a12e3247939ad3f6e3b0e28e0d4c0c535a024407415f",
     "phase": "BUILD",
     "pill": "amber",
-    "summary": "Replace order-table polling with order events (CloudEvents via an outbox).",
+    "summary": "",
     "spec_snapshot": {
-      "requirement": "# Order events\n\nDownstream services (billing, notifications, analytics) poll the `orders` table every\n30 seconds to find state changes. Polling costs ~400 QPS on the primary and adds up to 30s\nof late…",
-      "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4211",
-      "created_by": "chandra",
-      "at": "2026-10-22T09:00:00Z"
+      "requirement": "# Order events for downstream consumers\n\nNotifications-svc polls the orders database every minute to find new and cancelled orders.\nEmails go out late, and the polling query is the orders DB's top loa…",
+      "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4821",
+      "created_by": "priya",
+      "at": "2026-10-22T21:04:00Z"
     }
   },
   "phase": "BUILD",
   "assignments": [
     {
       "ref": "A-1",
-      "person": "chandra",
+      "person": "priya",
       "role": "dri",
       "scope": [
         "initiative"
@@ -1404,7 +1368,7 @@ Response:
     },
     {
       "ref": "A-2",
-      "person": "priya",
+      "person": "arjun",
       "role": "engg",
       "scope": [
         "initiative"
@@ -1413,14 +1377,14 @@ Response:
     },
     {
       "ref": "A-3",
-      "person": "maya",
+      "person": "meera",
       "role": "product",
       "scope": [
         "initiative"
       ],
       "status": "ACTIVE"
     },
-    "… (+2 more)"
+    "… (+1 more)"
   ],
   "gates": [
     {
@@ -1440,9 +1404,11 @@ Response:
         },
         {
           "name": "no_open_gap_blocking_draft",
-          "passed": true,
-          "failing": [],
-          "detail": "",
+          "passed": false,
+          "failing": [
+            "G-2"
+          ],
+          "detail": "OPEN gaps block the spec",
           "args": {}
         },
         {
@@ -1454,8 +1420,10 @@ Response:
         },
         "… (+4 more)"
       ],
-      "note": "",
-      "failing_rules": []
+      "note": "approved; preconditions that fail now are mid-build work, not a reopened draft",
+      "failing_rules": [
+        "no_open_gap_blocking_draft"
+      ]
     },
     {
       "gate": "GATE_VALIDATED",
@@ -1469,17 +1437,21 @@ Response:
           "name": "every_ac_green",
           "passed": false,
           "failing": [
+            "AC-1",
+            "AC-2",
             "AC-3",
-            "AC-4"
+            "… (+2 more)"
           ],
           "detail": "ACs whose latest covering run is not GREEN",
           "args": {}
         },
         {
           "name": "manual_acs_signed_by",
-          "passed": true,
-          "failing": [],
-          "detail": "",
+          "passed": false,
+          "failing": [
+            "AC-6"
+          ],
+          "detail": "manual ACs not signed by qa",
           "args": {
             "role": "qa"
           }
@@ -1494,7 +1466,8 @@ Response:
       ],
       "note": "",
       "failing_rules": [
-        "every_ac_green"
+        "every_ac_green",
+        "manual_acs_signed_by"
       ]
     }
   ],
@@ -1502,78 +1475,28 @@ Response:
     {
       "ref": "T-1",
       "type": "task",
-      "title": "CDC transformer to order-events",
-      "status": "IN_REVIEW",
-      "pill": "amber",
-      "line": "Map Debezium order row changes to CloudEvents on order-events",
-      "rev": 3,
+      "title": "Outbox table and relay",
+      "status": "BLOCKED",
+      "pill": "red",
+      "line": "Write the event row in the order transaction and relay it to orders.events",
+      "rev": 1,
       "fields": {
-        "goal": "Map Debezium order row changes to CloudEvents on order-events",
-        "repo": "acme/orders-service",
+        "goal": "Write the event row in the order transaction and relay it to orders.events",
+        "repo": "orders-service",
         "template": "python-service-v3",
         "implements": [
-          "D-2",
-          "D-4"
+          "D-1"
         ],
         "covers": [
-          "AC-1",
           "AC-2",
-          "AC-5"
+          "AC-3"
         ],
-        "rollback": "Turn off order_events.enabled; the relay stops, the outbox drains on re-enable.",
-        "pr_url": "https://github.com/acme/orders-service/pull/482",
-        "pr_state": "open",
-        "pr_sha": "9f3c2e1a7b4d",
-        "ci_attempts": "1",
-        "review_rounds": "1",
-        "tracker_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4212"
+        "rollback": "Revert the PR; the change is behind a flag."
       },
-      "created_by": "runner-sdk/plan-skill",
-      "created_at": "2026-10-24T09:20:00Z",
-      "updated_by": "runner-sdk/implement-task",
-      "updated_at": "2026-10-26T16:45:00Z",
-      "gate_pr": {
-        "status": "PASSED",
-        "failing_rules": []
-      },
-      "drift": {
-        "changes": 3,
-        "explained": 3,
-        "unexplained": 0,
-        "pending_gaps": 0,
-        "pending_decisions": 0,
-        "other_changes": 0
-      }
-    },
-    {
-      "ref": "T-2",
-      "type": "task",
-      "title": "Envelope, partitioning and retention",
-      "status": "IN_PROGRESS",
-      "pill": "amber",
-      "line": "CloudEvents envelope with order_id partition key; 7-day topic retention",
-      "rev": 2,
-      "fields": {
-        "goal": "CloudEvents envelope with order_id partition key; 7-day topic retention",
-        "repo": "acme/event-contracts",
-        "template": "contracts-lib",
-        "implements": [
-          "D-2",
-          "D-3"
-        ],
-        "covers": [
-          "AC-3",
-          "AC-4"
-        ],
-        "rollback": "Revert the contract version; the topic config is idempotent.",
-        "pr_url": "https://github.com/acme/event-contracts/pull/91",
-        "pr_state": "draft",
-        "pr_sha": "c41d09e2"
-      },
-      "created_by": "runner-sdk/plan-skill",
-      "created_at": "2026-10-24T09:20:00Z",
-      "updated_by": "runner-sdk/implement-task",
-      "updated_at": "2026-10-27T15:00:00Z",
+      "created_by": "runner-sdk/plan-to-tasks",
+      "created_at": "2026-10-24T01:04:00Z",
+      "updated_by": "runner-sdk/plan-to-tasks",
+      "updated_at": "2026-10-24T01:04:00Z",
       "gate_pr": {
         "status": "BLOCKED",
         "failing_rules": [
@@ -1586,43 +1509,132 @@ Response:
         "changes": 0,
         "explained": 0,
         "unexplained": 0,
-        "pending_gaps": 0,
+        "pending_gaps": 1,
         "pending_decisions": 0,
-        "other_changes": 3
+        "other_changes": 0
       }
-    }
+    },
+    {
+      "ref": "T-2",
+      "type": "task",
+      "title": "Emit created and cancelled",
+      "status": "BLOCKED",
+      "pill": "red",
+      "line": "Publish order.created and order.cancelled envelopes",
+      "rev": 1,
+      "fields": {
+        "goal": "Publish order.created and order.cancelled envelopes",
+        "repo": "orders-service",
+        "template": "python-service-v3",
+        "implements": [
+          "D-1",
+          "D-2"
+        ],
+        "covers": [
+          "AC-1",
+          "AC-7"
+        ],
+        "depends_on": [
+          "T-1"
+        ],
+        "rollback": "Revert the PR; the change is behind a flag."
+      },
+      "created_by": "runner-sdk/plan-to-tasks",
+      "created_at": "2026-10-24T01:04:00Z",
+      "updated_by": "runner-sdk/plan-to-tasks",
+      "updated_at": "2026-10-24T01:04:00Z",
+      "gate_pr": {
+        "status": "BLOCKED",
+        "failing_rules": [
+          "pr_state_in",
+          "every_covered_ac_has_a_test",
+          "approval_by_role"
+        ]
+      },
+      "drift": {
+        "changes": 0,
+        "explained": 0,
+        "unexplained": 0,
+        "pending_gaps": 1,
+        "pending_decisions": 0,
+        "other_changes": 0
+      }
+    },
+    {
+      "ref": "T-3",
+      "type": "task",
+      "title": "Topic, IAM and lag dashboard",
+      "status": "IN_REVIEW",
+      "pill": "amber",
+      "line": "Create orders.events, the notifications-svc read role and the lag dashboard",
+      "rev": 2,
+      "fields": {
+        "goal": "Create orders.events, the notifications-svc read role and the lag dashboard",
+        "repo": "infra-terraform",
+        "template": "terraform-module",
+        "implements": [
+          "D-1"
+        ],
+        "covers": [
+          "AC-4",
+          "AC-6"
+        ],
+        "rollback": "terraform destroy of the new module; nothing else depends on it yet.",
+        "pr_url": "https://github.com/navanta/infra-terraform/pull/212",
+        "pr_state": "open",
+        "pr_sha": "a41c09e",
+        "ci_attempts": "1",
+        "review_rounds": "1"
+      },
+      "created_by": "runner-sdk/plan-to-tasks",
+      "created_at": "2026-10-24T01:04:00Z",
+      "updated_by": "runner-sdk/implement-task",
+      "updated_at": "2026-10-26T21:04:00Z",
+      "gate_pr": {
+        "status": "PASSED",
+        "failing_rules": []
+      },
+      "drift": {
+        "changes": 0,
+        "explained": 0,
+        "unexplained": 0,
+        "pending_gaps": 1,
+        "pending_decisions": 0,
+        "other_changes": 0
+      }
+    },
+    "… (+1 more)"
   ],
   "counts": {
     "initiative": {
       "BUILD": 1
     },
     "assignment": {
-      "ACTIVE": 5
+      "ACTIVE": 4
     },
     "draft": {
       "APPROVED": 1
     },
     "decision": {
-      "SUPERSEDED": 1,
-      "DECIDED": 2,
+      "DECIDED": 1,
       "PROVISIONAL": 1
     },
     "gap": {
-      "ANSWERED": 2
+      "ANSWERED": 1,
+      "OPEN": 1
     },
     "acceptance_criterion": {
-      "APPROVED": 4,
-      "ADDED_AFTER_BASELINE": 1
+      "APPROVED": 7
     },
     "task": {
-      "IN_REVIEW": 1,
-      "IN_PROGRESS": 1
+      "BLOCKED": 3,
+      "IN_REVIEW": 1
+    },
+    "finding": {
+      "FIXED": 1
     },
     "test_run": {
       "GREEN": 1
-    },
-    "deploy": {
-      "PENDING": 1
     },
     "approval": {
       "CURRENT": 2
@@ -1633,35 +1645,36 @@ Response:
   },
   "open": {
     "decisions": [],
-    "gaps": [],
+    "gaps": [
+      "G-2"
+    ],
     "review_items": 0
   },
   "stuck": [],
   "baseline": {
     "ref": "B-1",
-    "label": "B-1 — draft rev 1 approved by chandra",
+    "label": "B-1 — draft rev 3 approved by priya",
     "status": "CURRENT",
     "approval": "APR-1",
-    "approved_by": "chandra",
-    "draft_rev": "1",
+    "approved_by": "priya",
+    "draft_rev": "3",
     "members": [
       "draft",
       "D-1",
       "D-2",
-      "… (+6 more)"
+      "… (+8 more)"
     ],
-    "created_at": "2026-10-23T15:40:00Z"
+    "created_at": "2026-10-23T23:04:00Z"
   },
   "drift": {
-    "changes": 3,
-    "explained": 3,
+    "changes": 0,
+    "explained": 0,
     "unexplained": 0,
-    "pending_gaps": 0,
+    "pending_gaps": 1,
     "pending_decisions": 0,
     "other_changes": 0
   },
   "stale": [
-    "initiative.summary",
     "draft.summary"
   ],
   "catalog": {
@@ -1701,7 +1714,7 @@ Response:
         "text": "threats, data classification, authn/z touched",
         "derived": false,
         "disposition": "addressed",
-        "note": "Events carry order ids and states only; no PII. Bus topic ACL limited to the consumers listed in the HLD.",
+        "note": "AC-4: only notifications-svc reads the topic; payloads carry ids and states only.",
         "refs": ""
       },
       {
@@ -1710,7 +1723,7 @@ Response:
         "text": "how a bad deploy is undone",
         "derived": false,
         "disposition": "addressed",
-        "note": "Feature flag order_events.enabled; consumers keep polling until the flag has been on for 7 days.",
+        "note": "HLD: stop the relay; the event table is additive.",
         "refs": ""
       },
       {
@@ -1719,7 +1732,7 @@ Response:
         "text": "metrics, logs, alerts that show it works",
         "derived": false,
         "disposition": "addressed",
-        "note": "Publish lag p99, relay errors, events/s per type; alert on lag > 5s for 5 min.",
+        "note": "AC-6: publish lag per topic on the ops dashboard.",
         "refs": ""
       },
       "… (+2 more)"
@@ -1749,32 +1762,32 @@ Response:
 }
 ```
 
-### GET /api/initiatives/refund-events/draft
+### GET /api/initiatives/menu-sync-retries/draft
 
 **Draft review page** (touchpoint 1). `can_approve`, `approval_blockers[{rule, failing, detail}]` and `approver` drive the Approve button.
 
-`GET /api/initiatives/refund-events/draft` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/initiatives/menu-sync-retries/draft` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
 ```json
 {
   "initiative": {
-    "slug": "refund-events",
-    "title": "Refund events",
-    "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4307",
-    "created_by": "chandra",
-    "created_at": "2026-10-26T09:00:00Z",
+    "slug": "menu-sync-retries",
+    "title": "Menu sync retries",
+    "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4833",
+    "created_by": "priya",
+    "created_at": "2026-10-27T19:04:00Z",
     "closed_at": null,
-    "snapshot_hash": "5af69c931f5fef779dccc74e7f345e7a5893c914b230e7fe34fe1e9f62084450",
+    "snapshot_hash": "983736abb1d556c54f443d0981e7f949ee35c12ade6549f074e46a54e65b9a17",
     "phase": "DRAFT",
     "pill": "amber",
     "summary": "",
     "spec_snapshot": {
-      "requirement": "# Refund events\nFinance needs an event per refund (full and partial) to reconcile payouts daily. Today they export CSVs from the admin.\n\n- One event per refund state change.\n- Must reconcile to the pa…",
-      "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4307",
-      "created_by": "chandra",
-      "at": "2026-10-26T09:00:00Z"
+      "requirement": "# Menu sync retries\nMenu pushes to partners fail on timeouts and are never retried, so stores show stale menus until someone pushes again by hand.\n\n**Done:** failed pushes retry on their own and no st…",
+      "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4833",
+      "created_by": "priya",
+      "at": "2026-10-27T19:04:00Z"
     }
   },
   "draft": {
@@ -1784,23 +1797,35 @@ Response:
     "status": "DRAFTING",
     "pill": "amber",
     "line": null,
-    "rev": 1,
+    "rev": 2,
     "fields": {
-      "problem": "Finance reconciles refunds from CSV exports. Done = every refund state change is an event that reconciles to the provider report.",
-      "hld": "CDC on `refunds` (D-1) through the order-events transformer; granularity per D-2 (open).",
-      "test_strategy": "Integration tests with the provider sandbox; a reconciliation test over a fixed day of refunds.",
+      "problem": "Menu pushes to partners fail on timeouts and are never retried, so stores show stale menus until someone pushes again by hand. Done means failed pushes retry on their own and no store shows a menu mor…",
+      "hld": "Failed pushes go to a delayed queue in the menu-sync worker (D-1) with exponential backoff and jitter, as STD-2 requires. A retry budget (D-2, scope pending G-1) stops one partner from flooding the qu…",
+      "lld": "- `retry_queue(partner_id, menu_version, attempt, next_at)`\n- Backoff 30 s, 2 min, 8 min with ±20% jitter.\n- Each push carries menu_version; the partner adapter drops any version older than the last o…",
+      "scope_in": [
+        "retries for menu pushes",
+        "the budget",
+        "… (+2 more)"
+      ],
+      "scope_out": [
+        "retries for order or inventory pushes",
+        "partner-side changes"
+      ],
+      "test_strategy": "Integration: a fake partner that times out N times, checking retries, ordering and the alert. Unit: backoff schedule and version ordering. Manual: QA checks the queue-depth panel.",
       "decisions": [
         "D-1",
         "D-2"
       ],
       "criteria": [
-        "AC-1"
+        "AC-1",
+        "AC-2",
+        "… (+2 more)"
       ]
     },
-    "created_by": "runner-sdk/draft-skill",
-    "created_at": "2026-10-26T11:30:00Z",
-    "updated_by": "runner-sdk/draft-skill",
-    "updated_at": "2026-10-26T11:30:00Z",
+    "created_by": "runner-sdk/draft-from-ticket",
+    "created_at": "2026-10-27T21:04:00Z",
+    "updated_by": "runner-sdk/draft-from-ticket",
+    "updated_at": "2026-10-28T17:04:00Z",
     "links": {
       "out": [
         {
@@ -1811,35 +1836,55 @@ Response:
           "kind": "contains",
           "to": "D-2"
         },
-        "… (+3 more)"
+        "… (+8 more)"
       ],
-      "in": []
+      "in": [
+        {
+          "kind": "blocks",
+          "from": "G-1"
+        }
+      ]
     },
     "stamps": {
       "problem": {
-        "by": "runner-sdk/draft-skill",
+        "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-26T11:30:00"
+        "at": "2026-10-27T21:04:00"
       },
       "hld": {
-        "by": "runner-sdk/draft-skill",
+        "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-26T11:30:00"
+        "at": "2026-10-28T17:04:00"
+      },
+      "lld": {
+        "by": "runner-sdk/draft-from-ticket",
+        "kind": "agent",
+        "at": "2026-10-27T21:04:00"
+      },
+      "scope_in": {
+        "by": "runner-sdk/draft-from-ticket",
+        "kind": "agent",
+        "at": "2026-10-27T21:04:00"
+      },
+      "scope_out": {
+        "by": "runner-sdk/draft-from-ticket",
+        "kind": "agent",
+        "at": "2026-10-27T21:04:00"
       },
       "test_strategy": {
-        "by": "runner-sdk/draft-skill",
+        "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-26T11:30:00"
+        "at": "2026-10-27T21:04:00"
       },
       "decisions": {
-        "by": "runner-sdk/draft-skill",
+        "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-26T11:30:00"
+        "at": "2026-10-27T21:04:00"
       },
       "criteria": {
-        "by": "runner-sdk/draft-skill",
+        "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-26T11:30:00"
+        "at": "2026-10-27T21:04:00"
       }
     },
     "stale": [],
@@ -1849,26 +1894,44 @@ Response:
     {
       "ref": "D-1",
       "type": "decision",
-      "title": "Reuse the order-events pipeline",
+      "title": "Delayed queue in the menu-sync worker",
       "status": "DECIDED",
       "pill": "green",
-      "line": "Reuse the CDC pipeline from order-events (D-4 there) on the refunds table",
+      "line": "Delayed queue in the menu-sync worker",
       "rev": 1,
       "fields": {
-        "question": "Do refund events get their own pipeline?",
+        "question": "Where do retries run?",
         "domain": "engg",
         "level": "SHOULD",
-        "verdict": "Reuse the CDC pipeline from order-events (D-4 there) on the refunds table",
-        "rationale": "Same delivery guarantees; one pipeline to operate.",
+        "options": [
+          {
+            "name": "delayed queue",
+            "consequences": "Reuses the worker; backoff is a queue delay",
+            "cost_risk": "low"
+          },
+          {
+            "name": "cron re-push",
+            "consequences": "Simple; menus can be up to 15 minutes stale",
+            "cost_risk": "staleness"
+          },
+          "… (+1 more)"
+        ],
+        "verdict": "Delayed queue in the menu-sync worker",
+        "rationale": "Cites STD-2 retries with backoff and jitter; reuses the worker.",
         "decided_by": "runner-sdk/draft-skill",
-        "decided_on": "2026-10-26"
+        "decided_on": "2026-10-27"
       },
-      "created_by": "runner-sdk/draft-skill",
-      "created_at": "2026-10-26T11:30:00Z",
-      "updated_by": "runner-sdk/draft-skill",
-      "updated_at": "2026-10-26T11:30:00Z",
+      "created_by": "runner-sdk/draft-from-ticket",
+      "created_at": "2026-10-27T21:04:00Z",
+      "updated_by": "runner-sdk/draft-from-ticket",
+      "updated_at": "2026-10-27T21:04:00Z",
       "links": {
-        "out": [],
+        "out": [
+          {
+            "kind": "mentions",
+            "to": "STD-2"
+          }
+        ],
         "in": [
           {
             "kind": "contains",
@@ -1878,82 +1941,88 @@ Response:
             "kind": "mentions",
             "from": "draft"
           },
-          "… (+1 more)"
+          "… (+2 more)"
         ]
       },
       "stamps": {
         "question": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-27T21:04:00"
         },
         "domain": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-27T21:04:00"
         },
         "level": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-27T21:04:00"
+        },
+        "options": {
+          "by": "runner-sdk/draft-from-ticket",
+          "kind": "agent",
+          "at": "2026-10-27T21:04:00"
         },
         "verdict": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-27T21:04:00"
         },
         "rationale": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-27T21:04:00"
         },
         "decided_by": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-27T21:04:00"
         },
         "decided_on": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-27T21:04:00"
         }
       },
       "stale": [],
       "review_items": [],
       "superseded_by": [],
       "sourced_acs": [
-        "AC-1"
+        "AC-1",
+        "AC-3"
       ]
     },
     {
       "ref": "D-2",
       "type": "decision",
-      "title": "Partial refund granularity",
+      "title": "Retry budget scope",
       "status": "OPEN",
       "pill": "red",
       "line": null,
       "rev": 1,
       "fields": {
-        "question": "Is a partial refund one event, or one event per refunded line?",
+        "question": "What does the retry budget cover?",
         "domain": "product",
-        "level": "MUST",
+        "level": "SHOULD",
         "options": [
           {
-            "name": "per-refund",
-            "consequences": "one event with a lines[] array",
-            "cost_risk": "finance sums lines"
+            "name": "per partner",
+            "consequences": "One flaky partner can't use up retries for everyone",
+            "cost_risk": "config per partner"
           },
           {
-            "name": "per-line",
-            "consequences": "one event per refunded line",
-            "cost_risk": "more events; simpler sums"
+            "name": "global",
+            "consequences": "Simpler to run",
+            "cost_risk": "one partner can starve the others"
           }
         ]
       },
-      "created_by": "runner-sdk/draft-skill",
-      "created_at": "2026-10-26T11:30:00Z",
-      "updated_by": "runner-sdk/draft-skill",
-      "updated_at": "2026-10-26T11:30:00Z",
+      "created_by": "runner-sdk/draft-from-ticket",
+      "created_at": "2026-10-27T21:04:00Z",
+      "updated_by": "runner-sdk/draft-from-ticket",
+      "updated_at": "2026-10-27T21:04:00Z",
       "links": {
         "out": [],
         "in": [
@@ -1965,57 +2034,59 @@ Response:
             "kind": "contains",
             "from": "draft"
           },
-          "… (+2 more)"
+          "… (+3 more)"
         ]
       },
       "stamps": {
         "question": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-27T21:04:00"
         },
         "domain": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-27T21:04:00"
         },
         "level": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-27T21:04:00"
         },
         "options": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-27T21:04:00"
         }
       },
       "stale": [],
       "review_items": [],
       "superseded_by": [],
-      "sourced_acs": []
+      "sourced_acs": [
+        "AC-2"
+      ]
     }
   ],
   "criteria": [
     {
       "ref": "AC-1",
       "type": "acceptance_criterion",
-      "title": "Given a refund reaches SETTLED, when CDC runs, then one refund event with the amount in minor units is published",
+      "title": "Given a push times out, then it is retried with backoff at most 3 times within 15 minutes",
       "status": "PROPOSED",
       "pill": "amber",
-      "line": "Given a refund reaches SETTLED, when CDC runs, then one refund event with the amount in minor units is published",
+      "line": "Given a push times out, then it is retried with backoff at most 3 times within 15 minutes",
       "rev": 1,
       "fields": {
-        "text": "Given a refund reaches SETTLED, when CDC runs, then one refund event with the amount in minor units is published",
+        "text": "Given a push times out, then it is retried with backoff at most 3 times within 15 minutes",
         "level": "integration",
         "source": [
           "D-1"
         ]
       },
-      "created_by": "runner-sdk/draft-skill",
-      "created_at": "2026-10-26T11:30:00Z",
-      "updated_by": "runner-sdk/draft-skill",
-      "updated_at": "2026-10-26T11:30:00Z",
+      "created_by": "runner-sdk/draft-from-ticket",
+      "created_at": "2026-10-27T21:04:00Z",
+      "updated_by": "runner-sdk/draft-from-ticket",
+      "updated_at": "2026-10-27T21:04:00Z",
       "links": {
         "out": [
           {
@@ -2032,63 +2103,123 @@ Response:
       },
       "stamps": {
         "text": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-27T21:04:00"
         },
         "level": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-27T21:04:00"
         },
         "source": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-27T21:04:00"
         }
       },
       "stale": [],
       "review_items": []
-    }
+    },
+    {
+      "ref": "AC-2",
+      "type": "acceptance_criterion",
+      "title": "Given the retry budget runs out, then the partner is flagged and on-call is alerted",
+      "status": "PROPOSED",
+      "pill": "amber",
+      "line": "Given the retry budget runs out, then the partner is flagged and on-call is alerted",
+      "rev": 1,
+      "fields": {
+        "text": "Given the retry budget runs out, then the partner is flagged and on-call is alerted",
+        "level": "integration",
+        "source": [
+          "D-2"
+        ]
+      },
+      "created_by": "runner-sdk/draft-from-ticket",
+      "created_at": "2026-10-27T21:04:00Z",
+      "updated_by": "runner-sdk/draft-from-ticket",
+      "updated_at": "2026-10-27T21:04:00Z",
+      "links": {
+        "out": [
+          {
+            "kind": "source",
+            "to": "D-2"
+          }
+        ],
+        "in": [
+          {
+            "kind": "contains_ac",
+            "from": "draft"
+          },
+          {
+            "kind": "mentions",
+            "from": "initiative"
+          }
+        ]
+      },
+      "stamps": {
+        "text": {
+          "by": "runner-sdk/draft-from-ticket",
+          "kind": "agent",
+          "at": "2026-10-27T21:04:00"
+        },
+        "level": {
+          "by": "runner-sdk/draft-from-ticket",
+          "kind": "agent",
+          "at": "2026-10-27T21:04:00"
+        },
+        "source": {
+          "by": "runner-sdk/draft-from-ticket",
+          "kind": "agent",
+          "at": "2026-10-27T21:04:00"
+        }
+      },
+      "stale": [],
+      "review_items": []
+    },
+    "… (+2 more)"
   ],
   "gaps": [
     {
       "ref": "G-1",
       "type": "gap",
-      "title": "Partial refunds: one event or one per line?",
+      "title": "Is the retry budget per partner or global?",
       "status": "OPEN",
       "pill": "red",
-      "line": "When a customer is refunded 2 of 5 items, does finance want one event or one per refunded line?",
+      "line": "Is the retry budget per partner or global?",
       "rev": 1,
       "fields": {
-        "question": "When a customer is refunded 2 of 5 items, does finance want one event or one per refunded line?",
+        "question": "Is the retry budget per partner or global?",
         "kind": "unknown",
         "domain": "product",
-        "asked_by": "runner-sdk/draft-skill",
-        "why_now": "D-2 (a MUST decision) cannot be ruled without it; the schema depends on it.",
-        "context": "Order 90311: 5 items, items 2 and 4 refunded (€18.40 + €6.10). Per-refund: one event, lines[2]. Per-line: two events. The provider report lists one row per refund, not per line.",
+        "level": "MUST",
+        "asked_by": "runner-sdk/draft-from-ticket",
+        "why_now": "D-2 cannot be decided without it, and the draft cannot be approved with D-2 open.",
+        "context": "STD-2 requires a retry budget but doesn't say what it covers. Partners differ a lot in how often their APIs time out.",
         "options": [
           {
-            "key": "per-refund",
-            "label": "One event per refund",
-            "consequence": "matches the provider report row for row"
+            "key": "per-partner",
+            "label": "Per partner",
+            "consequence": "One flaky partner can't use up retries for everyone. Needs a budget per partner in config."
           },
           {
-            "key": "per-line",
-            "label": "One event per line",
-            "consequence": "finance aggregates lines to match the report"
+            "key": "global",
+            "label": "Global",
+            "consequence": "Simpler to run. One flaky partner can starve the others."
           }
         ],
-        "recommendation": "per-refund",
-        "recommendation_why": "Reconciliation is against the provider report, which is per refund.",
+        "recommendation": "per-partner",
+        "recommendation_why": "Partner timeouts are very uneven; a global budget lets one partner starve the rest.",
         "blocks": [
-          "D-2"
+          "D-2",
+          "draft"
         ]
       },
-      "created_by": "runner-sdk/draft-skill",
-      "created_at": "2026-10-26T11:30:00Z",
-      "updated_by": "runner-sdk/draft-skill",
-      "updated_at": "2026-10-26T11:30:00Z",
+      "created_by": "runner-sdk/draft-from-ticket",
+      "created_at": "2026-10-28T17:04:00Z",
+      "updated_by": "runner-sdk/draft-from-ticket",
+      "updated_at": "2026-10-28T17:04:00Z",
       "links": {
         "out": [
           {
@@ -2096,62 +2227,73 @@ Response:
             "to": "D-2"
           },
           {
-            "kind": "mentions",
-            "to": "D-2"
-          }
+            "kind": "blocks",
+            "to": "draft"
+          },
+          "… (+2 more)"
         ],
-        "in": []
+        "in": [
+          {
+            "kind": "mentions",
+            "from": "draft"
+          }
+        ]
       },
       "stamps": {
         "question": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-28T17:04:00"
         },
         "kind": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-28T17:04:00"
         },
         "domain": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-28T17:04:00"
+        },
+        "level": {
+          "by": "runner-sdk/draft-from-ticket",
+          "kind": "agent",
+          "at": "2026-10-28T17:04:00"
         },
         "asked_by": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-28T17:04:00"
         },
         "why_now": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-28T17:04:00"
         },
         "context": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-28T17:04:00"
         },
         "options": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-28T17:04:00"
         },
         "recommendation": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-28T17:04:00"
         },
         "recommendation_why": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-28T17:04:00"
         },
         "blocks": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-26T11:30:00"
+          "at": "2026-10-28T17:04:00"
         }
       },
       "stale": [],
@@ -2164,8 +2306,8 @@ Response:
       "phase": "draft",
       "text": "threats, data classification, authn/z touched",
       "derived": false,
-      "disposition": "UNASSESSED",
-      "note": "",
+      "disposition": "not_applicable",
+      "note": "No new access.",
       "refs": ""
     },
     {
@@ -2173,8 +2315,8 @@ Response:
       "phase": "draft",
       "text": "how a bad deploy is undone",
       "derived": false,
-      "disposition": "UNASSESSED",
-      "note": "",
+      "disposition": "addressed",
+      "note": "Flag menu_retries.",
       "refs": ""
     },
     "… (+3 more)"
@@ -2211,11 +2353,11 @@ Response:
     "failing_rules": [
       "no_open_decision_in_draft_scope",
       "no_open_gap_blocking_draft",
-      "… (+3 more)"
+      "… (+1 more)"
     ]
   },
   "can_approve": false,
-  "approver": "chandra",
+  "approver": "priya",
   "approval_blockers": [
     {
       "rule": "no_open_decision_in_draft_scope",
@@ -2230,8 +2372,7 @@ Response:
         "G-1"
       ],
       "detail": "OPEN gaps block the spec"
-    },
-    "… (+2 more)"
+    }
   ],
   "approvals": [],
   "baselines": [],
@@ -2243,7 +2384,7 @@ Response:
 
 The same page once approved: `gate.status` PASSED, `baselines[]`, `approvals[]`; D-1 shows `superseded_by: ["D-4"]`.
 
-`GET /api/initiatives/order-events/draft` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/initiatives/order-events/draft` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -2251,20 +2392,20 @@ Response:
 {
   "initiative": {
     "slug": "order-events",
-    "title": "Order events via an outbox",
-    "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4211",
-    "created_by": "chandra",
-    "created_at": "2026-10-22T09:00:00Z",
+    "title": "Order events for downstream consumers",
+    "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4821",
+    "created_by": "priya",
+    "created_at": "2026-10-22T21:04:00Z",
     "closed_at": null,
-    "snapshot_hash": "2499256f05741306b27d444332efe0bd4a78f9ff702bd7fddc0f101f754f39c3",
+    "snapshot_hash": "c6c6167c468f9e6860e0a12e3247939ad3f6e3b0e28e0d4c0c535a024407415f",
     "phase": "BUILD",
     "pill": "amber",
-    "summary": "Replace order-table polling with order events (CloudEvents via an outbox).",
+    "summary": "",
     "spec_snapshot": {
-      "requirement": "# Order events\n\nDownstream services (billing, notifications, analytics) poll the `orders` table every\n30 seconds to find state changes. Polling costs ~400 QPS on the primary and adds up to 30s\nof late…",
-      "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4211",
-      "created_by": "chandra",
-      "at": "2026-10-22T09:00:00Z"
+      "requirement": "# Order events for downstream consumers\n\nNotifications-svc polls the orders database every minute to find new and cancelled orders.\nEmails go out late, and the polling query is the orders DB's top loa…",
+      "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4821",
+      "created_by": "priya",
+      "at": "2026-10-22T21:04:00Z"
     }
   },
   "draft": {
@@ -2274,38 +2415,38 @@ Response:
     "status": "APPROVED",
     "pill": "green",
     "line": null,
-    "rev": 1,
+    "rev": 3,
     "fields": {
-      "summary": "Publish order state changes as CloudEvents (D-2) through a transactional outbox (D-1), kept 7 days for replay (D-3).",
-      "problem": "Consumers poll `orders` every 30s (~400 QPS on the primary, up to 30s notification latency). Done = every state change is on the bus within 5s, none lost, replayable for 7 days.",
-      "hld": "Order writes insert an `order_outbox` row in the same transaction (D-1). A relay publishes outbox rows as CloudEvents partitioned by `order_id` (D-2) to `order-events`, retained 7 days (D-3).\n\n```merm…",
-      "lld": "- `order_outbox(id bigint pk, order_id, type, payload json, created_at, published_at null)`\n- Relay: `SELECT … WHERE published_at IS NULL ORDER BY id LIMIT 500 FOR UPDATE SKIP LOCKED`, publish, set `p…",
+      "summary": "Order changes and an event row commit together (D-1); a relay publishes versioned envelopes (D-2) to orders.events.",
+      "problem": "Notifications-svc polls the orders database every minute to find new and cancelled orders. Emails go out late, and the polling query is the orders DB's top load. Done means consumers receive order.cre…",
+      "hld": "orders-service writes each order change and an event row in one transaction (D-1). A relay publishes event rows to the `orders.events` topic and marks them sent. Events use a versioned envelope (D-2).…",
+      "lld": "- `order_events(id, order_id, type, payload, created_at, sent_at)`\n- Event delivery: a relay polls unsent rows every 200 ms in batches of 500, publishes with key = order_id, and sets `sent_at` after t…",
       "scope_in": [
-        "All six order state transitions",
-        "Relay with lag metrics and alert",
-        "… (+1 more)"
+        "order.created and order.cancelled",
+        "the orders.events topic",
+        "… (+2 more)"
       ],
       "scope_out": [
-        "Backfill of historical orders",
-        "Migrating consumers off polling (each team owns theirs)"
+        "refund events",
+        "backfilling historical orders",
+        "… (+1 more)"
       ],
-      "test_strategy": "Integration tests against MySQL + a local Kafka for AC-1..AC-3 (kill the relay mid-batch for AC-2). AC-4 runs in staging against the real topic retention. No manual ACs.",
+      "test_strategy": "Unit: envelope and dedupe logic. Integration: relay against a real broker, including a 10-minute outage (AC-3). Manual: QA checks the lag dashboard in the test environment. Every criterion maps to at …",
       "decisions": [
         "D-1",
-        "D-2",
-        "… (+1 more)"
+        "D-2"
       ],
       "criteria": [
         "AC-1",
         "AC-2",
-        "… (+2 more)"
+        "… (+5 more)"
       ],
-      "submitted_rev": "1"
+      "submitted_rev": "3"
     },
-    "created_by": "runner-sdk/draft-skill",
-    "created_at": "2026-10-22T11:30:00Z",
-    "updated_by": "runner-sdk/draft-skill",
-    "updated_at": "2026-10-22T11:30:00Z",
+    "created_by": "runner-sdk/draft-from-ticket",
+    "created_at": "2026-10-22T23:04:00Z",
+    "updated_by": "runner-sdk/draft-from-ticket",
+    "updated_at": "2026-10-23T16:04:00Z",
     "links": {
       "out": [
         {
@@ -2316,65 +2457,69 @@ Response:
           "kind": "contains",
           "to": "D-2"
         },
-        "… (+11 more)"
+        "… (+10 more)"
       ],
       "in": [
         {
           "kind": "approves",
           "from": "APR-1"
+        },
+        {
+          "kind": "blocks",
+          "from": "G-1"
         }
       ]
     },
     "stamps": {
       "summary": {
-        "by": "runner-sdk/draft-skill",
+        "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-22T11:30:00"
+        "at": "2026-10-22T23:04:00"
       },
       "problem": {
-        "by": "runner-sdk/draft-skill",
+        "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-22T11:30:00"
+        "at": "2026-10-22T23:04:00"
       },
       "hld": {
-        "by": "runner-sdk/draft-skill",
+        "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-22T11:30:00"
+        "at": "2026-10-22T23:04:00"
       },
       "lld": {
-        "by": "runner-sdk/draft-skill",
+        "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-22T11:30:00"
+        "at": "2026-10-22T23:04:00"
       },
       "scope_in": {
-        "by": "runner-sdk/draft-skill",
+        "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-22T11:30:00"
+        "at": "2026-10-22T23:04:00"
       },
       "scope_out": {
-        "by": "runner-sdk/draft-skill",
+        "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-22T11:30:00"
+        "at": "2026-10-22T23:04:00"
       },
       "test_strategy": {
-        "by": "runner-sdk/draft-skill",
+        "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-22T11:30:00"
+        "at": "2026-10-23T02:04:00"
       },
       "decisions": {
-        "by": "runner-sdk/draft-skill",
+        "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-22T11:30:00"
+        "at": "2026-10-22T23:04:00"
       },
       "criteria": {
-        "by": "runner-sdk/draft-skill",
+        "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-22T11:30:00"
+        "at": "2026-10-23T16:04:00"
       },
       "submitted_rev": {
-        "by": "runner-sdk/draft-skill",
+        "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-22T11:30:00"
+        "at": "2026-10-23T16:04:00"
       }
     },
     "stale": [
@@ -2386,39 +2531,45 @@ Response:
     {
       "ref": "D-1",
       "type": "decision",
-      "title": "Publish through a transactional outbox",
-      "status": "SUPERSEDED",
-      "pill": "grey",
-      "line": "Transactional outbox: order_outbox row written in the order transaction, published by a relay",
-      "rev": 1,
+      "title": "Transactional outbox",
+      "status": "DECIDED",
+      "pill": "green",
+      "line": "Transactional outbox",
+      "rev": 2,
       "fields": {
-        "question": "How do order state changes reach the event bus without being lost?",
+        "question": "How do order events reach consumers?",
         "domain": "engg",
-        "level": "SHOULD",
+        "level": "MUST",
         "options": [
           {
             "name": "outbox",
-            "consequences": "order_outbox row written in the order transaction; a relay publishes it",
-            "cost_risk": "one new table, a relay process"
+            "consequences": "Extra table and relay; exactly-once to the broker",
+            "cost_risk": "one table, one relay process"
           },
           {
             "name": "dual-write",
-            "consequences": "publish after commit from the request handler",
-            "cost_risk": "events lost on crash between commit and publish"
+            "consequences": "Simple; loses events on partial failure (breaks STD-1)",
+            "cost_risk": "lost events"
           },
           "… (+1 more)"
         ],
-        "verdict": "Transactional outbox: order_outbox row written in the order transaction, published by a relay",
-        "rationale": "Atomic with the state change, no new infrastructure. Dual-write loses events on crash; CDC was not known to be available.",
-        "decided_by": "runner-sdk/draft-skill",
-        "decided_on": "2026-10-22"
+        "verdict": "Transactional outbox",
+        "rationale": "STD-1 needs exactly-once to the broker; dual-write breaks it and CDC is not set up on orders. Menu sync (D-55) chose the same.",
+        "provisional": "no",
+        "decided_by": "priya",
+        "decided_on": "2026-10-23"
       },
-      "created_by": "runner-sdk/draft-skill",
-      "created_at": "2026-10-22T11:30:00Z",
-      "updated_by": "runner-sdk/draft-skill",
-      "updated_at": "2026-10-22T11:30:00Z",
+      "created_by": "runner-sdk/draft-from-ticket",
+      "created_at": "2026-10-22T23:04:00Z",
+      "updated_by": "priya",
+      "updated_at": "2026-10-23T06:04:00Z",
       "links": {
-        "out": [],
+        "out": [
+          {
+            "kind": "mentions",
+            "to": "STD-1"
+          }
+        ],
         "in": [
           {
             "kind": "blocks",
@@ -2428,184 +2579,171 @@ Response:
             "kind": "contains",
             "from": "draft"
           },
-          "… (+5 more)"
+          "… (+10 more)"
         ]
       },
       "stamps": {
         "question": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         },
         "domain": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         },
         "level": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         },
         "options": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         },
         "verdict": {
-          "by": "runner-sdk/draft-skill",
-          "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "by": "priya",
+          "kind": "human",
+          "at": "2026-10-23T06:04:00"
         },
         "rationale": {
-          "by": "runner-sdk/draft-skill",
-          "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "by": "priya",
+          "kind": "human",
+          "at": "2026-10-23T06:04:00"
+        },
+        "provisional": {
+          "by": "priya",
+          "kind": "human",
+          "at": "2026-10-23T06:04:00"
         },
         "decided_by": {
-          "by": "runner-sdk/draft-skill",
-          "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "by": "priya",
+          "kind": "human",
+          "at": "2026-10-23T06:04:00"
         },
         "decided_on": {
-          "by": "runner-sdk/draft-skill",
-          "kind": "agent",
-          "at": "2026-10-22T11:30:00"
-        }
-      },
-      "stale": [],
-      "review_items": [],
-      "superseded_by": [
-        "D-4"
-      ],
-      "sourced_acs": [
-        "AC-1",
-        "AC-2"
-      ]
-    },
-    {
-      "ref": "D-2",
-      "type": "decision",
-      "title": "CloudEvents envelope, partitioned by order_id",
-      "status": "DECIDED",
-      "pill": "green",
-      "line": "CloudEvents 1.0 JSON; partition key order_id",
-      "rev": 2,
-      "fields": {
-        "question": "Which envelope and partition key do order events use?",
-        "domain": "engg",
-        "level": "SHOULD",
-        "options": [
-          {
-            "name": "cloudevents",
-            "consequences": "consumers reuse their CloudEvents parser",
-            "cost_risk": "low"
-          },
-          {
-            "name": "custom-json",
-            "consequences": "one more schema to maintain",
-            "cost_risk": "medium"
-          }
-        ],
-        "verdict": "CloudEvents 1.0 JSON; partition key order_id",
-        "rationale": "Billing, notifications and analytics already parse CloudEvents. G-1: billing needs per-order ordering, so order_id is the partition key.",
-        "decided_by": "runner-sdk/draft-skill",
-        "decided_on": "2026-10-22"
-      },
-      "created_by": "runner-sdk/draft-skill",
-      "created_at": "2026-10-22T11:30:00Z",
-      "updated_by": "runner-sdk/draft-skill",
-      "updated_at": "2026-10-23T11:00:00Z",
-      "links": {
-        "out": [
-          {
-            "kind": "mentions",
-            "to": "G-1"
-          }
-        ],
-        "in": [
-          {
-            "kind": "blocks",
-            "from": "G-1"
-          },
-          {
-            "kind": "contains",
-            "from": "draft"
-          },
-          "… (+5 more)"
-        ]
-      },
-      "stamps": {
-        "question": {
-          "by": "runner-sdk/draft-skill",
-          "kind": "agent",
-          "at": "2026-10-22T11:30:00"
-        },
-        "domain": {
-          "by": "runner-sdk/draft-skill",
-          "kind": "agent",
-          "at": "2026-10-22T11:30:00"
-        },
-        "level": {
-          "by": "runner-sdk/draft-skill",
-          "kind": "agent",
-          "at": "2026-10-22T11:30:00"
-        },
-        "options": {
-          "by": "runner-sdk/draft-skill",
-          "kind": "agent",
-          "at": "2026-10-22T11:30:00"
-        },
-        "verdict": {
-          "by": "runner-sdk/draft-skill",
-          "kind": "agent",
-          "at": "2026-10-22T11:30:00"
-        },
-        "rationale": {
-          "by": "runner-sdk/draft-skill",
-          "kind": "agent",
-          "at": "2026-10-23T11:00:00"
-        },
-        "decided_by": {
-          "by": "runner-sdk/draft-skill",
-          "kind": "agent",
-          "at": "2026-10-22T11:30:00"
-        },
-        "decided_on": {
-          "by": "runner-sdk/draft-skill",
-          "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "by": "priya",
+          "kind": "human",
+          "at": "2026-10-23T06:04:00"
         }
       },
       "stale": [],
       "review_items": [],
       "superseded_by": [],
       "sourced_acs": [
-        "AC-3"
+        "AC-1",
+        "AC-2",
+        "… (+3 more)"
       ]
     },
-    "… (+2 more)"
+    {
+      "ref": "D-2",
+      "type": "decision",
+      "title": "Event envelope with schema_version",
+      "status": "PROVISIONAL",
+      "pill": "amber",
+      "line": "Envelope with schema_version, additive changes only",
+      "rev": 1,
+      "fields": {
+        "question": "How are event schemas versioned?",
+        "domain": "engg",
+        "level": "SHOULD",
+        "verdict": "Envelope with schema_version, additive changes only",
+        "rationale": "Follows the default menu-sync chose (D-55 there). A human answer later would supersede it.",
+        "provisional": "yes",
+        "decided_by": "runner-sdk/draft-skill",
+        "decided_on": "2026-10-22"
+      },
+      "created_by": "runner-sdk/draft-from-ticket",
+      "created_at": "2026-10-22T23:04:00Z",
+      "updated_by": "runner-sdk/draft-from-ticket",
+      "updated_at": "2026-10-22T23:04:00Z",
+      "links": {
+        "out": [],
+        "in": [
+          {
+            "kind": "contains",
+            "from": "draft"
+          },
+          {
+            "kind": "implements",
+            "from": "T-2"
+          },
+          "… (+3 more)"
+        ]
+      },
+      "stamps": {
+        "question": {
+          "by": "runner-sdk/draft-from-ticket",
+          "kind": "agent",
+          "at": "2026-10-22T23:04:00"
+        },
+        "domain": {
+          "by": "runner-sdk/draft-from-ticket",
+          "kind": "agent",
+          "at": "2026-10-22T23:04:00"
+        },
+        "level": {
+          "by": "runner-sdk/draft-from-ticket",
+          "kind": "agent",
+          "at": "2026-10-22T23:04:00"
+        },
+        "verdict": {
+          "by": "runner-sdk/draft-from-ticket",
+          "kind": "agent",
+          "at": "2026-10-22T23:04:00"
+        },
+        "rationale": {
+          "by": "runner-sdk/draft-from-ticket",
+          "kind": "agent",
+          "at": "2026-10-22T23:04:00"
+        },
+        "provisional": {
+          "by": "runner-sdk/draft-from-ticket",
+          "kind": "agent",
+          "at": "2026-10-22T23:04:00"
+        },
+        "decided_by": {
+          "by": "runner-sdk/draft-from-ticket",
+          "kind": "agent",
+          "at": "2026-10-22T23:04:00"
+        },
+        "decided_on": {
+          "by": "runner-sdk/draft-from-ticket",
+          "kind": "agent",
+          "at": "2026-10-22T23:04:00"
+        }
+      },
+      "stale": [],
+      "review_items": [],
+      "superseded_by": [],
+      "sourced_acs": [
+        "AC-5"
+      ]
+    }
   ],
   "criteria": [
     {
       "ref": "AC-1",
       "type": "acceptance_criterion",
-      "title": "Given an order state change, when the order transaction commits, then exactly one event for it is published",
+      "title": "Given an order commits, when the relay runs, then order.created is published once",
       "status": "APPROVED",
       "pill": "green",
-      "line": "Given an order state change, when the order transaction commits, then exactly one event for it is published",
+      "line": "Given an order commits, when the relay runs, then order.created is published once",
       "rev": 1,
       "fields": {
-        "text": "Given an order state change, when the order transaction commits, then exactly one event for it is published",
+        "text": "Given an order commits, when the relay runs, then order.created is published once",
         "level": "integration",
         "source": [
           "D-1"
         ]
       },
-      "created_by": "runner-sdk/draft-skill",
-      "created_at": "2026-10-22T11:30:00Z",
-      "updated_by": "runner-sdk/draft-skill",
-      "updated_at": "2026-10-22T11:30:00Z",
+      "created_by": "runner-sdk/draft-from-ticket",
+      "created_at": "2026-10-22T23:04:00Z",
+      "updated_by": "runner-sdk/draft-from-ticket",
+      "updated_at": "2026-10-22T23:04:00Z",
       "links": {
         "out": [
           {
@@ -2620,26 +2758,25 @@ Response:
           },
           {
             "kind": "covers",
-            "from": "T-1"
-          },
-          "… (+2 more)"
+            "from": "T-2"
+          }
         ]
       },
       "stamps": {
         "text": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         },
         "level": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         },
         "source": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         }
       },
       "stale": [],
@@ -2648,22 +2785,22 @@ Response:
     {
       "ref": "AC-2",
       "type": "acceptance_criterion",
-      "title": "Given the relay is down for 10 minutes, when it restarts, then every pending event is published with no loss",
+      "title": "Given an order write, then its event row is written in the same transaction",
       "status": "APPROVED",
       "pill": "green",
-      "line": "Given the relay is down for 10 minutes, when it restarts, then every pending event is published with no loss",
+      "line": "Given an order write, then its event row is written in the same transaction",
       "rev": 1,
       "fields": {
-        "text": "Given the relay is down for 10 minutes, when it restarts, then every pending event is published with no loss",
-        "level": "integration",
+        "text": "Given an order write, then its event row is written in the same transaction",
+        "level": "unit",
         "source": [
           "D-1"
         ]
       },
-      "created_by": "runner-sdk/draft-skill",
-      "created_at": "2026-10-22T11:30:00Z",
-      "updated_by": "runner-sdk/draft-skill",
-      "updated_at": "2026-10-22T11:30:00Z",
+      "created_by": "runner-sdk/draft-from-ticket",
+      "created_at": "2026-10-22T23:04:00Z",
+      "updated_by": "runner-sdk/draft-from-ticket",
+      "updated_at": "2026-10-22T23:04:00Z",
       "links": {
         "out": [
           {
@@ -2679,168 +2816,173 @@ Response:
           {
             "kind": "covers",
             "from": "T-1"
-          },
-          "… (+2 more)"
+          }
         ]
       },
       "stamps": {
         "text": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         },
         "level": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         },
         "source": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         }
       },
       "stale": [],
       "review_items": []
     },
-    "… (+3 more)"
+    "… (+5 more)"
   ],
   "gaps": [
     {
       "ref": "G-1",
       "type": "gap",
-      "title": "Do consumers need per-order ordering?",
+      "title": "Do cancelled orders emit events?",
       "status": "ANSWERED",
       "pill": "green",
-      "line": "Must events for one order arrive in the order they happened?",
-      "rev": 2,
+      "line": "Do cancelled orders emit events?",
+      "rev": 3,
       "fields": {
-        "question": "Must events for one order arrive in the order they happened?",
+        "question": "Do cancelled orders emit events?",
         "kind": "unknown",
         "domain": "product",
         "level": "MUST",
         "asked_by": "runner-sdk/draft-skill",
-        "why_now": "It decides the partition key in D-2.",
-        "context": "Billing replays PAID and CANCELLED to compute revenue. If CANCELLED for order 81723 arrives before PAID, billing counts revenue that was refunded.",
+        "why_now": "The event list in the HLD depends on it.",
+        "context": "The requirement names `order.created` and `order.cancelled`, but refunds after cancellation are a separate flow.",
         "options": [
           {
-            "key": "per-order",
-            "label": "Yes — per order",
-            "consequence": "partition by order_id; per-order ordering guaranteed"
+            "key": "yes",
+            "label": "Yes, refunds out of scope",
+            "consequence": "order.cancelled published; refunds stay out"
           },
           {
-            "key": "none",
-            "label": "No ordering needed",
-            "consequence": "round-robin partitions; consumers sort by timestamp"
+            "key": "no",
+            "label": "No, created only",
+            "consequence": "notifications keeps polling for cancellations"
           }
         ],
-        "recommendation": "per-order",
-        "recommendation_why": "Billing is order-sensitive; per-order partitioning costs nothing extra.",
+        "recommendation": "yes",
+        "recommendation_why": "The requirement names order.cancelled.",
         "blocks": [
-          "D-2"
+          "draft"
         ],
-        "answer": "Yes — per order. Billing double-counts otherwise; analytics does not care.",
-        "choice": "per-order",
-        "answered_by": "maya",
-        "answered_on": "2026-10-23T10:15:00Z"
+        "answer": "Yes — cancellations matter for notifications; refunds are out of scope.",
+        "choice": "yes",
+        "answered_by": "meera",
+        "answered_on": "2026-10-23T15:04:00Z",
+        "resolution": "AC-7 added; order.cancelled is in scope."
       },
-      "created_by": "runner-sdk/draft-skill",
-      "created_at": "2026-10-22T11:30:00Z",
-      "updated_by": "maya",
-      "updated_at": "2026-10-23T10:15:00Z",
+      "created_by": "runner-sdk/draft-from-ticket",
+      "created_at": "2026-10-22T23:04:00Z",
+      "updated_by": "runner-sdk/draft-from-ticket",
+      "updated_at": "2026-10-23T16:04:00Z",
       "links": {
         "out": [
           {
             "kind": "blocks",
-            "to": "D-2"
+            "to": "draft"
           },
           {
             "kind": "mentions",
-            "to": "D-2"
+            "to": "AC-7"
           }
         ],
         "in": [
           {
-            "kind": "mentions",
-            "from": "D-2"
+            "kind": "because",
+            "from": "AC-7"
           }
         ]
       },
       "stamps": {
         "question": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         },
         "kind": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         },
         "domain": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         },
         "level": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         },
         "asked_by": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         },
         "why_now": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         },
         "context": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         },
         "options": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         },
         "recommendation": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         },
         "recommendation_why": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         },
         "blocks": {
-          "by": "runner-sdk/draft-skill",
+          "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T11:30:00"
+          "at": "2026-10-22T23:04:00"
         },
         "answer": {
-          "by": "maya",
+          "by": "meera",
           "kind": "human",
-          "at": "2026-10-23T10:15:00"
+          "at": "2026-10-23T15:04:00"
         },
         "choice": {
-          "by": "maya",
+          "by": "meera",
           "kind": "human",
-          "at": "2026-10-23T10:15:00"
+          "at": "2026-10-23T15:04:00"
         },
         "answered_by": {
-          "by": "maya",
+          "by": "meera",
           "kind": "human",
-          "at": "2026-10-23T10:15:00"
+          "at": "2026-10-23T15:04:00"
         },
         "answered_on": {
-          "by": "maya",
+          "by": "meera",
           "kind": "human",
-          "at": "2026-10-23T10:15:00"
+          "at": "2026-10-23T15:04:00"
+        },
+        "resolution": {
+          "by": "runner-sdk/draft-from-ticket",
+          "kind": "agent",
+          "at": "2026-10-23T16:04:00"
         }
       },
       "stale": [],
@@ -2849,48 +2991,44 @@ Response:
     {
       "ref": "G-2",
       "type": "gap",
-      "title": "Use the platform CDC pipeline instead of an outbox?",
-      "status": "ANSWERED",
-      "pill": "green",
-      "line": "The orders DB already streams its binlog to Kafka via Debezium (platform team). Use CDC instead of the outbox table (D-1)?",
-      "rev": 3,
+      "title": "The outbox table can't be added to the orders schema in time",
+      "status": "OPEN",
+      "pill": "red",
+      "line": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
+      "rev": 1,
       "fields": {
-        "question": "The orders DB already streams its binlog to Kafka via Debezium (platform team). Use CDC instead of the outbox table (D-1)?",
+        "question": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
         "kind": "deviation",
         "domain": "engg",
         "level": "MUST",
         "asked_by": "runner-sdk/implement-task",
-        "why_now": "Implementing T-1: the outbox needs a migration on a table the orders team does not want to own.",
-        "context": "Platform runs Debezium on orders-primary (connector `orders-cdc`, lag p99 1.2s). An outbox adds `order_outbox`, a relay process, and a nightly cleanup job.",
+        "why_now": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.",
+        "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
         "options": [
           {
-            "key": "cdc",
-            "label": "Switch to CDC",
-            "consequence": "supersede D-1; add an AC for CDC lag; no new table"
+            "key": "separate-schema",
+            "label": "Outbox in a separate schema",
+            "consequence": "No cross-schema transaction, so delivery is no longer exactly-once (breaks STD-1: the DRI has to approve an exception)."
           },
           {
-            "key": "outbox",
-            "label": "Keep the outbox",
-            "consequence": "no spec change; orders team owns the table"
-          }
+            "key": "cdc",
+            "label": "CDC via Debezium on the orders table",
+            "consequence": "No new table. Exactly-once from the binlog. Adds a connector to run and a lag to watch."
+          },
+          "… (+1 more)"
         ],
         "recommendation": "cdc",
-        "recommendation_why": "Same delivery guarantee, no new table, the pipeline already exists.",
+        "recommendation_why": "Keeps exactly-once without touching the DBA-owned schema; platform already runs Debezium.",
         "blocks": [
           "D-1",
           "T-1"
         ],
-        "proposed_change": "D-1 verdict: outbox → CDC via Debezium on orders-primary. Add AC: given CDC lag > 5s for 5 min, the lag alert fires. T-1 implements the new decision.",
-        "answer": "Switch to CDC — the outbox adds a table we don't own, and platform guarantees the connector. Keep the flag.",
-        "choice": "cdc",
-        "answered_by": "priya",
-        "answered_on": "2026-10-25T13:30:00Z",
-        "resolution": "D-4 supersedes D-1; AC-5 added for CDC lag; T-1 re-scoped."
+        "proposed_change": "D-1 verdict: outbox → CDC via Debezium on the orders table. Add AC: CDC lag over 5 s for 2 min fires the alert. LLD event delivery section rewritten."
       },
       "created_by": "runner-sdk/implement-task",
-      "created_at": "2026-10-25T10:05:00Z",
+      "created_at": "2026-10-28T19:04:00Z",
       "updated_by": "runner-sdk/implement-task",
-      "updated_at": "2026-10-25T14:10:00Z",
+      "updated_at": "2026-10-28T19:04:00Z",
       "links": {
         "out": [
           {
@@ -2901,104 +3039,70 @@ Response:
             "kind": "blocks",
             "to": "T-1"
           },
-          "… (+4 more)"
+          "… (+2 more)"
         ],
-        "in": [
-          {
-            "kind": "because",
-            "from": "D-4"
-          },
-          {
-            "kind": "mentions",
-            "from": "D-4"
-          }
-        ]
+        "in": []
       },
       "stamps": {
         "question": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-25T10:05:00"
+          "at": "2026-10-28T19:04:00"
         },
         "kind": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-25T10:05:00"
+          "at": "2026-10-28T19:04:00"
         },
         "domain": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-25T10:05:00"
+          "at": "2026-10-28T19:04:00"
         },
         "level": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-25T10:05:00"
+          "at": "2026-10-28T19:04:00"
         },
         "asked_by": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-25T10:05:00"
+          "at": "2026-10-28T19:04:00"
         },
         "why_now": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-25T10:05:00"
+          "at": "2026-10-28T19:04:00"
         },
         "context": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-25T10:05:00"
+          "at": "2026-10-28T19:04:00"
         },
         "options": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-25T10:05:00"
+          "at": "2026-10-28T19:04:00"
         },
         "recommendation": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-25T10:05:00"
+          "at": "2026-10-28T19:04:00"
         },
         "recommendation_why": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-25T10:05:00"
+          "at": "2026-10-28T19:04:00"
         },
         "blocks": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-25T10:05:00"
+          "at": "2026-10-28T19:04:00"
         },
         "proposed_change": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-25T10:05:00"
-        },
-        "answer": {
-          "by": "priya",
-          "kind": "human",
-          "at": "2026-10-25T13:30:00"
-        },
-        "choice": {
-          "by": "priya",
-          "kind": "human",
-          "at": "2026-10-25T13:30:00"
-        },
-        "answered_by": {
-          "by": "priya",
-          "kind": "human",
-          "at": "2026-10-25T13:30:00"
-        },
-        "answered_on": {
-          "by": "priya",
-          "kind": "human",
-          "at": "2026-10-25T13:30:00"
-        },
-        "resolution": {
-          "by": "runner-sdk/implement-task",
-          "kind": "agent",
-          "at": "2026-10-25T14:10:00"
+          "at": "2026-10-28T19:04:00"
         }
       },
       "stale": [],
@@ -3012,7 +3116,7 @@ Response:
       "text": "threats, data classification, authn/z touched",
       "derived": false,
       "disposition": "addressed",
-      "note": "Events carry order ids and states only; no PII. Bus topic ACL limited to the consumers listed in the HLD.",
+      "note": "AC-4: only notifications-svc reads the topic; payloads carry ids and states only.",
       "refs": ""
     },
     {
@@ -3021,7 +3125,7 @@ Response:
       "text": "how a bad deploy is undone",
       "derived": false,
       "disposition": "addressed",
-      "note": "Feature flag order_events.enabled; consumers keep polling until the flag has been on for 7 days.",
+      "note": "HLD: stop the relay; the event table is additive.",
       "refs": ""
     },
     "… (+3 more)"
@@ -3043,19 +3147,31 @@ Response:
       },
       {
         "name": "no_open_gap_blocking_draft",
-        "passed": true,
-        "failing": [],
-        "detail": "",
+        "passed": false,
+        "failing": [
+          "G-2"
+        ],
+        "detail": "OPEN gaps block the spec",
         "args": {}
       },
       "… (+5 more)"
     ],
-    "note": "",
-    "failing_rules": []
+    "note": "approved; preconditions that fail now are mid-build work, not a reopened draft",
+    "failing_rules": [
+      "no_open_gap_blocking_draft"
+    ]
   },
   "can_approve": false,
-  "approver": "chandra",
-  "approval_blockers": [],
+  "approver": "priya",
+  "approval_blockers": [
+    {
+      "rule": "no_open_gap_blocking_draft",
+      "failing": [
+        "G-2"
+      ],
+      "detail": "OPEN gaps block the spec"
+    }
+  ],
   "approvals": [
     {
       "ref": "APR-1",
@@ -3070,29 +3186,29 @@ Response:
           "draft"
         ],
         "role": "dri",
-        "approved_rev": "1",
-        "note": "Good scope. Ship behind the flag."
+        "approved_rev": "3",
+        "note": "Scope is right. Ship behind the flag."
       },
-      "created_by": "chandra",
-      "created_at": "2026-10-23T15:40:00Z",
-      "updated_by": "chandra",
-      "updated_at": "2026-10-23T15:40:00Z"
+      "created_by": "priya",
+      "created_at": "2026-10-23T23:04:00Z",
+      "updated_by": "priya",
+      "updated_at": "2026-10-23T23:04:00Z"
     }
   ],
   "baselines": [
     {
       "ref": "B-1",
-      "label": "B-1 — draft rev 1 approved by chandra",
+      "label": "B-1 — draft rev 3 approved by priya",
       "status": "CURRENT",
       "approval": "APR-1",
-      "approved_by": "chandra",
-      "draft_rev": "1",
+      "approved_by": "priya",
+      "draft_rev": "3",
       "members": [
         "draft",
         "D-1",
-        "… (+7 more)"
+        "… (+9 more)"
       ],
-      "created_at": "2026-10-23T15:40:00Z"
+      "created_at": "2026-10-23T23:04:00Z"
     }
   ],
   "review_items": []
@@ -3105,7 +3221,7 @@ Response:
 
 Filters: `type`, `status`, `q` (free text over ref, title and fields), `since` (ISO).
 
-`GET /api/initiatives/order-events/records?type=decision` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/initiatives/order-events/records?type=decision` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -3114,73 +3230,62 @@ Response:
   {
     "ref": "D-1",
     "type": "decision",
-    "title": "Publish through a transactional outbox",
-    "status": "SUPERSEDED",
-    "pill": "grey",
-    "line": "Transactional outbox: order_outbox row written in the order transaction, published by a relay",
-    "rev": 1,
+    "title": "Transactional outbox",
+    "status": "DECIDED",
+    "pill": "green",
+    "line": "Transactional outbox",
+    "rev": 2,
     "fields": {
-      "question": "How do order state changes reach the event bus without being lost?",
+      "question": "How do order events reach consumers?",
       "domain": "engg",
-      "level": "SHOULD",
+      "level": "MUST",
       "options": [
         {
           "name": "outbox",
-          "consequences": "order_outbox row written in the order transaction; a relay publishes it",
-          "cost_risk": "one new table, a relay process"
+          "consequences": "Extra table and relay; exactly-once to the broker",
+          "cost_risk": "one table, one relay process"
         },
         {
           "name": "dual-write",
-          "consequences": "publish after commit from the request handler",
-          "cost_risk": "events lost on crash between commit and publish"
+          "consequences": "Simple; loses events on partial failure (breaks STD-1)",
+          "cost_risk": "lost events"
         },
         "… (+1 more)"
       ],
-      "verdict": "Transactional outbox: order_outbox row written in the order transaction, published by a relay",
-      "rationale": "Atomic with the state change, no new infrastructure. Dual-write loses events on crash; CDC was not known to be available.",
-      "decided_by": "runner-sdk/draft-skill",
-      "decided_on": "2026-10-22"
+      "verdict": "Transactional outbox",
+      "rationale": "STD-1 needs exactly-once to the broker; dual-write breaks it and CDC is not set up on orders. Menu sync (D-55) chose the same.",
+      "provisional": "no",
+      "decided_by": "priya",
+      "decided_on": "2026-10-23"
     },
-    "created_by": "runner-sdk/draft-skill",
-    "created_at": "2026-10-22T11:30:00Z",
-    "updated_by": "runner-sdk/draft-skill",
-    "updated_at": "2026-10-22T11:30:00Z"
+    "created_by": "runner-sdk/draft-from-ticket",
+    "created_at": "2026-10-22T23:04:00Z",
+    "updated_by": "priya",
+    "updated_at": "2026-10-23T06:04:00Z"
   },
   {
     "ref": "D-2",
     "type": "decision",
-    "title": "CloudEvents envelope, partitioned by order_id",
-    "status": "DECIDED",
-    "pill": "green",
-    "line": "CloudEvents 1.0 JSON; partition key order_id",
-    "rev": 2,
+    "title": "Event envelope with schema_version",
+    "status": "PROVISIONAL",
+    "pill": "amber",
+    "line": "Envelope with schema_version, additive changes only",
+    "rev": 1,
     "fields": {
-      "question": "Which envelope and partition key do order events use?",
+      "question": "How are event schemas versioned?",
       "domain": "engg",
       "level": "SHOULD",
-      "options": [
-        {
-          "name": "cloudevents",
-          "consequences": "consumers reuse their CloudEvents parser",
-          "cost_risk": "low"
-        },
-        {
-          "name": "custom-json",
-          "consequences": "one more schema to maintain",
-          "cost_risk": "medium"
-        }
-      ],
-      "verdict": "CloudEvents 1.0 JSON; partition key order_id",
-      "rationale": "Billing, notifications and analytics already parse CloudEvents. G-1: billing needs per-order ordering, so order_id is the partition key.",
+      "verdict": "Envelope with schema_version, additive changes only",
+      "rationale": "Follows the default menu-sync chose (D-55 there). A human answer later would supersede it.",
+      "provisional": "yes",
       "decided_by": "runner-sdk/draft-skill",
       "decided_on": "2026-10-22"
     },
-    "created_by": "runner-sdk/draft-skill",
-    "created_at": "2026-10-22T11:30:00Z",
-    "updated_by": "runner-sdk/draft-skill",
-    "updated_at": "2026-10-23T11:00:00Z"
-  },
-  "… (+2 more)"
+    "created_by": "runner-sdk/draft-from-ticket",
+    "created_at": "2026-10-22T23:04:00Z",
+    "updated_by": "runner-sdk/draft-from-ticket",
+    "updated_at": "2026-10-22T23:04:00Z"
+  }
 ]
 ```
 
@@ -3188,7 +3293,7 @@ Response:
 
 Record detail: links both ways, per-field stamps (`by`, `kind`, `at`), stale narratives, open review items.
 
-`GET /api/initiatives/order-events/records/G-2` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/initiatives/order-events/records/G-2` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -3196,48 +3301,44 @@ Response:
 {
   "ref": "G-2",
   "type": "gap",
-  "title": "Use the platform CDC pipeline instead of an outbox?",
-  "status": "ANSWERED",
-  "pill": "green",
-  "line": "The orders DB already streams its binlog to Kafka via Debezium (platform team). Use CDC instead of the outbox table (D-1)?",
-  "rev": 3,
+  "title": "The outbox table can't be added to the orders schema in time",
+  "status": "OPEN",
+  "pill": "red",
+  "line": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
+  "rev": 1,
   "fields": {
-    "question": "The orders DB already streams its binlog to Kafka via Debezium (platform team). Use CDC instead of the outbox table (D-1)?",
+    "question": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
     "kind": "deviation",
     "domain": "engg",
     "level": "MUST",
     "asked_by": "runner-sdk/implement-task",
-    "why_now": "Implementing T-1: the outbox needs a migration on a table the orders team does not want to own.",
-    "context": "Platform runs Debezium on orders-primary (connector `orders-cdc`, lag p99 1.2s). An outbox adds `order_outbox`, a relay process, and a nightly cleanup job.",
+    "why_now": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.",
+    "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
     "options": [
       {
-        "key": "cdc",
-        "label": "Switch to CDC",
-        "consequence": "supersede D-1; add an AC for CDC lag; no new table"
+        "key": "separate-schema",
+        "label": "Outbox in a separate schema",
+        "consequence": "No cross-schema transaction, so delivery is no longer exactly-once (breaks STD-1: the DRI has to approve an exception)."
       },
       {
-        "key": "outbox",
-        "label": "Keep the outbox",
-        "consequence": "no spec change; orders team owns the table"
-      }
+        "key": "cdc",
+        "label": "CDC via Debezium on the orders table",
+        "consequence": "No new table. Exactly-once from the binlog. Adds a connector to run and a lag to watch."
+      },
+      "… (+1 more)"
     ],
     "recommendation": "cdc",
-    "recommendation_why": "Same delivery guarantee, no new table, the pipeline already exists.",
+    "recommendation_why": "Keeps exactly-once without touching the DBA-owned schema; platform already runs Debezium.",
     "blocks": [
       "D-1",
       "T-1"
     ],
-    "proposed_change": "D-1 verdict: outbox → CDC via Debezium on orders-primary. Add AC: given CDC lag > 5s for 5 min, the lag alert fires. T-1 implements the new decision.",
-    "answer": "Switch to CDC — the outbox adds a table we don't own, and platform guarantees the connector. Keep the flag.",
-    "choice": "cdc",
-    "answered_by": "priya",
-    "answered_on": "2026-10-25T13:30:00Z",
-    "resolution": "D-4 supersedes D-1; AC-5 added for CDC lag; T-1 re-scoped."
+    "proposed_change": "D-1 verdict: outbox → CDC via Debezium on the orders table. Add AC: CDC lag over 5 s for 2 min fires the alert. LLD event delivery section rewritten."
   },
   "created_by": "runner-sdk/implement-task",
-  "created_at": "2026-10-25T10:05:00Z",
+  "created_at": "2026-10-28T19:04:00Z",
   "updated_by": "runner-sdk/implement-task",
-  "updated_at": "2026-10-25T14:10:00Z",
+  "updated_at": "2026-10-28T19:04:00Z",
   "links": {
     "out": [
       {
@@ -3248,104 +3349,70 @@ Response:
         "kind": "blocks",
         "to": "T-1"
       },
-      "… (+4 more)"
+      "… (+2 more)"
     ],
-    "in": [
-      {
-        "kind": "because",
-        "from": "D-4"
-      },
-      {
-        "kind": "mentions",
-        "from": "D-4"
-      }
-    ]
+    "in": []
   },
   "stamps": {
     "question": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-25T10:05:00"
+      "at": "2026-10-28T19:04:00"
     },
     "kind": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-25T10:05:00"
+      "at": "2026-10-28T19:04:00"
     },
     "domain": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-25T10:05:00"
+      "at": "2026-10-28T19:04:00"
     },
     "level": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-25T10:05:00"
+      "at": "2026-10-28T19:04:00"
     },
     "asked_by": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-25T10:05:00"
+      "at": "2026-10-28T19:04:00"
     },
     "why_now": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-25T10:05:00"
+      "at": "2026-10-28T19:04:00"
     },
     "context": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-25T10:05:00"
+      "at": "2026-10-28T19:04:00"
     },
     "options": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-25T10:05:00"
+      "at": "2026-10-28T19:04:00"
     },
     "recommendation": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-25T10:05:00"
+      "at": "2026-10-28T19:04:00"
     },
     "recommendation_why": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-25T10:05:00"
+      "at": "2026-10-28T19:04:00"
     },
     "blocks": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-25T10:05:00"
+      "at": "2026-10-28T19:04:00"
     },
     "proposed_change": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-25T10:05:00"
-    },
-    "answer": {
-      "by": "priya",
-      "kind": "human",
-      "at": "2026-10-25T13:30:00"
-    },
-    "choice": {
-      "by": "priya",
-      "kind": "human",
-      "at": "2026-10-25T13:30:00"
-    },
-    "answered_by": {
-      "by": "priya",
-      "kind": "human",
-      "at": "2026-10-25T13:30:00"
-    },
-    "answered_on": {
-      "by": "priya",
-      "kind": "human",
-      "at": "2026-10-25T13:30:00"
-    },
-    "resolution": {
-      "by": "runner-sdk/implement-task",
-      "kind": "agent",
-      "at": "2026-10-25T14:10:00"
+      "at": "2026-10-28T19:04:00"
     }
   },
   "stale": [],
@@ -3357,46 +3424,82 @@ Response:
 
 Every revision, newest first: `actor`, `actor_kind`, `because`, `note`, the full `fields` at that rev.
 
-`GET /api/initiatives/order-events/records/D-1/history` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/initiatives/order-events/records/D-1/history` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
 ```json
 [
   {
-    "rev": 1,
+    "rev": 2,
     "ref": "D-1",
-    "title": "Publish through a transactional outbox",
+    "title": "Transactional outbox",
     "status": "DECIDED",
     "fields": {
-      "question": "How do order state changes reach the event bus without being lost?",
+      "question": "How do order events reach consumers?",
       "domain": "engg",
-      "level": "SHOULD",
+      "level": "MUST",
       "options": [
         {
           "name": "outbox",
-          "consequences": "order_outbox row written in the order transaction; a relay publishes it",
-          "cost_risk": "one new table, a relay process"
+          "consequences": "Extra table and relay; exactly-once to the broker",
+          "cost_risk": "one table, one relay process"
         },
         {
           "name": "dual-write",
-          "consequences": "publish after commit from the request handler",
-          "cost_risk": "events lost on crash between commit and publish"
+          "consequences": "Simple; loses events on partial failure (breaks STD-1)",
+          "cost_risk": "lost events"
         },
         "… (+1 more)"
       ],
-      "verdict": "Transactional outbox: order_outbox row written in the order transaction, published by a relay",
-      "rationale": "Atomic with the state change, no new infrastructure. Dual-write loses events on crash; CDC was not known to be available.",
-      "decided_by": "runner-sdk/draft-skill",
-      "decided_on": "2026-10-22"
+      "verdict": "Transactional outbox",
+      "rationale": "STD-1 needs exactly-once to the broker; dual-write breaks it and CDC is not set up on orders. Menu sync (D-55) chose the same.",
+      "provisional": "no",
+      "decided_by": "priya",
+      "decided_on": "2026-10-23"
     },
-    "links": [],
-    "actor": "runner-sdk/draft-skill",
+    "links": [
+      "mentions:STD-1"
+    ],
+    "actor": "priya",
+    "actor_kind": "human",
+    "batch_id": "d38f8bad-ca53-4003-a09c-0e68ca7357ad",
+    "note": "ruled in the inbox",
+    "because": [],
+    "at": "2026-10-23T06:04:00Z"
+  },
+  {
+    "rev": 1,
+    "ref": "D-1",
+    "title": "Transactional outbox",
+    "status": "OPEN",
+    "fields": {
+      "question": "How do order events reach consumers?",
+      "domain": "engg",
+      "level": "MUST",
+      "options": [
+        {
+          "name": "outbox",
+          "consequences": "Extra table and relay; exactly-once to the broker",
+          "cost_risk": "one table, one relay process"
+        },
+        {
+          "name": "dual-write",
+          "consequences": "Simple; loses events on partial failure (breaks STD-1)",
+          "cost_risk": "lost events"
+        },
+        "… (+1 more)"
+      ]
+    },
+    "links": [
+      "mentions:STD-1"
+    ],
+    "actor": "runner-sdk/draft-from-ticket",
     "actor_kind": "agent",
-    "batch_id": "e5e2face-50fb-4108-bcdb-4f274f5041fb",
+    "batch_id": "66977328-6fa2-4bb0-9e37-6baac5a43316",
     "note": "",
     "because": [],
-    "at": "2026-10-22T11:30:00Z"
+    "at": "2026-10-22T23:04:00Z"
   }
 ]
 ```
@@ -3565,7 +3668,7 @@ Request:
         "text": "Relay lag under 5s",
         "level": "integration",
         "source": [
-          "D-4"
+          "D-2"
         ]
       }
     }
@@ -3584,7 +3687,7 @@ Response:
   "error_code": "VALIDATION_ERROR",
   "error_data": {
     "ok": false,
-    "batch_id": "08c811da-abb1-4b73-aed4-38dbe7321371",
+    "batch_id": "ac5561b8-aa75-4d9b-9eb5-4bde4aa1bcc6",
     "results": [
       {
         "index": 0,
@@ -3594,19 +3697,19 @@ Response:
         "rev": null,
         "status": null,
         "errors": [
-          "because: spec change after baseline B-1 needs `because` (a gap answer, a decision, a finding) — draft is a member of the baseline; moved: lld: “- `order_outbox(id bigint pk, order_id, type, payload js…"
+          "because: spec change after baseline B-1 needs `because` (a gap answer, a decision, a finding) — draft is a member of the baseline; moved: lld: “- `order_events(id, order_id, type, payload, created_at,…"
         ],
         "warnings": []
       },
       {
         "index": 1,
-        "ref": "AC-6",
+        "ref": "AC-8",
         "type": "acceptance_criterion",
         "action": "error",
         "rev": null,
         "status": null,
         "errors": [
-          "because: spec change after baseline B-1 needs `because` (a gap answer, a decision, a finding) — AC-6 is added after the baseline; moved: new acceptance_criterion"
+          "because: spec change after baseline B-1 needs `because` (a gap answer, a decision, a finding) — AC-8 is added after the baseline; moved: new acceptance_criterion"
         ],
         "warnings": []
       }
@@ -3623,170 +3726,147 @@ Response:
 
 ## The human lane (touchpoint 2)
 
-### GET /api/inbox/maya
+### GET /api/inbox/arjun
 
 One person's inbox across initiatives, overdue first. `kind`: `gap` (answer it), `decision` (rule it: MUST or escalated), `approval` (`target`: `draft` or a task; tasks carry `drift` and `digest`), `review_item` (`review_item_id`, `what_moved`), `manual_ac` (sign it). `route` says why it landed here (`role`, `domain`, `fallback` = routed to the DRI because nobody holds the role).
 
-`GET /api/inbox/maya` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/inbox/arjun` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
 ```json
 {
-  "person": "maya",
-  "count": 2,
-  "overdue": 2,
+  "person": "arjun",
+  "count": 3,
+  "overdue": 0,
   "counts": {
     "gap": 1,
-    "decision": 1
+    "approval": 1,
+    "review_item": 1
   },
   "items": [
     {
-      "key": "gap:refund-events:G-1",
+      "key": "gap:order-events:G-2",
       "kind": "gap",
-      "initiative": "refund-events",
-      "initiative_title": "Refund events",
-      "ref": "G-1",
+      "initiative": "order-events",
+      "initiative_title": "Order events for downstream consumers",
+      "ref": "G-2",
       "route": {
-        "person": "maya",
-        "role": "product",
-        "domain": "product",
+        "person": "arjun",
+        "role": "engg",
+        "domain": "engg",
         "fallback": false
       },
-      "person": "maya",
-      "since": "2026-10-26T11:30:00Z",
-      "age_hours": 57.5,
+      "person": "arjun",
+      "since": "2026-10-28T19:04:00Z",
+      "age_hours": 2.0,
       "sla_hours": 24,
-      "due_at": "2026-10-27T11:30:00Z",
-      "overdue": true,
+      "due_at": "2026-10-29T19:04:00Z",
+      "overdue": false,
       "priority": 10,
-      "title": "Partial refunds: one event or one per line?",
+      "title": "The outbox table can't be added to the orders schema in time",
       "record": {
-        "ref": "G-1",
+        "ref": "G-2",
         "type": "gap",
-        "title": "Partial refunds: one event or one per line?",
+        "title": "The outbox table can't be added to the orders schema in time",
         "status": "OPEN",
         "pill": "red",
-        "line": "When a customer is refunded 2 of 5 items, does finance want one event or one per refunded line?",
+        "line": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
         "rev": 1,
         "fields": {
-          "question": "When a customer is refunded 2 of 5 items, does finance want one event or one per refunded line?",
-          "kind": "unknown",
-          "domain": "product",
-          "asked_by": "runner-sdk/draft-skill",
-          "why_now": "D-2 (a MUST decision) cannot be ruled without it; the schema depends on it.",
-          "context": "Order 90311: 5 items, items 2 and 4 refunded (€18.40 + €6.10). Per-refund: one event, lines[2]. Per-line: two events. The provider report lists one row per refund, not per line.",
+          "question": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
+          "kind": "deviation",
+          "domain": "engg",
+          "level": "MUST",
+          "asked_by": "runner-sdk/implement-task",
+          "why_now": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.",
+          "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
           "options": [
             {
-              "key": "per-refund",
-              "label": "One event per refund",
-              "consequence": "matches the provider report row for row"
+              "key": "separate-schema",
+              "label": "Outbox in a separate schema",
+              "consequence": "No cross-schema transaction, so delivery is no longer exactly-once (breaks STD-1: the DRI has to approve an exception)."
             },
             {
-              "key": "per-line",
-              "label": "One event per line",
-              "consequence": "finance aggregates lines to match the report"
-            }
+              "key": "cdc",
+              "label": "CDC via Debezium on the orders table",
+              "consequence": "No new table. Exactly-once from the binlog. Adds a connector to run and a lag to watch."
+            },
+            "… (+1 more)"
           ],
-          "recommendation": "per-refund",
-          "recommendation_why": "Reconciliation is against the provider report, which is per refund.",
+          "recommendation": "cdc",
+          "recommendation_why": "Keeps exactly-once without touching the DBA-owned schema; platform already runs Debezium.",
           "blocks": [
-            "D-2"
-          ]
+            "D-1",
+            "T-1"
+          ],
+          "proposed_change": "D-1 verdict: outbox → CDC via Debezium on the orders table. Add AC: CDC lag over 5 s for 2 min fires the alert. LLD event delivery section rewritten."
         },
-        "created_by": "runner-sdk/draft-skill",
-        "created_at": "2026-10-26T11:30:00Z",
-        "updated_by": "runner-sdk/draft-skill",
-        "updated_at": "2026-10-26T11:30:00Z"
+        "created_by": "runner-sdk/implement-task",
+        "created_at": "2026-10-28T19:04:00Z",
+        "updated_by": "runner-sdk/implement-task",
+        "updated_at": "2026-10-28T19:04:00Z"
       },
-      "question": "When a customer is refunded 2 of 5 items, does finance want one event or one per refunded line?",
-      "context": "Order 90311: 5 items, items 2 and 4 refunded (€18.40 + €6.10). Per-refund: one event, lines[2]. Per-line: two events. The provider report lists one row per refund, not per line.",
+      "question": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
+      "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
       "options": [
         {
-          "key": "per-refund",
-          "label": "One event per refund",
-          "consequence": "matches the provider report row for row"
+          "key": "separate-schema",
+          "label": "Outbox in a separate schema",
+          "consequence": "No cross-schema transaction, so delivery is no longer exactly-once (breaks STD-1: the DRI has to approve an exception)."
         },
         {
-          "key": "per-line",
-          "label": "One event per line",
-          "consequence": "finance aggregates lines to match the report"
-        }
+          "key": "cdc",
+          "label": "CDC via Debezium on the orders table",
+          "consequence": "No new table. Exactly-once from the binlog. Adds a connector to run and a lag to watch."
+        },
+        "… (+1 more)"
       ],
-      "recommendation": "per-refund",
-      "recommendation_why": "Reconciliation is against the provider report, which is per refund.",
+      "recommendation": "cdc",
+      "recommendation_why": "Keeps exactly-once without touching the DBA-owned schema; platform already runs Debezium.",
       "blocks": [
-        "D-2"
+        "D-1",
+        "T-1"
       ],
       "level": "MUST"
     },
     {
-      "key": "decision:refund-events:D-2",
-      "kind": "decision",
-      "initiative": "refund-events",
-      "initiative_title": "Refund events",
-      "ref": "D-2",
+      "key": "approval:payouts-v2:T-3",
+      "kind": "approval",
+      "initiative": "payouts-v2",
+      "initiative_title": "Payouts v2: refunds ledger",
+      "ref": "T-3",
       "route": {
-        "person": "maya",
-        "role": "product",
-        "domain": "product",
+        "person": "arjun",
+        "role": "engg",
+        "domain": null,
         "fallback": false
       },
-      "person": "maya",
-      "since": "2026-10-26T11:30:00Z",
-      "age_hours": 57.5,
-      "sla_hours": 24,
-      "due_at": "2026-10-27T11:30:00Z",
-      "overdue": true,
-      "priority": 10,
-      "title": "Partial refund granularity",
-      "record": {
-        "ref": "D-2",
-        "type": "decision",
-        "title": "Partial refund granularity",
-        "status": "OPEN",
-        "pill": "red",
-        "line": null,
-        "rev": 1,
-        "fields": {
-          "question": "Is a partial refund one event, or one event per refunded line?",
-          "domain": "product",
-          "level": "MUST",
-          "options": [
-            {
-              "name": "per-refund",
-              "consequences": "one event with a lines[] array",
-              "cost_risk": "finance sums lines"
-            },
-            {
-              "name": "per-line",
-              "consequences": "one event per refunded line",
-              "cost_risk": "more events; simpler sums"
-            }
-          ]
-        },
-        "created_by": "runner-sdk/draft-skill",
-        "created_at": "2026-10-26T11:30:00Z",
-        "updated_by": "runner-sdk/draft-skill",
-        "updated_at": "2026-10-26T11:30:00Z"
+      "person": "arjun",
+      "since": "2026-10-27T18:04:00Z",
+      "age_hours": 27.0,
+      "sla_hours": 48,
+      "due_at": "2026-10-29T18:04:00Z",
+      "overdue": false,
+      "priority": 20,
+      "title": "Review the drift of T-3: Refunds ledger API",
+      "gate": "GATE_PR",
+      "role": "engg",
+      "target": "T-3",
+      "pr_url": "https://github.com/navanta/payouts-svc/pull/77",
+      "pr_sha": "e19b0c4",
+      "drift": {
+        "changes": 1,
+        "explained": 1,
+        "unexplained": 0,
+        "pending_gaps": 0,
+        "pending_decisions": 0,
+        "other_changes": 0
       },
-      "question": "Is a partial refund one event, or one event per refunded line?",
-      "options": [
-        {
-          "name": "per-refund",
-          "consequences": "one event with a lines[] array",
-          "cost_risk": "finance sums lines"
-        },
-        {
-          "name": "per-line",
-          "consequences": "one event per refunded line",
-          "cost_risk": "more events; simpler sums"
-        }
-      ],
-      "provisional_verdict": null,
-      "level": "MUST",
-      "blocks": []
-    }
+      "digest": "8fe2ace47793d29c3be4cb80d40418f055bc0a01e12b4cd5927e700efe458766",
+      "stale_approvals": []
+    },
+    "… (+1 more)"
   ]
 }
 ```
@@ -3795,53 +3875,58 @@ Response:
 
 Everyone with an assignment and their inbox size (the inbox switcher).
 
-`GET /api/people` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/people` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
 ```json
 [
   {
-    "person": "chandra",
+    "person": "arjun",
     "roles": [
       {
         "initiative": "payment-webhooks",
-        "role": "dri"
+        "role": "engg"
       },
       {
-        "initiative": "refund-events",
-        "role": "dri"
+        "initiative": "menu-sync-retries",
+        "role": "engg"
       },
-      "… (+1 more)"
+      "… (+2 more)"
     ],
-    "inbox": 1
+    "inbox": 3
   },
   {
-    "person": "leo",
+    "person": "meera",
     "roles": [
       {
-        "initiative": "order-events",
-        "role": "design"
-      }
+        "initiative": "payment-webhooks",
+        "role": "product"
+      },
+      {
+        "initiative": "menu-sync-retries",
+        "role": "product"
+      },
+      "… (+4 more)"
     ],
-    "inbox": 0
+    "inbox": 1
   },
   "… (+4 more)"
 ]
 ```
 
-### POST /api/initiatives/refund-events/gaps/G-1/answer
+### POST /api/initiatives/menu-sync-retries/gaps/G-1/answer
 
 **human** — answer a gap: `choice` (an option key) and/or `answer` (text; defaults to the option's label). Returns the write result; `review_items` lists what the answer put up for review and who it went to.
 
-`POST /api/initiatives/refund-events/gaps/G-1/answer` — X-Actor: maya · X-Actor-Kind: human → **200**
+`POST /api/initiatives/menu-sync-retries/gaps/G-1/answer` — X-Actor: meera · X-Actor-Kind: human → **200**
 
 Request:
 
 ```json
 {
-  "choice": "per-refund",
-  "answer": "One event per refund — finance reconciles against the provider report, which is per refund."
+  "choice": "per-partner",
+  "answer": "Per partner: one flaky partner must not starve the rest."
 }
 ```
 
@@ -3850,7 +3935,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "9cd853c2-54bd-41e4-bcec-6c1660ef7ea8",
+  "batch_id": "71dc5719-4410-463b-a2dd-6f384d468418",
   "results": [
     {
       "index": 0,
@@ -3865,7 +3950,8 @@ Response:
   ],
   "minted": {},
   "review_items": [
-    "D-2 ← G-1: status OPEN → ANSWERED (→ maya)"
+    "D-2 ← G-1: status OPEN → ANSWERED (→ meera)",
+    "draft ← G-1: status OPEN → ANSWERED (→ meera)"
   ],
   "stale": [],
   "gates_changed": [],
@@ -3874,18 +3960,18 @@ Response:
 }
 ```
 
-### POST /api/initiatives/refund-events/decisions/D-2/rule
+### POST /api/initiatives/menu-sync-retries/decisions/D-2/rule
 
 **human** — rule an OPEN or PROVISIONAL decision (MUST-level or escalated decisions can only be ruled here). A DECIDED decision returns 422: supersede it instead.
 
-`POST /api/initiatives/refund-events/decisions/D-2/rule` — X-Actor: maya · X-Actor-Kind: human → **200**
+`POST /api/initiatives/menu-sync-retries/decisions/D-2/rule` — X-Actor: meera · X-Actor-Kind: human → **200**
 
 Request:
 
 ```json
 {
-  "verdict": "One event per refund with a lines[] array",
-  "rationale": "G-1: matches the provider report row for row."
+  "verdict": "Per partner: 5 retries per hour each",
+  "rationale": "G-1: partner timeouts are uneven."
 }
 ```
 
@@ -3894,7 +3980,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "62956336-7e95-411d-a6e7-f584c019fb89",
+  "batch_id": "cbe0b2f8-89d1-4b1d-b6b8-df524e659f83",
   "results": [
     {
       "index": 0,
@@ -3935,7 +4021,7 @@ Response:
 
 **human** — approve. `role` dri → `target: "draft"` (creates baseline B-n: see `baseline` in the result); engg → a task ref, with `at_sha` = the PR head (the service pins the drift `digest`); qa → a manual AC. The caller must hold the role on the initiative, and the gate's other rules must pass — else 422 naming them.
 
-`POST /api/initiatives/payment-webhooks/approvals` — X-Actor: chandra · X-Actor-Kind: human → **201**
+`POST /api/initiatives/payment-webhooks/approvals` — X-Actor: priya · X-Actor-Kind: human → **201**
 
 Request:
 
@@ -3952,7 +4038,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "13535873-6fd8-4d47-a614-456b4e27c045",
+  "batch_id": "2e807ac8-73d4-4a1a-831c-fd90cf91bf77",
   "results": [
     {
       "index": 0,
@@ -4002,7 +4088,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "987b74b7-cd25-4d50-a625-2d0c0c4f529f",
+  "batch_id": "7dcfca95-57ad-4775-ba06-a2bbf6a03949",
   "results": [
     {
       "index": 0,
@@ -4028,7 +4114,7 @@ Response:
 
 **human** — retire an AC (shows as `ac_retired` drift).
 
-`POST /api/initiatives/payment-webhooks/criteria/AC-1/retire` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`POST /api/initiatives/payment-webhooks/criteria/AC-1/retire` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Request:
 
@@ -4043,7 +4129,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "2d329de0-0228-438f-80eb-0840bbc48d84",
+  "batch_id": "49ee160c-17a1-432a-b03c-a413bbb7056a",
   "results": [
     {
       "index": 0,
@@ -4076,7 +4162,7 @@ Response:
 
 **human** — re-pin the requirement (a material change: the draft goes up for review, and the drift report shows `requirement_repinned`). Returns `{state, write}`.
 
-`POST /api/initiatives/payment-webhooks/snapshot` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`POST /api/initiatives/payment-webhooks/snapshot` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Request:
 
@@ -4096,27 +4182,27 @@ Response:
       "slug": "payment-webhooks",
       "title": "Payment webhooks",
       "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
-      "created_by": "chandra",
-      "created_at": "2026-10-28T20:57:02Z",
+      "created_by": "priya",
+      "created_at": "2026-10-28T21:04:59Z",
       "closed_at": null,
-      "snapshot_hash": "ae28eca7aa1882f2c8391871ede9b65633def08719a04d03998b95e47a635d84",
+      "snapshot_hash": "97f82cc1ad75a5aeb917cbf063d9a2c7cb9880edc90fe82b69eb686ba14e74fa",
       "phase": "PLAN",
       "pill": "amber",
       "summary": "",
       "spec_snapshot": {
         "requirement": "# Payment webhooks\nMerchants want a webhook when a payment settles **or is refunded**.",
         "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
-        "created_by": "chandra",
-        "at": "2026-10-28T20:57:02Z",
-        "previous_hash": "b835450258d62ac782e2582e0efbbe31afd448f3d9e96b7495dfee02c5093bef",
-        "previous_at": "2026-10-28T20:57:02Z"
+        "created_by": "priya",
+        "at": "2026-10-28T21:04:59Z",
+        "previous_hash": "4819a51d18b1885e7069af337413116f0b43c40c2e62aa11f9be548b464a1d0f",
+        "previous_at": "2026-10-28T21:04:59Z"
       }
     },
     "phase": "PLAN",
     "assignments": [
       {
         "ref": "A-1",
-        "person": "chandra",
+        "person": "priya",
         "role": "dri",
         "scope": [
           "initiative"
@@ -4183,16 +4269,16 @@ Response:
     "stuck": [],
     "baseline": {
       "ref": "B-1",
-      "label": "B-1 — draft rev 1 approved by chandra",
+      "label": "B-1 — draft rev 1 approved by priya",
       "status": "CURRENT",
       "approval": "APR-1",
-      "approved_by": "chandra",
+      "approved_by": "priya",
       "draft_rev": "1",
       "members": [
         "draft",
         "… (+3 more)"
       ],
-      "created_at": "2026-10-28T20:57:02Z"
+      "created_at": "2026-10-28T21:04:59Z"
     },
     "drift": {
       "changes": 2,
@@ -4245,7 +4331,7 @@ Response:
   },
   "write": {
     "ok": true,
-    "batch_id": "2b9760ce-7601-4c8e-96f1-15646a966c25",
+    "batch_id": "ab2b422e-d789-405a-a93b-3e3b9816fb59",
     "results": [
       {
         "index": 0,
@@ -4260,7 +4346,7 @@ Response:
     ],
     "minted": {},
     "review_items": [
-      "draft ← initiative: snapshot_hash: “b835450258d62ac782e2582e0efbbe31afd448f3d9e96b7495dfee02c50…” → “ae28eca7aa1882f2c8391871ede9b65633def08719a04d03998b95e47a6…” (→ chandra)"
+      "draft ← initiative: snapshot_hash: “4819a51d18b1885e7069af337413116f0b43c40c2e62aa11f9be548b464…” → “97f82cc1ad75a5aeb917cbf063d9a2c7cb9880edc90fe82b69eb686ba14…” (→ priya)"
     ],
     "stale": [],
     "gates_changed": [],
@@ -4276,36 +4362,36 @@ Response:
 
 Open review items (`?status=open` default; `upheld`, `revised`, `dismissed`, `all`). Each: `cause` moved (`what_moved`), so `target` may no longer hold; `route_to` is who should look.
 
-`GET /api/initiatives/payment-webhooks/reviews` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/initiatives/payment-webhooks/reviews` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
 ```json
 [
   {
-    "id": 5,
+    "id": 25,
     "target": "draft",
     "cause": "initiative",
     "cause_rev": 3,
-    "what_moved": "snapshot_hash: “b835450258d62ac782e2582e0efbbe31afd448f3d9e96b7495dfee02c50…” → “ae28eca7aa1882f2c8391871ede9b65633def08719a04d03998b95e47a6…”",
+    "what_moved": "snapshot_hash: “4819a51d18b1885e7069af337413116f0b43c40c2e62aa11f9be548b464…” → “97f82cc1ad75a5aeb917cbf063d9a2c7cb9880edc90fe82b69eb686ba14…”",
     "path": "scope",
     "status": "open",
-    "route_to": "chandra",
+    "route_to": "priya",
     "domain": null,
     "note": null,
-    "created_by": "chandra",
-    "created_at": "2026-10-28T20:57:02Z",
+    "created_by": "priya",
+    "created_at": "2026-10-28T21:04:59Z",
     "resolved_by": null,
     "resolved_at": null
   }
 ]
 ```
 
-### POST /api/initiatives/payment-webhooks/reviews/5/resolve
+### POST /api/initiatives/payment-webhooks/reviews/25/resolve
 
 Resolve: `upheld` (still holds — say why) · `revised` · `dismissed`. `note` required.
 
-`POST /api/initiatives/payment-webhooks/reviews/5/resolve` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`POST /api/initiatives/payment-webhooks/reviews/25/resolve` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Request:
 
@@ -4320,83 +4406,79 @@ Response:
 
 ```json
 {
-  "id": 5,
+  "id": 25,
   "target": "draft",
   "cause": "initiative",
   "cause_rev": 3,
-  "what_moved": "snapshot_hash: “b835450258d62ac782e2582e0efbbe31afd448f3d9e96b7495dfee02c50…” → “ae28eca7aa1882f2c8391871ede9b65633def08719a04d03998b95e47a6…”",
+  "what_moved": "snapshot_hash: “4819a51d18b1885e7069af337413116f0b43c40c2e62aa11f9be548b464…” → “97f82cc1ad75a5aeb917cbf063d9a2c7cb9880edc90fe82b69eb686ba14…”",
   "path": "scope",
   "status": "upheld",
-  "route_to": "chandra",
+  "route_to": "priya",
   "domain": null,
   "note": "Refunds are a separate initiative; the draft holds.",
-  "created_by": "chandra",
-  "created_at": "2026-10-28T20:57:02Z",
-  "resolved_by": "chandra",
-  "resolved_at": "2026-10-28T20:57:02Z"
+  "created_by": "priya",
+  "created_at": "2026-10-28T21:04:59Z",
+  "resolved_by": "priya",
+  "resolved_at": "2026-10-28T21:04:59Z"
 }
 ```
 
 ## Drift, gates, tasks (touchpoint 3)
 
-### GET /api/initiatives/order-events/tasks/T-1
+### GET /api/initiatives/order-events/tasks/T-3
 
 **Task page**: the task (detail), its GATE_PR (rule by rule), its task-scoped drift report (full shape below), the approver, test runs, findings, deploys.
 
-`GET /api/initiatives/order-events/tasks/T-1` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/initiatives/order-events/tasks/T-3` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
 ```json
 {
   "task": {
-    "ref": "T-1",
+    "ref": "T-3",
     "type": "task",
-    "title": "CDC transformer to order-events",
+    "title": "Topic, IAM and lag dashboard",
     "status": "IN_REVIEW",
     "pill": "amber",
-    "line": "Map Debezium order row changes to CloudEvents on order-events",
-    "rev": 3,
+    "line": "Create orders.events, the notifications-svc read role and the lag dashboard",
+    "rev": 2,
     "fields": {
-      "goal": "Map Debezium order row changes to CloudEvents on order-events",
-      "repo": "acme/orders-service",
-      "template": "python-service-v3",
+      "goal": "Create orders.events, the notifications-svc read role and the lag dashboard",
+      "repo": "infra-terraform",
+      "template": "terraform-module",
       "implements": [
-        "D-2",
-        "D-4"
+        "D-1"
       ],
       "covers": [
-        "AC-1",
-        "AC-2",
-        "AC-5"
+        "AC-4",
+        "AC-6"
       ],
-      "rollback": "Turn off order_events.enabled; the relay stops, the outbox drains on re-enable.",
-      "pr_url": "https://github.com/acme/orders-service/pull/482",
+      "rollback": "terraform destroy of the new module; nothing else depends on it yet.",
+      "pr_url": "https://github.com/navanta/infra-terraform/pull/212",
       "pr_state": "open",
-      "pr_sha": "9f3c2e1a7b4d",
+      "pr_sha": "a41c09e",
       "ci_attempts": "1",
-      "review_rounds": "1",
-      "tracker_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4212"
+      "review_rounds": "1"
     },
-    "created_by": "runner-sdk/plan-skill",
-    "created_at": "2026-10-24T09:20:00Z",
+    "created_by": "runner-sdk/plan-to-tasks",
+    "created_at": "2026-10-24T01:04:00Z",
     "updated_by": "runner-sdk/implement-task",
-    "updated_at": "2026-10-26T16:45:00Z",
+    "updated_at": "2026-10-26T21:04:00Z",
     "links": {
       "out": [
         {
           "kind": "covers",
-          "to": "AC-1"
+          "to": "AC-4"
         },
         {
           "kind": "covers",
-          "to": "AC-2"
+          "to": "AC-6"
         },
         {
-          "kind": "covers",
-          "to": "AC-5"
-        },
-        "… (+2 more)"
+          "kind": "implements",
+          "to": "D-1"
+        }
       ],
       "in": [
         {
@@ -4404,76 +4486,70 @@ Response:
           "from": "APR-2"
         },
         {
-          "kind": "blocks",
-          "from": "G-2"
+          "kind": "depends_on",
+          "from": "T-4"
         },
         {
-          "kind": "deploys",
-          "from": "DEP-1"
-        },
-        "… (+2 more)"
+          "kind": "runs_for",
+          "from": "R-1"
+        }
       ]
     },
     "stamps": {
       "goal": {
-        "by": "runner-sdk/implement-task",
+        "by": "runner-sdk/plan-to-tasks",
         "kind": "agent",
-        "at": "2026-10-25T14:10:00"
+        "at": "2026-10-24T01:04:00"
       },
       "repo": {
-        "by": "runner-sdk/plan-skill",
+        "by": "runner-sdk/plan-to-tasks",
         "kind": "agent",
-        "at": "2026-10-24T09:20:00"
+        "at": "2026-10-24T01:04:00"
       },
       "template": {
-        "by": "runner-sdk/plan-skill",
+        "by": "runner-sdk/plan-to-tasks",
         "kind": "agent",
-        "at": "2026-10-24T09:20:00"
+        "at": "2026-10-24T01:04:00"
       },
       "implements": {
-        "by": "runner-sdk/implement-task",
+        "by": "runner-sdk/plan-to-tasks",
         "kind": "agent",
-        "at": "2026-10-25T14:10:00"
+        "at": "2026-10-24T01:04:00"
       },
       "covers": {
-        "by": "runner-sdk/implement-task",
+        "by": "runner-sdk/plan-to-tasks",
         "kind": "agent",
-        "at": "2026-10-25T14:10:00"
+        "at": "2026-10-24T01:04:00"
       },
       "rollback": {
-        "by": "runner-sdk/plan-skill",
+        "by": "runner-sdk/plan-to-tasks",
         "kind": "agent",
-        "at": "2026-10-24T09:20:00"
+        "at": "2026-10-24T01:04:00"
       },
       "pr_url": {
         "by": "runner-sdk/implement-task",
         "kind": "agent",
-        "at": "2026-10-26T16:45:00"
+        "at": "2026-10-26T21:04:00"
       },
       "pr_state": {
         "by": "runner-sdk/implement-task",
         "kind": "agent",
-        "at": "2026-10-26T16:45:00"
+        "at": "2026-10-26T21:04:00"
       },
       "pr_sha": {
         "by": "runner-sdk/implement-task",
         "kind": "agent",
-        "at": "2026-10-26T16:45:00"
+        "at": "2026-10-26T21:04:00"
       },
       "ci_attempts": {
         "by": "runner-sdk/implement-task",
         "kind": "agent",
-        "at": "2026-10-26T16:45:00"
+        "at": "2026-10-26T21:04:00"
       },
       "review_rounds": {
         "by": "runner-sdk/implement-task",
         "kind": "agent",
-        "at": "2026-10-26T16:45:00"
-      },
-      "tracker_url": {
-        "by": "runner-sdk/plan-skill",
-        "kind": "agent",
-        "at": "2026-10-24T09:20:00"
+        "at": "2026-10-26T21:04:00"
       }
     },
     "stale": [],
@@ -4482,7 +4558,7 @@ Response:
   "gate": {
     "gate": "GATE_PR",
     "scope": "task",
-    "target": "T-1",
+    "target": "T-3",
     "status": "PASSED",
     "human_role": "engg",
     "text": "Touchpoint 3 — the engineer approves the task's drift report at the PR head",
@@ -4519,18 +4595,18 @@ Response:
     "failing_rules": []
   },
   "drift": {
-    "status": "EXPLAINED",
+    "status": "CLEAN",
     "initiative": "order-events",
-    "task": "T-1",
+    "task": "T-3",
     "baseline": {
       "ref": "B-1",
-      "label": "B-1 — draft rev 1 approved by chandra",
+      "label": "B-1 — draft rev 3 approved by priya",
       "status": "CURRENT",
       "approval": "APR-1",
-      "approved_by": "chandra",
-      "draft_rev": "1",
-      "created_at": "2026-10-23T15:40:00Z",
-      "members": 9
+      "approved_by": "priya",
+      "draft_rev": "3",
+      "created_at": "2026-10-23T23:04:00Z",
+      "members": 11
     },
     "until": null,
     "scope_refs": [
@@ -4540,420 +4616,255 @@ Response:
       "… (+6 more)"
     ],
     "summary": {
-      "changes": 3,
-      "explained": 3,
+      "changes": 0,
+      "explained": 0,
       "unexplained": 0,
-      "pending_gaps": 0,
+      "pending_gaps": 1,
       "pending_decisions": 0,
       "other_changes": 0
     },
-    "digest": "6979e7a1e17d3c5ac7dd744956d5a7defc0ee90cb68292bdbbcee3b4930c835f",
-    "entries": [
+    "digest": "2e955487883a09bdcd5582737e965530635e0a3b5ce49a656c761298c4ec4f93",
+    "entries": [],
+    "unexplained": [],
+    "pending_gaps": [
       {
-        "id": "gap_answered:G-2@2",
-        "kind": "gap_answered",
         "ref": "G-2",
-        "type": "gap",
-        "rev": 2,
-        "at": "2026-10-25T13:30:00Z",
-        "actor": "priya",
-        "actor_kind": "human",
-        "summary": "G-2 answered by priya: “Switch to CDC — the outbox adds a table we don't own, and platform guarantees the connector. Keep the flag.”",
-        "what_moved": [],
-        "because": [],
-        "explained": true,
-        "explanation": [
-          {
-            "ref": null,
-            "ok": true,
-            "why": "a human answer (priya)"
-          }
-        ],
-        "related": [
+        "question": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
+        "kind": "deviation",
+        "domain": "engg",
+        "blocks": [
           "D-1",
           "T-1"
         ],
-        "detail": {
-          "question": "The orders DB already streams its binlog to Kafka via Debezium (platform team). Use CDC instead of the outbox table (D-1)?",
-          "answer": "Switch to CDC — the outbox adds a table we don't own, and platform guarantees the connector. Keep the flag.",
-          "choice": "cdc",
-          "answered_by": "priya",
-          "blocks": [
-            "D-1",
-            "T-1"
-          ],
-          "resolution": "D-4 supersedes D-1; AC-5 added for CDC lag; T-1 re-scoped.",
-          "kind": "deviation",
-          "proposed_change": "D-1 verdict: outbox → CDC via Debezium on orders-primary. Add AC: given CDC lag > 5s for 5 min, the lag alert fires. T-1 implements the new decision."
-        },
-        "in_scope": true
-      },
-      {
-        "id": "decision_superseded:D-4@1",
-        "kind": "decision_superseded",
-        "ref": "D-4",
-        "type": "decision",
-        "rev": 1,
-        "at": "2026-10-25T14:10:00Z",
-        "actor": "runner-sdk/implement-task",
-        "actor_kind": "agent",
-        "summary": "D-4 supersedes D-1: verdict “Transactional outbox: order_outbox row written in the order transaction, published by a r…” → “CDC: Debezium on orders-primary; a transformer maps row changes to CloudEvents”",
-        "what_moved": [
-          "verdict: “Transactional outbox: order_outbox row written in the order transaction, published by a relay” → “CDC: Debezium on orders-primary; a transformer maps row changes to CloudEvents”"
-        ],
-        "because": [
-          "G-2"
-        ],
-        "explained": true,
-        "explanation": [
-          {
-            "ref": "G-2",
-            "ok": true,
-            "why": "answered by priya: “Switch to CDC — the outbox adds a table we don't own, and platform guarantees the connector. Keep the flag.”"
-          }
-        ],
-        "related": [
-          "D-1",
-          "G-2"
-        ],
-        "detail": {
-          "superseded": "D-1",
-          "old_verdict": "Transactional outbox: order_outbox row written in the order transaction, published by a relay",
-          "new_verdict": "CDC: Debezium on orders-primary; a transformer maps row changes to CloudEvents",
-          "question": "How do order state changes reach the event bus without being lost?",
-          "level": "SHOULD",
-          "rationale": "G-2: platform already runs Debezium with 1.2s p99 lag; no new table or relay to own.",
-          "related_gaps": [
-            "G-2"
-          ]
-        },
-        "in_scope": true
-      },
-      {
-        "id": "ac_added:AC-5@1",
-        "kind": "ac_added",
-        "ref": "AC-5",
-        "type": "acceptance_criterion",
-        "rev": 1,
-        "at": "2026-10-25T14:10:00Z",
-        "actor": "runner-sdk/implement-task",
-        "actor_kind": "agent",
-        "summary": "AC-5 added: “Given CDC lag above 5s for 5 minutes, when the alert rule evaluates, then the order-events lag alert pages the on-call” (level: integration)",
-        "what_moved": [],
-        "because": [
-          "D-4"
-        ],
-        "explained": true,
-        "explanation": [
-          {
-            "ref": "D-4",
-            "ok": true,
-            "why": "“CDC: Debezium on orders-primary; a transformer maps row changes to CloudEvents” because G-2 answered by priya: “Switch to CDC — the outbox adds a table we don't own, and platform guarantees the conne…"
-          }
-        ],
-        "related": [
-          "D-4"
-        ],
-        "detail": {
-          "text": "Given CDC lag above 5s for 5 minutes, when the alert rule evaluates, then the order-events lag alert pages the on-call",
-          "level": "integration",
-          "source": [
-            "D-4"
-          ]
-        },
-        "in_scope": true
+        "asked_by": "runner-sdk/implement-task",
+        "at": "2026-10-28T19:04:00Z"
       }
     ],
-    "unexplained": [],
-    "pending_gaps": [],
     "pending_decisions": [],
     "spec_diff": {
       "draft": {},
       "decisions": {
         "added": [],
-        "superseded": [
-          {
-            "old": "D-1",
-            "new": "D-4",
-            "old_verdict": "Transactional outbox: order_outbox row written in the order transaction, published by a relay",
-            "new_verdict": "CDC: Debezium on orders-primary; a transformer maps row changes to CloudEvents"
-          }
-        ],
+        "superseded": [],
         "changed": [],
         "unchanged": 1
       },
       "criteria": {
-        "added": [
-          {
-            "ref": "AC-5",
-            "text": "Given CDC lag above 5s for 5 minutes, when the alert rule evaluates, then the order-events lag alert pages the on-call",
-            "level": "integration",
-            "because": [
-              "D-4"
-            ]
-          }
-        ],
+        "added": [],
         "retired": [],
         "changed": [],
-        "unchanged": 3
+        "unchanged": 6
       }
     },
     "approved_spec": {
       "draft": {
-        "problem": "Consumers poll `orders` every 30s (~400 QPS on the primary, up to 30s notification latency). Done = every state change is on the bus within 5s, none lost, replayable for 7 days.",
-        "hld": "Order writes insert an `order_outbox` row in the same transaction (D-1). A relay publishes outbox rows as CloudEvents partitioned by `order_id` (D-2) to `order-events`, retained 7 days (D-3).\n\n```merm…",
-        "lld": "- `order_outbox(id bigint pk, order_id, type, payload json, created_at, published_at null)`\n- Relay: `SELECT … WHERE published_at IS NULL ORDER BY id LIMIT 500 FOR UPDATE SKIP LOCKED`, publish, set `p…",
+        "problem": "Notifications-svc polls the orders database every minute to find new and cancelled orders. Emails go out late, and the polling query is the orders DB's top load. Done means consumers receive order.cre…",
+        "hld": "orders-service writes each order change and an event row in one transaction (D-1). A relay publishes event rows to the `orders.events` topic and marks them sent. Events use a versioned envelope (D-2).…",
+        "lld": "- `order_events(id, order_id, type, payload, created_at, sent_at)`\n- Event delivery: a relay polls unsent rows every 200 ms in batches of 500, publishes with key = order_id, and sets `sent_at` after t…",
         "scope_in": [
-          "All six order state transitions",
-          "Relay with lag metrics and alert",
-          "Consumer contract docs"
+          "order.created and order.cancelled",
+          "the orders.events topic",
+          "consumer dedupe",
+          "… (+1 more)"
         ],
         "scope_out": [
-          "Backfill of historical orders",
-          "Migrating consumers off polling (each team owns theirs)"
+          "refund events",
+          "backfilling historical orders",
+          "other consumers"
         ],
-        "test_strategy": "Integration tests against MySQL + a local Kafka for AC-1..AC-3 (kill the relay mid-batch for AC-2). AC-4 runs in staging against the real topic retention. No manual ACs."
+        "test_strategy": "Unit: envelope and dedupe logic. Integration: relay against a real broker, including a 10-minute outage (AC-3). Manual: QA checks the lag dashboard in the test environment. Every criterion maps to at …"
       },
       "decisions": [
         {
           "ref": "D-1",
-          "title": "Publish through a transactional outbox",
-          "question": "How do order state changes reach the event bus without being lost?",
-          "verdict": "Transactional outbox: order_outbox row written in the order transaction, published by a relay",
-          "level": "SHOULD",
-          "status": "DECIDED"
-        },
-        {
-          "ref": "D-2",
-          "title": "CloudEvents envelope, partitioned by order_id",
-          "question": "Which envelope and partition key do order events use?",
-          "verdict": "CloudEvents 1.0 JSON; partition key order_id",
-          "level": "SHOULD",
+          "title": "Transactional outbox",
+          "question": "How do order events reach consumers?",
+          "verdict": "Transactional outbox",
+          "level": "MUST",
           "status": "DECIDED"
         }
       ],
       "criteria": [
         {
           "ref": "AC-1",
-          "text": "Given an order state change, when the order transaction commits, then exactly one event for it is published",
+          "text": "Given an order commits, when the relay runs, then order.created is published once",
           "level": "integration",
           "manual": "",
           "status": "APPROVED"
         },
         {
           "ref": "AC-2",
-          "text": "Given the relay is down for 10 minutes, when it restarts, then every pending event is published with no loss",
-          "level": "integration",
+          "text": "Given an order write, then its event row is written in the same transaction",
+          "level": "unit",
           "manual": "",
           "status": "APPROVED"
         },
         {
           "ref": "AC-3",
-          "text": "Given two state changes of one order, when published, then they carry partition key order_id and arrive in commit order",
+          "text": "Given the broker is down for 10 min, when it recovers, then every event arrives with none duplicated",
           "level": "integration",
           "manual": "",
           "status": "APPROVED"
-        }
+        },
+        "… (+3 more)"
       ]
     },
     "current_spec": {
       "draft": {
-        "problem": "Consumers poll `orders` every 30s (~400 QPS on the primary, up to 30s notification latency). Done = every state change is on the bus within 5s, none lost, replayable for 7 days.",
-        "hld": "Order writes insert an `order_outbox` row in the same transaction (D-1). A relay publishes outbox rows as CloudEvents partitioned by `order_id` (D-2) to `order-events`, retained 7 days (D-3).\n\n```merm…",
-        "lld": "- `order_outbox(id bigint pk, order_id, type, payload json, created_at, published_at null)`\n- Relay: `SELECT … WHERE published_at IS NULL ORDER BY id LIMIT 500 FOR UPDATE SKIP LOCKED`, publish, set `p…",
+        "problem": "Notifications-svc polls the orders database every minute to find new and cancelled orders. Emails go out late, and the polling query is the orders DB's top load. Done means consumers receive order.cre…",
+        "hld": "orders-service writes each order change and an event row in one transaction (D-1). A relay publishes event rows to the `orders.events` topic and marks them sent. Events use a versioned envelope (D-2).…",
+        "lld": "- `order_events(id, order_id, type, payload, created_at, sent_at)`\n- Event delivery: a relay polls unsent rows every 200 ms in batches of 500, publishes with key = order_id, and sets `sent_at` after t…",
         "scope_in": [
-          "All six order state transitions",
-          "Relay with lag metrics and alert",
-          "Consumer contract docs"
+          "order.created and order.cancelled",
+          "the orders.events topic",
+          "consumer dedupe",
+          "… (+1 more)"
         ],
         "scope_out": [
-          "Backfill of historical orders",
-          "Migrating consumers off polling (each team owns theirs)"
+          "refund events",
+          "backfilling historical orders",
+          "other consumers"
         ],
-        "test_strategy": "Integration tests against MySQL + a local Kafka for AC-1..AC-3 (kill the relay mid-batch for AC-2). AC-4 runs in staging against the real topic retention. No manual ACs."
+        "test_strategy": "Unit: envelope and dedupe logic. Integration: relay against a real broker, including a 10-minute outage (AC-3). Manual: QA checks the lag dashboard in the test environment. Every criterion maps to at …"
       },
       "decisions": [
         {
-          "ref": "D-2",
-          "title": "CloudEvents envelope, partitioned by order_id",
-          "question": "Which envelope and partition key do order events use?",
-          "verdict": "CloudEvents 1.0 JSON; partition key order_id",
-          "level": "SHOULD",
-          "status": "DECIDED"
-        },
-        {
-          "ref": "D-4",
-          "title": "Publish order events via platform CDC",
-          "question": "How do order state changes reach the event bus without being lost?",
-          "verdict": "CDC: Debezium on orders-primary; a transformer maps row changes to CloudEvents",
-          "level": "SHOULD",
+          "ref": "D-1",
+          "title": "Transactional outbox",
+          "question": "How do order events reach consumers?",
+          "verdict": "Transactional outbox",
+          "level": "MUST",
           "status": "DECIDED"
         }
       ],
       "criteria": [
         {
           "ref": "AC-1",
-          "text": "Given an order state change, when the order transaction commits, then exactly one event for it is published",
+          "text": "Given an order commits, when the relay runs, then order.created is published once",
           "level": "integration",
           "manual": "",
           "status": "APPROVED"
         },
         {
           "ref": "AC-2",
-          "text": "Given the relay is down for 10 minutes, when it restarts, then every pending event is published with no loss",
-          "level": "integration",
+          "text": "Given an order write, then its event row is written in the same transaction",
+          "level": "unit",
           "manual": "",
           "status": "APPROVED"
         },
         {
           "ref": "AC-3",
-          "text": "Given two state changes of one order, when published, then they carry partition key order_id and arrive in commit order",
+          "text": "Given the broker is down for 10 min, when it recovers, then every event arrives with none duplicated",
           "level": "integration",
           "manual": "",
           "status": "APPROVED"
         },
-        "… (+1 more)"
+        "… (+3 more)"
       ]
     },
     "approvals": [
       {
         "ref": "APR-2",
-        "by": "priya",
+        "by": "arjun",
         "status": "CURRENT",
-        "at_sha": "9f3c2e1a7b4d",
-        "drift_digest": "6979e7a1e17d3c5ac7dd744956d5a7defc0ee90cb68292bdbbcee3b4930c835f",
+        "at_sha": "a41c09e",
+        "drift_digest": "2e955487883a09bdcd5582737e965530635e0a3b5ce49a656c761298c4ec4f93",
         "matches_digest": true,
-        "note": "Drift is the CDC switch I asked for; tests cover the lag alert.",
-        "at": "2026-10-27T10:30:00Z"
+        "note": "Topic, role and dashboard as in the HLD.",
+        "at": "2026-10-27T01:04:00Z"
       }
     ]
   },
-  "approver": "priya",
+  "approver": "arjun",
   "test_runs": [
     {
       "ref": "R-1",
       "type": "test_run",
-      "title": "orders-service integration suite @ 9f3c2e1",
+      "title": "infra-terraform plan + policy tests @ a41c09e",
       "status": "GREEN",
       "pill": "green",
-      "line": "CDC transformer integration suite (MySQL + Kafka + Debezium in docker)",
+      "line": "infra-terraform plan + policy tests",
       "rev": 1,
       "fields": {
-        "summary": "CDC transformer integration suite (MySQL + Kafka + Debezium in docker)",
+        "summary": "infra-terraform plan + policy tests",
         "level": "integration",
         "result": "GREEN",
-        "at_sha": "9f3c2e1a7b4d",
-        "run_url": "https://github.com/acme/orders-service/actions/runs/1180042",
+        "at_sha": "a41c09e",
+        "run_url": "https://ci.navanta.dev/runs/69663",
         "environment": "ci",
         "task": [
-          "T-1"
+          "T-3"
         ],
         "covers": [
           {
-            "ac": "AC-1",
+            "ac": "AC-4",
             "result": "GREEN",
-            "test_id": "test_one_event_per_commit",
-            "evidence": "48/48 transitions"
-          },
-          {
-            "ac": "AC-2",
-            "result": "GREEN",
-            "test_id": "test_connector_restart_no_loss",
-            "evidence": "0 lost of 10k"
-          },
-          {
-            "ac": "AC-5",
-            "result": "GREEN",
-            "test_id": "test_lag_alert_fires",
-            "evidence": "alert at 5m02s"
+            "test_id": "test_AC_4_topic_acl"
           }
         ],
-        "run_on": "2026-10-27T13:00"
+        "run_on": "2026-10-28T20:04"
       },
       "created_by": "runner-sdk/write-tests",
-      "created_at": "2026-10-26T16:45:00Z",
+      "created_at": "2026-10-26T21:04:00Z",
       "updated_by": "runner-sdk/write-tests",
-      "updated_at": "2026-10-26T16:45:00Z"
+      "updated_at": "2026-10-26T21:04:00Z"
     }
   ],
   "findings": [],
-  "deploys": [
-    {
-      "ref": "DEP-1",
-      "type": "deploy",
-      "title": "staging T-1 @ 9f3c2e1a7b",
-      "status": "PENDING",
-      "pill": "amber",
-      "line": "staging",
-      "rev": 1,
-      "fields": {
-        "environment": "staging",
-        "at_sha": "9f3c2e1a7b4d",
-        "task": [
-          "T-1"
-        ],
-        "guard_result": "GO",
-        "result": "PENDING"
-      },
-      "created_by": "github-actions",
-      "created_at": "2026-10-27T11:00:00Z",
-      "updated_by": "github-actions",
-      "updated_at": "2026-10-27T11:00:00Z"
-    }
-  ]
+  "deploys": []
 }
 ```
 
-### GET /api/initiatives/order-events/drift?task=T-1
+### GET /api/initiatives/inventory-sync-v3/drift?task=T-1
 
 The task-scoped drift report. Without `task`: the whole initiative. `baseline=B-n`: from an older baseline up to the next one.
 
-`GET /api/initiatives/order-events/drift?task=T-1` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/initiatives/inventory-sync-v3/drift?task=T-1` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
 ```json
 {
   "status": "EXPLAINED",
-  "initiative": "order-events",
+  "initiative": "inventory-sync-v3",
   "task": "T-1",
   "baseline": {
     "ref": "B-1",
-    "label": "B-1 — draft rev 1 approved by chandra",
+    "label": "B-1 — draft rev 1 approved by priya",
     "status": "CURRENT",
     "approval": "APR-1",
-    "approved_by": "chandra",
+    "approved_by": "priya",
     "draft_rev": "1",
-    "created_at": "2026-10-23T15:40:00Z",
-    "members": 9
+    "created_at": "2026-10-09T21:04:00Z",
+    "members": 7
   },
   "until": null,
   "scope_refs": [
     "AC-1",
-    "AC-2",
     "AC-3",
-    "… (+6 more)"
+    "D-1",
+    "… (+3 more)"
   ],
   "summary": {
-    "changes": 3,
-    "explained": 3,
+    "changes": 2,
+    "explained": 2,
     "unexplained": 0,
     "pending_gaps": 0,
     "pending_decisions": 0,
     "other_changes": 0
   },
-  "digest": "6979e7a1e17d3c5ac7dd744956d5a7defc0ee90cb68292bdbbcee3b4930c835f",
+  "digest": "9a35cc31d811058b4f3e01611ea7e1b755bb84c791459cc2dc357ff31862723e",
   "entries": [
     {
-      "id": "gap_answered:G-2@2",
+      "id": "gap_answered:G-1@2",
       "kind": "gap_answered",
-      "ref": "G-2",
+      "ref": "G-1",
       "type": "gap",
       "rev": 2,
-      "at": "2026-10-25T13:30:00Z",
-      "actor": "priya",
+      "at": "2026-10-13T01:04:00Z",
+      "actor": "meera",
       "actor_kind": "human",
-      "summary": "G-2 answered by priya: “Switch to CDC — the outbox adds a table we don't own, and platform guarantees the connector. Keep the flag.”",
+      "summary": "G-1 answered by meera: “Delta sync — a minute is what partners were promised.”",
       "what_moved": [],
       "because": [],
       "explained": true,
@@ -4961,99 +4872,63 @@ Response:
         {
           "ref": null,
           "ok": true,
-          "why": "a human answer (priya)"
+          "why": "a human answer (meera)"
         }
       ],
       "related": [
-        "D-1",
-        "T-1"
+        "D-1"
       ],
       "detail": {
-        "question": "The orders DB already streams its binlog to Kafka via Debezium (platform team). Use CDC instead of the outbox table (D-1)?",
-        "answer": "Switch to CDC — the outbox adds a table we don't own, and platform guarantees the connector. Keep the flag.",
-        "choice": "cdc",
-        "answered_by": "priya",
+        "question": "A full sync takes 4 minutes for large partners. Switch to delta sync every 30 seconds?",
+        "answer": "Delta sync — a minute is what partners were promised.",
+        "choice": "delta",
+        "answered_by": "meera",
         "blocks": [
-          "D-1",
-          "T-1"
+          "D-1"
         ],
-        "resolution": "D-4 supersedes D-1; AC-5 added for CDC lag; T-1 re-scoped.",
+        "resolution": "D-3 supersedes D-1.",
         "kind": "deviation",
-        "proposed_change": "D-1 verdict: outbox → CDC via Debezium on orders-primary. Add AC: given CDC lag > 5s for 5 min, the lag alert fires. T-1 implements the new decision."
+        "proposed_change": ""
       },
       "in_scope": true
     },
     {
-      "id": "decision_superseded:D-4@1",
+      "id": "decision_superseded:D-3@1",
       "kind": "decision_superseded",
-      "ref": "D-4",
+      "ref": "D-3",
       "type": "decision",
       "rev": 1,
-      "at": "2026-10-25T14:10:00Z",
+      "at": "2026-10-13T03:04:00Z",
       "actor": "runner-sdk/implement-task",
       "actor_kind": "agent",
-      "summary": "D-4 supersedes D-1: verdict “Transactional outbox: order_outbox row written in the order transaction, published by a r…” → “CDC: Debezium on orders-primary; a transformer maps row changes to CloudEvents”",
+      "summary": "D-3 supersedes D-1: verdict “Full sync every 5 minutes” → “Delta sync every 30 seconds”",
       "what_moved": [
-        "verdict: “Transactional outbox: order_outbox row written in the order transaction, published by a relay” → “CDC: Debezium on orders-primary; a transformer maps row changes to CloudEvents”"
+        "verdict: “Full sync every 5 minutes” → “Delta sync every 30 seconds”"
       ],
       "because": [
-        "G-2"
+        "G-1"
       ],
       "explained": true,
       "explanation": [
         {
-          "ref": "G-2",
+          "ref": "G-1",
           "ok": true,
-          "why": "answered by priya: “Switch to CDC — the outbox adds a table we don't own, and platform guarantees the connector. Keep the flag.”"
+          "why": "answered by meera: “Delta sync — a minute is what partners were promised.”"
         }
       ],
       "related": [
         "D-1",
-        "G-2"
+        "G-1"
       ],
       "detail": {
         "superseded": "D-1",
-        "old_verdict": "Transactional outbox: order_outbox row written in the order transaction, published by a relay",
-        "new_verdict": "CDC: Debezium on orders-primary; a transformer maps row changes to CloudEvents",
-        "question": "How do order state changes reach the event bus without being lost?",
+        "old_verdict": "Full sync every 5 minutes",
+        "new_verdict": "Delta sync every 30 seconds",
+        "question": "How often is inventory synced?",
         "level": "SHOULD",
-        "rationale": "G-2: platform already runs Debezium with 1.2s p99 lag; no new table or relay to own.",
+        "rationale": "G-1: full sync is too slow for large partners.",
         "related_gaps": [
-          "G-2"
-        ]
-      },
-      "in_scope": true
-    },
-    {
-      "id": "ac_added:AC-5@1",
-      "kind": "ac_added",
-      "ref": "AC-5",
-      "type": "acceptance_criterion",
-      "rev": 1,
-      "at": "2026-10-25T14:10:00Z",
-      "actor": "runner-sdk/implement-task",
-      "actor_kind": "agent",
-      "summary": "AC-5 added: “Given CDC lag above 5s for 5 minutes, when the alert rule evaluates, then the order-events lag alert pages the on-call” (level: integration)",
-      "what_moved": [],
-      "because": [
-        "D-4"
-      ],
-      "explained": true,
-      "explanation": [
-        {
-          "ref": "D-4",
-          "ok": true,
-          "why": "“CDC: Debezium on orders-primary; a transformer maps row changes to CloudEvents” because G-2 answered by priya: “Switch to CDC — the outbox adds a table we don't own, and platform guarantees the conne…"
-        }
-      ],
-      "related": [
-        "D-4"
-      ],
-      "detail": {
-        "text": "Given CDC lag above 5s for 5 minutes, when the alert rule evaluates, then the order-events lag alert pages the on-call",
-        "level": "integration",
-        "source": [
-          "D-4"
+          "G-1"
         ]
       },
       "in_scope": true
@@ -5069,60 +4944,36 @@ Response:
       "superseded": [
         {
           "old": "D-1",
-          "new": "D-4",
-          "old_verdict": "Transactional outbox: order_outbox row written in the order transaction, published by a relay",
-          "new_verdict": "CDC: Debezium on orders-primary; a transformer maps row changes to CloudEvents"
+          "new": "D-3",
+          "old_verdict": "Full sync every 5 minutes",
+          "new_verdict": "Delta sync every 30 seconds"
         }
       ],
       "changed": [],
-      "unchanged": 1
+      "unchanged": 0
     },
     "criteria": {
-      "added": [
-        {
-          "ref": "AC-5",
-          "text": "Given CDC lag above 5s for 5 minutes, when the alert rule evaluates, then the order-events lag alert pages the on-call",
-          "level": "integration",
-          "because": [
-            "D-4"
-          ]
-        }
-      ],
+      "added": [],
       "retired": [],
       "changed": [],
-      "unchanged": 3
+      "unchanged": 2
     }
   },
   "approved_spec": {
     "draft": {
-      "problem": "Consumers poll `orders` every 30s (~400 QPS on the primary, up to 30s notification latency). Done = every state change is on the bus within 5s, none lost, replayable for 7 days.",
-      "hld": "Order writes insert an `order_outbox` row in the same transaction (D-1). A relay publishes outbox rows as CloudEvents partitioned by `order_id` (D-2) to `order-events`, retained 7 days (D-3).\n\n```merm…",
-      "lld": "- `order_outbox(id bigint pk, order_id, type, payload json, created_at, published_at null)`\n- Relay: `SELECT … WHERE published_at IS NULL ORDER BY id LIMIT 500 FOR UPDATE SKIP LOCKED`, publish, set `p…",
-      "scope_in": [
-        "All six order state transitions",
-        "Relay with lag metrics and alert",
-        "Consumer contract docs"
-      ],
-      "scope_out": [
-        "Backfill of historical orders",
-        "Migrating consumers off polling (each team owns theirs)"
-      ],
-      "test_strategy": "Integration tests against MySQL + a local Kafka for AC-1..AC-3 (kill the relay mid-batch for AC-2). AC-4 runs in staging against the real topic retention. No manual ACs."
+      "problem": "Partner inventory is up to an hour stale.",
+      "hld": "Sync (D-1) and push (D-2).",
+      "lld": "- sync cursor per partner",
+      "scope_in": null,
+      "scope_out": null,
+      "test_strategy": "Integration and a manual lag check."
     },
     "decisions": [
       {
         "ref": "D-1",
-        "title": "Publish through a transactional outbox",
-        "question": "How do order state changes reach the event bus without being lost?",
-        "verdict": "Transactional outbox: order_outbox row written in the order transaction, published by a relay",
-        "level": "SHOULD",
-        "status": "DECIDED"
-      },
-      {
-        "ref": "D-2",
-        "title": "CloudEvents envelope, partitioned by order_id",
-        "question": "Which envelope and partition key do order events use?",
-        "verdict": "CloudEvents 1.0 JSON; partition key order_id",
+        "title": "Full sync every 5 minutes",
+        "question": "How often is inventory synced?",
+        "verdict": "Full sync every 5 minutes",
         "level": "SHOULD",
         "status": "DECIDED"
       }
@@ -5130,21 +4981,14 @@ Response:
     "criteria": [
       {
         "ref": "AC-1",
-        "text": "Given an order state change, when the order transaction commits, then exactly one event for it is published",
-        "level": "integration",
-        "manual": "",
-        "status": "APPROVED"
-      },
-      {
-        "ref": "AC-2",
-        "text": "Given the relay is down for 10 minutes, when it restarts, then every pending event is published with no loss",
+        "text": "Given a stock change, then the partner sees it within a minute",
         "level": "integration",
         "manual": "",
         "status": "APPROVED"
       },
       {
         "ref": "AC-3",
-        "text": "Given two state changes of one order, when published, then they carry partition key order_id and arrive in commit order",
+        "text": "Given a full resync, then no partner receives a duplicate",
         "level": "integration",
         "manual": "",
         "status": "APPROVED"
@@ -5153,34 +4997,19 @@ Response:
   },
   "current_spec": {
     "draft": {
-      "problem": "Consumers poll `orders` every 30s (~400 QPS on the primary, up to 30s notification latency). Done = every state change is on the bus within 5s, none lost, replayable for 7 days.",
-      "hld": "Order writes insert an `order_outbox` row in the same transaction (D-1). A relay publishes outbox rows as CloudEvents partitioned by `order_id` (D-2) to `order-events`, retained 7 days (D-3).\n\n```merm…",
-      "lld": "- `order_outbox(id bigint pk, order_id, type, payload json, created_at, published_at null)`\n- Relay: `SELECT … WHERE published_at IS NULL ORDER BY id LIMIT 500 FOR UPDATE SKIP LOCKED`, publish, set `p…",
-      "scope_in": [
-        "All six order state transitions",
-        "Relay with lag metrics and alert",
-        "Consumer contract docs"
-      ],
-      "scope_out": [
-        "Backfill of historical orders",
-        "Migrating consumers off polling (each team owns theirs)"
-      ],
-      "test_strategy": "Integration tests against MySQL + a local Kafka for AC-1..AC-3 (kill the relay mid-batch for AC-2). AC-4 runs in staging against the real topic retention. No manual ACs."
+      "problem": "Partner inventory is up to an hour stale.",
+      "hld": "Sync (D-1) and push (D-2).",
+      "lld": "- sync cursor per partner",
+      "scope_in": null,
+      "scope_out": null,
+      "test_strategy": "Integration and a manual lag check."
     },
     "decisions": [
       {
-        "ref": "D-2",
-        "title": "CloudEvents envelope, partitioned by order_id",
-        "question": "Which envelope and partition key do order events use?",
-        "verdict": "CloudEvents 1.0 JSON; partition key order_id",
-        "level": "SHOULD",
-        "status": "DECIDED"
-      },
-      {
-        "ref": "D-4",
-        "title": "Publish order events via platform CDC",
-        "question": "How do order state changes reach the event bus without being lost?",
-        "verdict": "CDC: Debezium on orders-primary; a transformer maps row changes to CloudEvents",
+        "ref": "D-3",
+        "title": "Delta sync every 30 seconds",
+        "question": "How often is inventory synced?",
+        "verdict": "Delta sync every 30 seconds",
         "level": "SHOULD",
         "status": "DECIDED"
       }
@@ -5188,71 +5017,61 @@ Response:
     "criteria": [
       {
         "ref": "AC-1",
-        "text": "Given an order state change, when the order transaction commits, then exactly one event for it is published",
-        "level": "integration",
-        "manual": "",
-        "status": "APPROVED"
-      },
-      {
-        "ref": "AC-2",
-        "text": "Given the relay is down for 10 minutes, when it restarts, then every pending event is published with no loss",
+        "text": "Given a stock change, then the partner sees it within a minute",
         "level": "integration",
         "manual": "",
         "status": "APPROVED"
       },
       {
         "ref": "AC-3",
-        "text": "Given two state changes of one order, when published, then they carry partition key order_id and arrive in commit order",
+        "text": "Given a full resync, then no partner receives a duplicate",
         "level": "integration",
         "manual": "",
         "status": "APPROVED"
-      },
-      "… (+1 more)"
+      }
     ]
   },
   "approvals": [
     {
       "ref": "APR-2",
-      "by": "priya",
+      "by": "nikhil",
       "status": "CURRENT",
-      "at_sha": "9f3c2e1a7b4d",
-      "drift_digest": "6979e7a1e17d3c5ac7dd744956d5a7defc0ee90cb68292bdbbcee3b4930c835f",
+      "at_sha": "8b9c0d1e",
+      "drift_digest": "9a35cc31d811058b4f3e01611ea7e1b755bb84c791459cc2dc357ff31862723e",
       "matches_digest": true,
-      "note": "Drift is the CDC switch I asked for; tests cover the lag alert.",
-      "at": "2026-10-27T10:30:00Z"
+      "note": "",
+      "at": "2026-10-24T21:04:00Z"
     }
   ]
 }
 ```
 
-### GET /api/initiatives/order-events/drift?task=T-1&format=md
+### GET /api/initiatives/inventory-sync-v3/drift?task=T-1&format=md
 
 The same report as the PR's sticky comment.
 
-`GET /api/initiatives/order-events/drift?task=T-1&format=md` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/initiatives/inventory-sync-v3/drift?task=T-1&format=md` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response (`text/markdown; charset=utf-8`):
 
 ````markdown
-## Drift since baseline B-1 (approved by chandra, 2026-10-23, draft rev 1) — scope: T-1
-**3 changes · 3 explained · 0 unexplained** · digest `6979e7a1…`
+## Drift since baseline B-1 (approved by priya, 2026-10-09, draft rev 1) — scope: T-1
+**2 changes · 2 explained · 0 unexplained** · digest `9a35cc31…`
 
 | when | who | change | because | |
 |---|---|---|---|---|
-| 10-25 13:30 | priya (human) | G-2 answered by priya: “Switch to CDC — the outbox adds a table we don't own, and platform guarantees the connector. Keep the flag.” | — | ✓ |
-| 10-25 14:10 | runner-sdk/implement-task | D-4 supersedes D-1: verdict “Transactional outbox: order_outbox row written in the order transaction, published by a r…” → “CDC: Debezium on orders-primary; a transformer maps row… | G-2 | ✓ |
-| 10-25 14:10 | runner-sdk/implement-task | AC-5 added: “Given CDC lag above 5s for 5 minutes, when the alert rule evaluates, then the order-events lag alert pages the on-call” (level: integration) | D-4 | ✓ |
+| 10-13 01:04 | meera (human) | G-1 answered by meera: “Delta sync — a minute is what partners were promised.” | — | ✓ |
+| 10-13 03:04 | runner-sdk/implement-task | D-3 supersedes D-1: verdict “Full sync every 5 minutes” → “Delta sync every 30 seconds” | G-1 | ✓ |
 
-### Spec diff · decisions: 1 superseded · criteria: +1
-- D-1 → D-4: “Transactional outbox: order_outbox row written in the order transaction, published by a relay” → “CDC: Debezium on orders-primary; a transformer maps row changes to CloudEvents”
-- AC-5 added (integration): Given CDC lag above 5s for 5 minutes, when the alert rule evaluates, then the order-events lag alert pages the on-call
+### Spec diff · decisions: 1 superseded
+- D-1 → D-3: “Full sync every 5 minutes” → “Delta sync every 30 seconds”
 ````
 
 ### GET /api/initiatives/order-events/drift?task=T-2 (CLEAN)
 
 A task with nothing changed in its scope: `status: CLEAN`, `other_changes` counts the initiative's changes outside it.
 
-`GET /api/initiatives/order-events/drift?task=T-2` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/initiatives/order-events/drift?task=T-2` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -5263,31 +5082,44 @@ Response:
   "task": "T-2",
   "baseline": {
     "ref": "B-1",
-    "label": "B-1 — draft rev 1 approved by chandra",
+    "label": "B-1 — draft rev 3 approved by priya",
     "status": "CURRENT",
     "approval": "APR-1",
-    "approved_by": "chandra",
-    "draft_rev": "1",
-    "created_at": "2026-10-23T15:40:00Z",
-    "members": 9
+    "approved_by": "priya",
+    "draft_rev": "3",
+    "created_at": "2026-10-23T23:04:00Z",
+    "members": 11
   },
   "until": null,
   "scope_refs": [
-    "AC-3",
-    "… (+5 more)"
+    "AC-1",
+    "… (+9 more)"
   ],
   "summary": {
     "changes": 0,
     "explained": 0,
     "unexplained": 0,
-    "pending_gaps": 0,
+    "pending_gaps": 1,
     "pending_decisions": 0,
-    "other_changes": 3
+    "other_changes": 0
   },
-  "digest": "38361c9a266a8cdd82bba0413719d6f70347bb70f5d017e89fc3ddbe77d75401",
+  "digest": "42c0cb7b907516b13fce222a1079e3cd8873baa7dd0f3a6ebaf16a88c6f29dd3",
   "entries": [],
   "unexplained": [],
-  "pending_gaps": [],
+  "pending_gaps": [
+    {
+      "ref": "G-2",
+      "question": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
+      "kind": "deviation",
+      "domain": "engg",
+      "blocks": [
+        "D-1",
+        "… (+1 more)"
+      ],
+      "asked_by": "runner-sdk/implement-task",
+      "at": "2026-10-28T19:04:00Z"
+    }
+  ],
   "pending_decisions": [],
   "spec_diff": {
     "draft": {},
@@ -5301,81 +5133,252 @@ Response:
       "added": [],
       "retired": [],
       "changed": [],
-      "unchanged": 2
+      "unchanged": 6
     }
   },
   "approved_spec": {
     "draft": {
-      "problem": "Consumers poll `orders` every 30s (~400 QPS on the primary, up to 30s notification latency). Done = every state change is on the bus within 5s, none lost, replayable for 7 days.",
-      "hld": "Order writes insert an `order_outbox` row in the same transaction (D-1). A relay publishes outbox rows as CloudEvents partitioned by `order_id` (D-2) to `order-events`, retained 7 days (D-3).\n\n```merm…",
-      "lld": "- `order_outbox(id bigint pk, order_id, type, payload json, created_at, published_at null)`\n- Relay: `SELECT … WHERE published_at IS NULL ORDER BY id LIMIT 500 FOR UPDATE SKIP LOCKED`, publish, set `p…",
+      "problem": "Notifications-svc polls the orders database every minute to find new and cancelled orders. Emails go out late, and the polling query is the orders DB's top load. Done means consumers receive order.cre…",
+      "hld": "orders-service writes each order change and an event row in one transaction (D-1). A relay publishes event rows to the `orders.events` topic and marks them sent. Events use a versioned envelope (D-2).…",
+      "lld": "- `order_events(id, order_id, type, payload, created_at, sent_at)`\n- Event delivery: a relay polls unsent rows every 200 ms in batches of 500, publishes with key = order_id, and sets `sent_at` after t…",
       "scope_in": [
-        "All six order state transitions",
-        "… (+2 more)"
+        "order.created and order.cancelled",
+        "… (+3 more)"
       ],
       "scope_out": [
-        "Backfill of historical orders",
-        "… (+1 more)"
+        "refund events",
+        "… (+2 more)"
       ],
-      "test_strategy": "Integration tests against MySQL + a local Kafka for AC-1..AC-3 (kill the relay mid-batch for AC-2). AC-4 runs in staging against the real topic retention. No manual ACs."
+      "test_strategy": "Unit: envelope and dedupe logic. Integration: relay against a real broker, including a 10-minute outage (AC-3). Manual: QA checks the lag dashboard in the test environment. Every criterion maps to at …"
     },
     "decisions": [
       {
-        "ref": "D-2",
-        "title": "CloudEvents envelope, partitioned by order_id",
-        "question": "Which envelope and partition key do order events use?",
-        "verdict": "CloudEvents 1.0 JSON; partition key order_id",
-        "level": "SHOULD",
+        "ref": "D-1",
+        "title": "Transactional outbox",
+        "question": "How do order events reach consumers?",
+        "verdict": "Transactional outbox",
+        "level": "MUST",
         "status": "DECIDED"
       },
       "… (+1 more)"
     ],
     "criteria": [
       {
-        "ref": "AC-3",
-        "text": "Given two state changes of one order, when published, then they carry partition key order_id and arrive in commit order",
+        "ref": "AC-1",
+        "text": "Given an order commits, when the relay runs, then order.created is published once",
         "level": "integration",
         "manual": "",
         "status": "APPROVED"
       },
-      "… (+1 more)"
+      "… (+5 more)"
     ]
   },
   "current_spec": {
     "draft": {
-      "problem": "Consumers poll `orders` every 30s (~400 QPS on the primary, up to 30s notification latency). Done = every state change is on the bus within 5s, none lost, replayable for 7 days.",
-      "hld": "Order writes insert an `order_outbox` row in the same transaction (D-1). A relay publishes outbox rows as CloudEvents partitioned by `order_id` (D-2) to `order-events`, retained 7 days (D-3).\n\n```merm…",
-      "lld": "- `order_outbox(id bigint pk, order_id, type, payload json, created_at, published_at null)`\n- Relay: `SELECT … WHERE published_at IS NULL ORDER BY id LIMIT 500 FOR UPDATE SKIP LOCKED`, publish, set `p…",
+      "problem": "Notifications-svc polls the orders database every minute to find new and cancelled orders. Emails go out late, and the polling query is the orders DB's top load. Done means consumers receive order.cre…",
+      "hld": "orders-service writes each order change and an event row in one transaction (D-1). A relay publishes event rows to the `orders.events` topic and marks them sent. Events use a versioned envelope (D-2).…",
+      "lld": "- `order_events(id, order_id, type, payload, created_at, sent_at)`\n- Event delivery: a relay polls unsent rows every 200 ms in batches of 500, publishes with key = order_id, and sets `sent_at` after t…",
       "scope_in": [
-        "All six order state transitions",
-        "… (+2 more)"
+        "order.created and order.cancelled",
+        "… (+3 more)"
       ],
       "scope_out": [
-        "Backfill of historical orders",
-        "… (+1 more)"
+        "refund events",
+        "… (+2 more)"
       ],
-      "test_strategy": "Integration tests against MySQL + a local Kafka for AC-1..AC-3 (kill the relay mid-batch for AC-2). AC-4 runs in staging against the real topic retention. No manual ACs."
+      "test_strategy": "Unit: envelope and dedupe logic. Integration: relay against a real broker, including a 10-minute outage (AC-3). Manual: QA checks the lag dashboard in the test environment. Every criterion maps to at …"
     },
     "decisions": [
       {
-        "ref": "D-2",
-        "title": "CloudEvents envelope, partitioned by order_id",
-        "question": "Which envelope and partition key do order events use?",
-        "verdict": "CloudEvents 1.0 JSON; partition key order_id",
-        "level": "SHOULD",
+        "ref": "D-1",
+        "title": "Transactional outbox",
+        "question": "How do order events reach consumers?",
+        "verdict": "Transactional outbox",
+        "level": "MUST",
         "status": "DECIDED"
       },
       "… (+1 more)"
     ],
     "criteria": [
       {
-        "ref": "AC-3",
-        "text": "Given two state changes of one order, when published, then they carry partition key order_id and arrive in commit order",
+        "ref": "AC-1",
+        "text": "Given an order commits, when the relay runs, then order.created is published once",
         "level": "integration",
         "manual": "",
         "status": "APPROVED"
       },
-      "… (+1 more)"
+      "… (+5 more)"
+    ]
+  },
+  "approvals": []
+}
+```
+
+### GET /api/initiatives/loyalty-expiry/drift (UNEXPLAINED)
+
+An agent changed AC-4 after approval citing finding F-1; a human then rejected F-1, so the change lost its reason: `status: UNEXPLAINED`, the entry's `explanation` says why, the draft is REOPENED and GATE_PR blocks.
+
+`GET /api/initiatives/loyalty-expiry/drift` — X-Actor: priya · X-Actor-Kind: human → **200**
+
+Response:
+
+```json
+{
+  "status": "UNEXPLAINED",
+  "initiative": "loyalty-expiry",
+  "task": null,
+  "baseline": {
+    "ref": "B-1",
+    "label": "B-1 — draft rev 1 approved by priya",
+    "status": "CURRENT",
+    "approval": "APR-1",
+    "approved_by": "priya",
+    "draft_rev": "1",
+    "created_at": "2026-10-20T21:04:00Z",
+    "members": 8
+  },
+  "until": null,
+  "scope_refs": [],
+  "summary": {
+    "changes": 1,
+    "explained": 0,
+    "unexplained": 1,
+    "pending_gaps": 0,
+    "pending_decisions": 0,
+    "other_changes": 0
+  },
+  "digest": "4db559ae0651f5926bf820c9efa1c34df428c8b669cc114042cbc5dd9fb2320e",
+  "entries": [
+    {
+      "id": "ac_changed:AC-4@2",
+      "kind": "ac_changed",
+      "ref": "AC-4",
+      "type": "acceptance_criterion",
+      "rev": 2,
+      "at": "2026-10-28T17:04:00Z",
+      "actor": "runner-sdk/implement-task",
+      "actor_kind": "agent",
+      "summary": "AC-4 changed: text: “Points expire 365 days after earning” → “Points expire 365 days after the last purchase”",
+      "what_moved": [
+        "text: “Points expire 365 days after earning” → “Points expire 365 days after the last purchase”"
+      ],
+      "because": [
+        "F-1"
+      ],
+      "explained": false,
+      "explanation": [
+        {
+          "ref": "F-1",
+          "ok": false,
+          "why": "F-1 was rejected"
+        }
+      ],
+      "related": [],
+      "detail": {
+        "old": "Points expire 365 days after earning",
+        "new": "Points expire 365 days after the last purchase"
+      },
+      "in_scope": true
+    }
+  ],
+  "unexplained": [
+    "ac_changed:AC-4@2"
+  ],
+  "pending_gaps": [],
+  "pending_decisions": [],
+  "spec_diff": {
+    "draft": {},
+    "decisions": {
+      "added": [],
+      "superseded": [],
+      "changed": [],
+      "unchanged": 1
+    },
+    "criteria": {
+      "added": [],
+      "retired": [],
+      "changed": [
+        {
+          "ref": "AC-4",
+          "old": "Points expire 365 days after earning",
+          "new": "Points expire 365 days after the last purchase"
+        }
+      ],
+      "unchanged": 5
+    }
+  },
+  "approved_spec": {
+    "draft": {
+      "problem": "Points never expire, which the partner contract requires.",
+      "hld": "A nightly job (D-1) writes expiry ledger entries; a notice email goes out 30 days before.",
+      "lld": "- `expiry_runs(day, status)` for idempotency\n- ledger entry type EXPIRY",
+      "scope_in": null,
+      "scope_out": null,
+      "test_strategy": "Unit for the date rule; integration for the job and emails; manual check of the support view."
+    },
+    "decisions": [
+      {
+        "ref": "D-1",
+        "title": "Nightly expiry job, not on read",
+        "question": "When are points expired?",
+        "verdict": "Nightly expiry job, not on read",
+        "level": "SHOULD",
+        "status": "DECIDED"
+      }
+    ],
+    "criteria": [
+      {
+        "ref": "AC-1",
+        "text": "Given points older than 365 days, when the nightly job runs, then an expiry ledger entry is written",
+        "level": "integration",
+        "manual": "",
+        "status": "APPROVED"
+      },
+      {
+        "ref": "AC-2",
+        "text": "Given the job reruns, then no point expires twice",
+        "level": "integration",
+        "manual": "",
+        "status": "APPROVED"
+      },
+      "… (+4 more)"
+    ]
+  },
+  "current_spec": {
+    "draft": {
+      "problem": "Points never expire, which the partner contract requires.",
+      "hld": "A nightly job (D-1) writes expiry ledger entries; a notice email goes out 30 days before.",
+      "lld": "- `expiry_runs(day, status)` for idempotency\n- ledger entry type EXPIRY",
+      "scope_in": null,
+      "scope_out": null,
+      "test_strategy": "Unit for the date rule; integration for the job and emails; manual check of the support view."
+    },
+    "decisions": [
+      {
+        "ref": "D-1",
+        "title": "Nightly expiry job, not on read",
+        "question": "When are points expired?",
+        "verdict": "Nightly expiry job, not on read",
+        "level": "SHOULD",
+        "status": "DECIDED"
+      }
+    ],
+    "criteria": [
+      {
+        "ref": "AC-1",
+        "text": "Given points older than 365 days, when the nightly job runs, then an expiry ledger entry is written",
+        "level": "integration",
+        "manual": "",
+        "status": "APPROVED"
+      },
+      {
+        "ref": "AC-2",
+        "text": "Given the job reruns, then no point expires twice",
+        "level": "integration",
+        "manual": "",
+        "status": "APPROVED"
+      },
+      "… (+4 more)"
     ]
   },
   "approvals": []
@@ -5386,7 +5389,7 @@ Response:
 
 Initiative scope after an AC retirement and a requirement re-pin by humans.
 
-`GET /api/initiatives/payment-webhooks/drift` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/initiatives/payment-webhooks/drift` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -5397,12 +5400,12 @@ Response:
   "task": null,
   "baseline": {
     "ref": "B-1",
-    "label": "B-1 — draft rev 1 approved by chandra",
+    "label": "B-1 — draft rev 1 approved by priya",
     "status": "CURRENT",
     "approval": "APR-1",
-    "approved_by": "chandra",
+    "approved_by": "priya",
     "draft_rev": "1",
-    "created_at": "2026-10-28T20:57:02Z",
+    "created_at": "2026-10-28T21:04:59Z",
     "members": 4
   },
   "until": null,
@@ -5415,7 +5418,7 @@ Response:
     "pending_decisions": 0,
     "other_changes": 0
   },
-  "digest": "affb6a3117c08b0166020638726409590599203ce770f57d12a455aa253fa023",
+  "digest": "a3b9343d78426efbb4287199339cb54a7e21c541ddf57ed1ada9fe4d8f86db19",
   "entries": [
     {
       "id": "requirement_repinned:initiative@3",
@@ -5423,10 +5426,10 @@ Response:
       "ref": "initiative",
       "type": "initiative",
       "rev": 3,
-      "at": "2026-10-28T20:57:02Z",
-      "actor": "chandra",
+      "at": "2026-10-28T21:04:59Z",
+      "actor": "priya",
       "actor_kind": "human",
-      "summary": "requirement re-pinned by chandra (hash ae28eca7)",
+      "summary": "requirement re-pinned by priya (hash 97f82cc1)",
       "what_moved": [
         "snapshot_hash"
       ],
@@ -5436,7 +5439,7 @@ Response:
         {
           "ref": null,
           "ok": true,
-          "why": "made by a human (chandra)"
+          "why": "made by a human (priya)"
         }
       ],
       "related": [],
@@ -5449,8 +5452,8 @@ Response:
       "ref": "AC-1",
       "type": "acceptance_criterion",
       "rev": 2,
-      "at": "2026-10-28T20:57:02Z",
-      "actor": "chandra",
+      "at": "2026-10-28T21:04:59Z",
+      "actor": "priya",
       "actor_kind": "human",
       "summary": "AC-1 retired: Signature checks move to the shared webhook library.",
       "what_moved": [],
@@ -5460,7 +5463,7 @@ Response:
         {
           "ref": null,
           "ok": true,
-          "why": "made by a human (chandra)"
+          "why": "made by a human (priya)"
         }
       ],
       "related": [],
@@ -5568,7 +5571,7 @@ Response:
 
 Every gate: initiative gates once, task gates per task. Each: `{gate, scope, target, status, human_role, text, rules[{name, passed, failing, detail, args}], note, failing_rules}`.
 
-`GET /api/initiatives/order-events/gates` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/initiatives/order-events/gates` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -5591,9 +5594,11 @@ Response:
       },
       {
         "name": "no_open_gap_blocking_draft",
-        "passed": true,
-        "failing": [],
-        "detail": "",
+        "passed": false,
+        "failing": [
+          "G-2"
+        ],
+        "detail": "OPEN gaps block the spec",
         "args": {}
       },
       {
@@ -5605,22 +5610,26 @@ Response:
       },
       "… (+4 more)"
     ],
-    "note": "",
-    "failing_rules": []
+    "note": "approved; preconditions that fail now are mid-build work, not a reopened draft",
+    "failing_rules": [
+      "no_open_gap_blocking_draft"
+    ]
   },
   {
     "gate": "GATE_PR",
     "scope": "task",
     "target": "T-1",
-    "status": "PASSED",
+    "status": "BLOCKED",
     "human_role": "engg",
     "text": "Touchpoint 3 — the engineer approves the task's drift report at the PR head",
     "rules": [
       {
         "name": "pr_state_in",
-        "passed": true,
-        "failing": [],
-        "detail": "pr_state is open; needs open | approved",
+        "passed": false,
+        "failing": [
+          "T-1"
+        ],
+        "detail": "pr_state is none; needs open | approved",
         "args": {
           "states": [
             "open",
@@ -5637,15 +5646,22 @@ Response:
       },
       {
         "name": "every_covered_ac_has_a_test",
-        "passed": true,
-        "failing": [],
-        "detail": "",
+        "passed": false,
+        "failing": [
+          "AC-2",
+          "AC-3"
+        ],
+        "detail": "covered ACs with no test run row",
         "args": {}
       },
       "… (+3 more)"
     ],
     "note": "",
-    "failing_rules": []
+    "failing_rules": [
+      "pr_state_in",
+      "every_covered_ac_has_a_test",
+      "approval_by_role"
+    ]
   },
   {
     "gate": "GATE_PR",
@@ -5661,7 +5677,7 @@ Response:
         "failing": [
           "T-2"
         ],
-        "detail": "pr_state is draft; needs open | approved",
+        "detail": "pr_state is none; needs open | approved",
         "args": {
           "states": [
             "open",
@@ -5680,8 +5696,8 @@ Response:
         "name": "every_covered_ac_has_a_test",
         "passed": false,
         "failing": [
-          "AC-3",
-          "AC-4"
+          "AC-1",
+          "AC-7"
         ],
         "detail": "covered ACs with no test run row",
         "args": {}
@@ -5695,13 +5711,13 @@ Response:
       "approval_by_role"
     ]
   },
-  "… (+1 more)"
+  "… (+3 more)"
 ]
 ```
 
 ### GET /api/initiatives/order-events/tasks/T-2/gates
 
-`GET /api/initiatives/order-events/tasks/T-2/gates` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/initiatives/order-events/tasks/T-2/gates` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -5721,7 +5737,7 @@ Response:
         "failing": [
           "T-2"
         ],
-        "detail": "pr_state is draft; needs open | approved",
+        "detail": "pr_state is none; needs open | approved",
         "args": {
           "states": [
             "open",
@@ -5748,22 +5764,24 @@ Response:
 ]
 ```
 
-### GET /api/deploy-guard?initiative=order-events&task=T-1&sha=9f3c2e1a7b4d&environment=staging
+### GET /api/deploy-guard?initiative=order-events&task=T-3&sha=a41c09e&environment=staging
 
 CI/CD asks before a deploy: `decision` GO | NO-GO, `reasons`, each check.
 
-`GET /api/deploy-guard?initiative=order-events&task=T-1&sha=9f3c2e1a7b4d&environment=staging` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/deploy-guard?initiative=order-events&task=T-3&sha=a41c09e&environment=staging` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
 ```json
 {
-  "decision": "GO",
+  "decision": "NO-GO",
   "initiative": "order-events",
-  "task": "T-1",
-  "sha": "9f3c2e1a7b4d",
+  "task": "T-3",
+  "sha": "a41c09e",
   "environment": "staging",
-  "reasons": [],
+  "reasons": [
+    "GATE_VALIDATED: manual_acs_signed_by (AC-6)"
+  ],
   "checks": [
     {
       "name": "GATE_PR",
@@ -5773,19 +5791,19 @@ Response:
     {
       "name": "sha_matches_pr",
       "passed": true,
-      "detail": "PR head 9f3c2e1a7b4d, deploying 9f3c2e1a7b4d"
+      "detail": "PR head a41c09e, deploying a41c09e"
     },
     "… (+3 more)"
   ],
   "drift": {
-    "changes": 3,
-    "explained": 3,
+    "changes": 0,
+    "explained": 0,
     "unexplained": 0,
-    "pending_gaps": 0,
+    "pending_gaps": 1,
     "pending_decisions": 0,
     "other_changes": 0,
-    "digest": "6979e7a1e17d3c5ac7dd744956d5a7defc0ee90cb68292bdbbcee3b4930c835f",
-    "status": "EXPLAINED"
+    "digest": "2e955487883a09bdcd5582737e965530635e0a3b5ce49a656c761298c4ec4f93",
+    "status": "CLEAN"
   }
 }
 ```
@@ -5801,7 +5819,7 @@ Request:
 ```json
 {
   "initiative": "order-events",
-  "task": "T-1",
+  "task": "T-3",
   "sha": "0000000",
   "environment": "production"
 }
@@ -5813,12 +5831,13 @@ Response:
 {
   "decision": "NO-GO",
   "initiative": "order-events",
-  "task": "T-1",
+  "task": "T-3",
   "sha": "0000000",
   "environment": "production",
   "reasons": [
-    "sha_matches_pr: PR head 9f3c2e1a7b4d, deploying 0000000",
-    "approved_at_sha: engg approved at 9f3c2e1a7b4d"
+    "sha_matches_pr: PR head a41c09e, deploying 0000000",
+    "approved_at_sha: engg approved at a41c09e",
+    "… (+1 more)"
   ],
   "checks": [
     {
@@ -5829,48 +5848,65 @@ Response:
     {
       "name": "sha_matches_pr",
       "passed": false,
-      "detail": "PR head 9f3c2e1a7b4d, deploying 0000000"
+      "detail": "PR head a41c09e, deploying 0000000"
     },
     "… (+3 more)"
   ],
   "drift": {
-    "changes": 3,
-    "explained": 3,
+    "changes": 0,
+    "explained": 0,
     "unexplained": 0,
-    "pending_gaps": 0,
+    "pending_gaps": 1,
     "pending_decisions": 0,
     "other_changes": 0,
-    "digest": "6979e7a1e17d3c5ac7dd744956d5a7defc0ee90cb68292bdbbcee3b4930c835f",
-    "status": "EXPLAINED"
+    "digest": "2e955487883a09bdcd5582737e965530635e0a3b5ce49a656c761298c4ec4f93",
+    "status": "CLEAN"
   },
-  "deploy": "DEP-2"
+  "deploy": "DEP-1"
 }
 ```
 
 ## Worklist, next work, leases
 
-### GET /api/initiatives/refund-events/worklist
+### GET /api/initiatives/menu-sync-retries/worklist
 
 Every open item of an initiative, both lanes (`agent` / `human`), grouped by kind, with leases.
 
-`GET /api/initiatives/refund-events/worklist` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/initiatives/menu-sync-retries/worklist` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
 ```json
 {
-  "initiative": "refund-events",
-  "count": 1,
+  "initiative": "menu-sync-retries",
+  "count": 2,
   "groups": {
+    "review": [
+      {
+        "key": "review:menu-sync-retries:24",
+        "kind": "review",
+        "lane": "agent",
+        "initiative": "menu-sync-retries",
+        "ref": "24",
+        "title": "draft ← G-1",
+        "why": "G-1 moved (status OPEN → ANSWERED) — revise draft, or say why it still holds",
+        "person": "meera",
+        "priority": 10,
+        "target": "draft",
+        "cause": "G-1",
+        "review_item_id": 24,
+        "lease": null
+      }
+    ],
     "draft": [
       {
-        "key": "draft:refund-events",
+        "key": "draft:menu-sync-retries",
         "kind": "draft",
         "lane": "agent",
-        "initiative": "refund-events",
+        "initiative": "menu-sync-retries",
         "ref": null,
         "title": "Draft is DRAFTING",
-        "why": "catalog_addressed (security_review, rollback_plan, observability, data_migration_assessed, test_strategy); every_decision_covered_by_an_ac (D-2)",
+        "why": "no_open_review_items_on_spec (draft)",
         "person": null,
         "priority": 30,
         "lease": null
@@ -5879,13 +5915,28 @@ Response:
   },
   "items": [
     {
-      "key": "draft:refund-events",
+      "key": "review:menu-sync-retries:24",
+      "kind": "review",
+      "lane": "agent",
+      "initiative": "menu-sync-retries",
+      "ref": "24",
+      "title": "draft ← G-1",
+      "why": "G-1 moved (status OPEN → ANSWERED) — revise draft, or say why it still holds",
+      "person": "meera",
+      "priority": 10,
+      "target": "draft",
+      "cause": "G-1",
+      "review_item_id": 24,
+      "lease": null
+    },
+    {
+      "key": "draft:menu-sync-retries",
       "kind": "draft",
       "lane": "agent",
-      "initiative": "refund-events",
+      "initiative": "menu-sync-retries",
       "ref": null,
       "title": "Draft is DRAFTING",
-      "why": "catalog_addressed (security_review, rollback_plan, observability, data_migration_assessed, test_strategy); every_decision_covered_by_an_ac (D-2)",
+      "why": "no_open_review_items_on_spec (draft)",
       "person": null,
       "priority": 30,
       "lease": null
@@ -5904,147 +5955,151 @@ Response:
 
 ```json
 {
-  "count": 1,
+  "count": 2,
   "items": [
     {
-      "key": "tests:order-events:T-2",
-      "kind": "tests",
-      "lane": "agent",
+      "key": "gap:order-events:G-2",
+      "kind": "gap",
+      "lane": "human",
       "initiative": "order-events",
-      "ref": "T-2",
-      "title": "Tests for T-2",
-      "why": "no test run row for AC-3, AC-4",
-      "person": null,
-      "priority": 50,
+      "ref": "G-2",
+      "title": "The outbox table can't be added to the orders schema in time",
+      "why": "waiting on arjun",
+      "person": "arjun",
+      "priority": 20,
+      "overdue": false,
+      "sla_hours": 24,
       "lease": null,
       "context": {
         "record": {
-          "ref": "T-2",
-          "type": "task",
-          "title": "Envelope, partitioning and retention",
-          "status": "IN_PROGRESS",
-          "pill": "amber",
-          "line": "CloudEvents envelope with order_id partition key; 7-day topic retention",
-          "rev": 2,
+          "ref": "G-2",
+          "type": "gap",
+          "title": "The outbox table can't be added to the orders schema in time",
+          "status": "OPEN",
+          "pill": "red",
+          "line": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
+          "rev": 1,
           "fields": {
-            "goal": "CloudEvents envelope with order_id partition key; 7-day topic retention",
-            "repo": "acme/event-contracts",
-            "template": "contracts-lib",
-            "implements": [
-              "D-2",
+            "question": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
+            "kind": "deviation",
+            "domain": "engg",
+            "level": "MUST",
+            "asked_by": "runner-sdk/implement-task",
+            "why_now": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.",
+            "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
+            "options": [
+              {
+                "key": "separate-schema",
+                "label": "Outbox in a separate schema",
+                "consequence": "No cross-schema transaction, so delivery is no longer exactly-once (breaks STD-1: the DRI has to approve an exception)."
+              },
+              "… (+2 more)"
+            ],
+            "recommendation": "cdc",
+            "recommendation_why": "Keeps exactly-once without touching the DBA-owned schema; platform already runs Debezium.",
+            "blocks": [
+              "D-1",
               "… (+1 more)"
             ],
-            "covers": [
-              "AC-3",
-              "… (+1 more)"
-            ],
-            "rollback": "Revert the contract version; the topic config is idempotent.",
-            "pr_url": "https://github.com/acme/event-contracts/pull/91",
-            "pr_state": "draft",
-            "pr_sha": "c41d09e2"
+            "proposed_change": "D-1 verdict: outbox → CDC via Debezium on the orders table. Add AC: CDC lag over 5 s for 2 min fires the alert. LLD event delivery section rewritten."
           },
-          "created_by": "runner-sdk/plan-skill",
-          "created_at": "2026-10-24T09:20:00Z",
+          "created_by": "runner-sdk/implement-task",
+          "created_at": "2026-10-28T19:04:00Z",
           "updated_by": "runner-sdk/implement-task",
-          "updated_at": "2026-10-27T15:00:00Z",
+          "updated_at": "2026-10-28T19:04:00Z",
           "links": {
             "out": [
               {
-                "kind": "covers",
-                "to": "AC-3"
+                "kind": "blocks",
+                "to": "D-1"
               },
               "… (+3 more)"
             ],
             "in": []
           },
           "stamps": {
-            "goal": {
-              "by": "runner-sdk/plan-skill",
-              "kind": "agent",
-              "at": "2026-10-24T09:20:00"
-            },
-            "repo": {
-              "by": "runner-sdk/plan-skill",
-              "kind": "agent",
-              "at": "2026-10-24T09:20:00"
-            },
-            "template": {
-              "by": "runner-sdk/plan-skill",
-              "kind": "agent",
-              "at": "2026-10-24T09:20:00"
-            },
-            "implements": {
-              "by": "runner-sdk/plan-skill",
-              "kind": "agent",
-              "at": "2026-10-24T09:20:00"
-            },
-            "covers": {
-              "by": "runner-sdk/plan-skill",
-              "kind": "agent",
-              "at": "2026-10-24T09:20:00"
-            },
-            "rollback": {
-              "by": "runner-sdk/plan-skill",
-              "kind": "agent",
-              "at": "2026-10-24T09:20:00"
-            },
-            "pr_url": {
+            "question": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-27T15:00:00"
+              "at": "2026-10-28T19:04:00"
             },
-            "pr_state": {
+            "kind": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-27T15:00:00"
+              "at": "2026-10-28T19:04:00"
             },
-            "pr_sha": {
+            "domain": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-27T15:00:00"
+              "at": "2026-10-28T19:04:00"
+            },
+            "level": {
+              "by": "runner-sdk/implement-task",
+              "kind": "agent",
+              "at": "2026-10-28T19:04:00"
+            },
+            "asked_by": {
+              "by": "runner-sdk/implement-task",
+              "kind": "agent",
+              "at": "2026-10-28T19:04:00"
+            },
+            "why_now": {
+              "by": "runner-sdk/implement-task",
+              "kind": "agent",
+              "at": "2026-10-28T19:04:00"
+            },
+            "context": {
+              "by": "runner-sdk/implement-task",
+              "kind": "agent",
+              "at": "2026-10-28T19:04:00"
+            },
+            "options": {
+              "by": "runner-sdk/implement-task",
+              "kind": "agent",
+              "at": "2026-10-28T19:04:00"
+            },
+            "recommendation": {
+              "by": "runner-sdk/implement-task",
+              "kind": "agent",
+              "at": "2026-10-28T19:04:00"
+            },
+            "recommendation_why": {
+              "by": "runner-sdk/implement-task",
+              "kind": "agent",
+              "at": "2026-10-28T19:04:00"
+            },
+            "blocks": {
+              "by": "runner-sdk/implement-task",
+              "kind": "agent",
+              "at": "2026-10-28T19:04:00"
+            },
+            "proposed_change": {
+              "by": "runner-sdk/implement-task",
+              "kind": "agent",
+              "at": "2026-10-28T19:04:00"
             }
           },
           "stale": [],
           "review_items": []
         },
         "cites": {
-          "D-2": {
+          "D-1": {
             "type": "decision",
-            "title": "CloudEvents envelope, partitioned by order_id",
+            "title": "Transactional outbox",
             "status": "DECIDED",
-            "line": "CloudEvents 1.0 JSON; partition key order_id"
+            "line": "Transactional outbox"
           },
-          "D-3": {
-            "type": "decision",
-            "title": "Keep 7 days of events for replay",
-            "status": "PROVISIONAL",
-            "line": "7 days of retention on the order-events topic"
-          },
-          "AC-3": {
-            "type": "acceptance_criterion",
-            "title": "Given two state changes of one order, when published, then they carry partition key order_id and arrive in commit order",
-            "status": "APPROVED",
-            "line": "Given two state changes of one order, when published, then they carry partition key order_id and arrive in commit order"
-          },
-          "AC-4": {
-            "type": "acceptance_criterion",
-            "title": "Given an event older than 6 days, when billing replays the topic, then the event is still readable",
-            "status": "APPROVED",
-            "line": "Given an event older than 6 days, when billing replays the topic, then the event is still readable"
+          "T-1": {
+            "type": "task",
+            "title": "Outbox table and relay",
+            "status": "BLOCKED",
+            "line": "Write the event row in the order transaction and relay it to orders.events"
           }
         },
-        "review_items": [],
-        "catalog": [],
-        "drift": {
-          "changes": 0,
-          "explained": 0,
-          "unexplained": 0,
-          "pending_gaps": 0,
-          "pending_decisions": 0,
-          "other_changes": 3
-        }
+        "review_items": []
       }
-    }
+    },
+    "… (+1 more)"
   ]
 }
 ```
@@ -6070,9 +6125,9 @@ Response:
 {
   "item_key": "task:order-events:T-2",
   "holder": "runner-sdk",
-  "acquired_at": "2026-10-28T20:57:02Z",
-  "heartbeat_at": "2026-10-28T20:57:02Z",
-  "expires_at": "2026-10-28T21:12:02Z"
+  "acquired_at": "2026-10-28T21:04:59Z",
+  "heartbeat_at": "2026-10-28T21:04:59Z",
+  "expires_at": "2026-10-28T21:19:59Z"
 }
 ```
 
@@ -6094,9 +6149,9 @@ Response:
 {
   "item_key": "task:order-events:T-2",
   "holder": "runner-sdk",
-  "acquired_at": "2026-10-28T20:57:02Z",
-  "heartbeat_at": "2026-10-28T20:57:02Z",
-  "expires_at": "2026-10-28T21:27:02Z"
+  "acquired_at": "2026-10-28T21:04:59Z",
+  "heartbeat_at": "2026-10-28T21:04:59Z",
+  "expires_at": "2026-10-28T21:34:59Z"
 }
 ```
 
@@ -6119,7 +6174,7 @@ Response:
 
 Revisions and review-queue moves, newest first. Filters: `since` (ISO), `ref`, `actor` (prefix), `limit`.
 
-`GET /api/initiatives/order-events/activity?limit=4` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/initiatives/order-events/activity?limit=4` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -6127,63 +6182,63 @@ Response:
 [
   {
     "kind": "revision",
-    "at": "2026-10-28T20:57:02Z",
-    "ref": "DEP-2",
+    "at": "2026-10-28T21:04:59Z",
+    "ref": "DEP-1",
     "type": "deploy",
     "rev": 1,
     "action": "created",
-    "title": "production T-1 @ 0000000",
+    "title": "production T-3 @ 0000000",
     "status": "FAILED",
     "actor": "github-actions",
     "actor_kind": "system",
     "note": "deploy_guard NO-GO",
     "because": [],
-    "batch_id": "2546f409-cada-4174-bcdf-4516911b7421"
+    "batch_id": "570b841d-6dd2-4169-86ee-907be2ef8e45"
   },
   {
     "kind": "revision",
-    "at": "2026-10-27T15:00:00Z",
-    "ref": "T-2",
-    "type": "task",
-    "rev": 2,
-    "action": "updated",
-    "title": "Envelope, partitioning and retention",
-    "status": "IN_PROGRESS",
+    "at": "2026-10-28T19:04:00Z",
+    "ref": "G-2",
+    "type": "gap",
+    "rev": 1,
+    "action": "created",
+    "title": "The outbox table can't be added to the orders schema in time",
+    "status": "OPEN",
     "actor": "runner-sdk/implement-task",
     "actor_kind": "agent",
     "note": "",
     "because": [],
-    "batch_id": "70e6a4dc-d90b-43ff-8fdc-47ecae1f0192"
+    "batch_id": "df4322ef-ce8c-472f-b061-53b2a68afd3a"
   },
   {
     "kind": "revision",
-    "at": "2026-10-27T11:00:00Z",
-    "ref": "DEP-1",
-    "type": "deploy",
-    "rev": 1,
-    "action": "created",
-    "title": "staging T-1 @ 9f3c2e1a7b",
-    "status": "PENDING",
-    "actor": "github-actions",
-    "actor_kind": "system",
-    "note": "deploy_guard GO",
-    "because": [],
-    "batch_id": "5c2fe6a8-1d3b-4b60-a04c-2ae976a69928"
-  },
-  {
-    "kind": "revision",
-    "at": "2026-10-27T10:30:00Z",
+    "at": "2026-10-27T01:04:00Z",
     "ref": "APR-2",
     "type": "approval",
     "rev": 1,
     "action": "created",
-    "title": "engg approves T-1",
+    "title": "engg approves T-3",
     "status": "CURRENT",
-    "actor": "priya",
+    "actor": "arjun",
     "actor_kind": "human",
     "note": "completed by the service",
     "because": [],
-    "batch_id": "aee98612-0ffe-48c0-ac90-5628fec6f335"
+    "batch_id": "ad16778a-d642-42ef-ae5e-550582930646"
+  },
+  {
+    "kind": "revision",
+    "at": "2026-10-26T21:04:00Z",
+    "ref": "R-1",
+    "type": "test_run",
+    "rev": 1,
+    "action": "created",
+    "title": "infra-terraform plan + policy tests @ a41c09e",
+    "status": "GREEN",
+    "actor": "runner-sdk/write-tests",
+    "actor_kind": "agent",
+    "note": "",
+    "because": [],
+    "batch_id": "e0fab9ff-964d-480b-bf9b-d27ace60a11c"
   }
 ]
 ```
@@ -6192,30 +6247,30 @@ Response:
 
 The event log (`record_written`, `baseline_created`, `review_item_queued`, `review_item_resolved`, `gate_changed`, `initiative_created`, `lease_claimed`, `lease_released`). Poll with `since=<last id>`; `GET /api/events` spans all initiatives.
 
-`GET /api/initiatives/order-events/events?since=0&limit=3` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/initiatives/order-events/events?since=0&limit=3` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
 ```json
 [
   {
-    "id": 1,
-    "ts": "2026-10-22T09:00:00Z",
+    "id": 194,
+    "ts": "2026-10-22T21:04:00Z",
     "kind": "initiative_created",
     "subject": "order-events",
-    "actor": "chandra",
+    "actor": "priya",
     "batch_id": "",
     "payload": {
-      "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4211"
+      "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4821"
     }
   },
   {
-    "id": 2,
-    "ts": "2026-10-22T09:00:00Z",
+    "id": 195,
+    "ts": "2026-10-22T21:04:00Z",
     "kind": "record_written",
     "subject": "initiative",
-    "actor": "chandra",
-    "batch_id": "3fcd0623-1740-49db-b6e3-2b9c63b0fa62",
+    "actor": "priya",
+    "batch_id": "57e90c0a-6906-466d-8226-fb15d1e67e94",
     "payload": {
       "type": "initiative",
       "rev": 1,
@@ -6224,12 +6279,12 @@ Response:
     }
   },
   {
-    "id": 3,
-    "ts": "2026-10-22T09:00:00Z",
+    "id": 196,
+    "ts": "2026-10-22T21:04:00Z",
     "kind": "record_written",
     "subject": "A-1",
-    "actor": "chandra",
-    "batch_id": "3fcd0623-1740-49db-b6e3-2b9c63b0fa62",
+    "actor": "priya",
+    "batch_id": "57e90c0a-6906-466d-8226-fb15d1e67e94",
     "payload": {
       "type": "assignment",
       "rev": 1,
@@ -6244,7 +6299,7 @@ Response:
 
 ### GET /api/standards
 
-`GET /api/standards` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/standards` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -6253,29 +6308,50 @@ Response:
   {
     "ref": "STD-1",
     "type": "standard",
-    "title": "Events carry no PII",
+    "title": "Idempotent delivery",
     "status": "ENFORCED",
     "pill": "green",
-    "line": "Event payloads carry ids and states only — never names, emails, addresses or payment data.",
+    "line": "Events reach the broker exactly once per state change: no dual-writes, every consumer dedupes by event_id.",
     "rev": 1,
     "fields": {
-      "rule": "Event payloads carry ids and states only — never names, emails, addresses or payment data.",
+      "rule": "Events reach the broker exactly once per state change: no dual-writes, every consumer dedupes by event_id.",
       "level": "MUST",
-      "applies_to": "acme/*",
-      "owner": "security",
+      "applies_to": "navanta/*",
+      "owner": "platform",
       "state": "enforced"
     },
-    "created_by": "chandra",
-    "created_at": "2026-10-27T16:00:00Z",
-    "updated_by": "chandra",
-    "updated_at": "2026-10-27T16:00:00Z"
-  }
+    "created_by": "priya",
+    "created_at": "2026-09-28T21:04:00Z",
+    "updated_by": "priya",
+    "updated_at": "2026-09-28T21:04:00Z"
+  },
+  {
+    "ref": "STD-2",
+    "type": "standard",
+    "title": "Retries with backoff and jitter",
+    "status": "ACTIVE",
+    "pill": "green",
+    "line": "Outbound calls retry with exponential backoff and jitter, within a retry budget.",
+    "rev": 1,
+    "fields": {
+      "rule": "Outbound calls retry with exponential backoff and jitter, within a retry budget.",
+      "level": "SHOULD",
+      "applies_to": "navanta/*",
+      "owner": "platform",
+      "state": "active"
+    },
+    "created_by": "priya",
+    "created_at": "2026-09-28T21:04:00Z",
+    "updated_by": "priya",
+    "updated_at": "2026-09-28T21:04:00Z"
+  },
+  "… (+1 more)"
 ]
 ```
 
 ### GET /api/learnings
 
-`GET /api/learnings` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`GET /api/learnings` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -6292,13 +6368,13 @@ Response:
     "fields": {
       "text": "Check for an existing platform CDC connector before designing an outbox.",
       "applies_to": "event publishing",
-      "source": "order-events:G-2",
-      "provenance": "order-events T-1 deviation, answered by priya"
+      "source": "inventory-sync-v3:G-1",
+      "provenance": "inventory-sync-v3 delta sync deviation, answered by meera"
     },
     "created_by": "runner-sdk/retro-skill",
-    "created_at": "2026-10-27T16:00:00Z",
+    "created_at": "2026-09-28T21:04:00Z",
     "updated_by": "runner-sdk/retro-skill",
-    "updated_at": "2026-10-27T16:00:00Z"
+    "updated_at": "2026-09-28T21:04:00Z"
   }
 ]
 ```
@@ -6307,14 +6383,14 @@ Response:
 
 **human** — promote a learning.
 
-`POST /api/learnings/L-1/promote` — X-Actor: chandra · X-Actor-Kind: human → **200**
+`POST /api/learnings/L-1/promote` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
 ```json
 {
   "ok": true,
-  "batch_id": "e3e828fe-4016-44bc-a2bc-6dac6474a3fd",
+  "batch_id": "21111afb-25a2-4772-b3a2-ca2048ca9fe5",
   "results": [
     {
       "index": 0,
@@ -6365,7 +6441,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "09b124ab-bdc9-46fa-8f26-82fa93b82cfa",
+  "batch_id": "c4b4087e-4563-47b8-adc3-284156380da3",
   "results": [
     {
       "index": 0,
