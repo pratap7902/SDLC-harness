@@ -160,3 +160,39 @@ def supersede_batch() -> list:
         {"ref": "T-1", "fields": {"implements": ["D-2", "#0"], "covers": ["AC-1", "AC-2", "AC-3", "#1"]}, "note": "follows D-3"},
         {"ref": "G-2", "fields": {"resolution": "D-3 supersedes D-1; AC-4 added for CDC lag"}},
     ]
+
+
+def to_baseline(api) -> None:
+    """Start the feature, write the draft, answer G-1, revise D-2, DRI approves → B-1."""
+    api.start()
+    api.write(SLUG, draft_batch())
+    api.answer(SLUG, "G-1", choice="yes", person="maya")
+    api.write(SLUG, [{"ref": "D-2", "fields": {"rationale": "G-1: billing needs per-order ordering."}, "note": "per G-1"}])
+    api.approve(SLUG, "draft", "dri", "chandra")
+
+
+def to_task(api) -> None:
+    to_baseline(api)
+    api.write(SLUG, [task_op()])
+
+
+def pr_open(api, sha="abc123", acs=("AC-1", "AC-2", "AC-3")) -> None:
+    api.write(SLUG, [{"ref": "T-1", "fields": {"pr_state": "open", "pr_url": "https://github.com/acme/orders/pull/77", "pr_sha": sha}}])
+    api.write(
+        SLUG,
+        [
+            {
+                "type": "test_run",
+                "fields": {
+                    "summary": "suite",
+                    "level": "integration",
+                    "result": "GREEN",
+                    "at_sha": sha,
+                    "run_url": "https://ci.acme.dev/runs/1",
+                    "run_on": "2026-10-31T15:00",
+                    "task": ["T-1"],
+                    "covers": [{"ac": ac, "result": "GREEN"} for ac in acs],
+                },
+            }
+        ],
+    )

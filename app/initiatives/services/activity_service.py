@@ -34,6 +34,7 @@ class ActivityService:
                     "note": rev.note,
                     "because": rev.cause_refs or [],
                     "batch_id": rev.batch_id,
+                    "_sort": (rev.created_at, 1, rev.id),
                 }
             )
         for item in self.records.reviews.all_for(i.id):
@@ -51,6 +52,7 @@ class ActivityService:
                     "note": "",
                     "because": [item.cause_ref],
                     "review_item_id": item.id,
+                    "_sort": (item.created_at, 2, item.id),
                 }
             )
             if item.resolved_at:
@@ -68,6 +70,7 @@ class ActivityService:
                         "note": item.note or "",
                         "because": [item.cause_ref],
                         "review_item_id": item.id,
+                        "_sort": (item.resolved_at, 3, item.id),
                     }
                 )
         if since:
@@ -76,7 +79,9 @@ class ActivityService:
             out = [x for x in out if x["ref"] == ref]
         if actor:
             out = [x for x in out if (x["actor"] or "").startswith(actor)]
-        out.sort(key=lambda x: (x["at"] or "", x.get("rev") or 0), reverse=True)
+        out.sort(key=lambda x: x["_sort"], reverse=True)
+        for x in out:
+            x.pop("_sort")
         return out[:limit]
 
     def events(self, slug: Optional[str], since: int = 0, limit: int = 200) -> List[dict]:

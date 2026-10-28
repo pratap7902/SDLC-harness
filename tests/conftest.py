@@ -13,11 +13,11 @@ from app.core.database import get_primary_db  # noqa: E402
 from app.mcp import server as mcp_server  # noqa: E402
 from main import app  # noqa: E402
 from tests.fixtures.api import Api  # noqa: E402
-from tests.fixtures.database import db_session, engine, mysql_engine  # noqa: E402,F401
+from tests.fixtures.database import db_session, engine, mysql_engine  # noqa: E402,F401,F811
 
 
 @pytest.fixture
-def client(db_session):
+def client(db_session):  # noqa: F811
     """A human caller (the web UI): X-Actor tester."""
     app.dependency_overrides[get_primary_db] = lambda: db_session
     mcp_server.session_provider = lambda: db_session

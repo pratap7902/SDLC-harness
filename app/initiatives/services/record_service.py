@@ -445,7 +445,8 @@ class RecordService:
             errors.append(
                 f"base_rev: record is at rev {existing.head_rev}, you sent {op.base_rev} — re-read and merge"
             )
-        elif existing is not None and op.base_rev is None and op.fields and actor.kind != "system":
+        elif existing is not None and op.base_rev is None and op.fields and actor.kind == "agent":
+            # Parallel agents writing whole fields clobber each other; a human edit is deliberate.
             recent = (utcnow() - CONCURRENT_WRITE_WINDOW).isoformat(timespec="seconds")
             stamps = (existing.meta or {}).get("stamps", {})
             clobbered = [
@@ -722,7 +723,14 @@ class RecordService:
             "approved_by": actor.principal,
             "members": [{"ref": m.ref, "type": m.type, "rev": str(m.head_rev)} for m in members],
             "snapshot": {
-                m.ref: {"type": m.type, "title": m.title, "status": m.status, "rev": m.head_rev, "fields": dict(m.fields or {})}
+                m.ref: {
+                    "type": m.type,
+                    "title": m.title,
+                    # the status each member has once this baseline exists
+                    "status": {"draft": "APPROVED", "acceptance_criterion": "APPROVED"}.get(m.type, m.status),
+                    "rev": m.head_rev,
+                    "fields": dict(m.fields or {}),
+                }
                 for m in members
             },
         }

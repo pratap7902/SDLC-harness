@@ -36,8 +36,8 @@ ROLES = ("dri", "engg", "product", "design", "qa")
 
 
 def slugify(text: str) -> str:
-    slug = re.sub(r"[^a-z0-9]+", "-", (text or "").lower()).strip("-")
-    return slug[:60].strip("-") or "initiative"
+    slug = re.sub(r"[^a-z0-9]+", "-", (text or "").lower()).strip("-")[:56].strip("-")
+    return slug if len(slug) >= 3 else f"{slug}-feature".strip("-")
 
 
 def snapshot_hash(snapshot: dict) -> str:

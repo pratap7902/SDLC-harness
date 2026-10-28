@@ -40,8 +40,9 @@ class Api:
         return self.ok(self.as_("chandra").post("/api/initiatives", json=body), 201)
 
     def write(self, slug: str, ops: List[Dict], who: Optional[TestClient] = None, batch_id: Optional[str] = None, expect: int = 200) -> dict:
-        who = who or self.agent()
-        body = {"ops": ops, "batch_id": batch_id or f"b-{next(_batch)}", "agent": "draft-skill"}
+        body = {"ops": ops, "batch_id": batch_id or f"b-{next(_batch)}"}
+        if who is None:
+            who, body["agent"] = self.agent(), "draft-skill"
         r = who.post(f"/api/initiatives/{slug}/records", json=body)
         if expect != 200:
             assert r.status_code == expect, f"{r.status_code}: {r.text[:2000]}"

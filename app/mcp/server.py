@@ -219,6 +219,8 @@ def write(initiative: str, ops: Union[List[Dict[str, Any]], str], ctx: Context, 
     ref op 0 minted. Never send status. Reuse batch_id to retry safely (idempotent)."""
     with _services() as records:
         result = records.write(initiative, [parse_op(o) for o in _ops(ops)], _actor(ctx, agent), batch_id)
+        if not result.ok:
+            raise ValueError(fmt.write_text(result))
         return fmt.write_text(result)
 
 
