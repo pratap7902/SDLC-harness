@@ -14,7 +14,7 @@ status_rules:
   decision:   {rule: decision_status, text: "SUPERSEDED if another decision supersedes it · OPEN if verdict empty · PROVISIONAL if provisional=yes · DECIDED"}
   gap:        {rule: gap_status, text: "WITHDRAWN if withdrawn_because · ANSWERED if answer · OPEN"}
   acceptance_criterion: {rule: ac_status, text: "RETIRED if retired_because · APPROVED if in the current baseline · ADDED_AFTER_BASELINE if a baseline exists and this AC is not in it · PROPOSED"}
-  task:       {rule: task_status, text: "DONE if pr_state=merged and every covered AC has a green test run at pr_sha · STUCK if ci_attempts≥3 or review_rounds≥3 · BLOCKED if a depends_on task is not DONE or an implemented MUST decision is OPEN · IN_REVIEW if pr_state is open/approved · IN_PROGRESS if leased or pr_state=draft · READY"}
+  task:       {rule: task_status, text: "DONE if pr_state=merged and every covered AC has a green test run at pr_sha · STUCK if ci_attempts≥3 or review_rounds≥3 · BLOCKED if a depends_on task is not DONE, an implemented MUST decision is OPEN, or an OPEN MUST-level gap blocks it · IN_REVIEW if pr_state is open/approved · IN_PROGRESS if leased or pr_state=draft · READY"}
   finding:    {rule: finding_status, text: "OPEN if resolution empty, else FIXED | REJECTED | ACKNOWLEDGED"}
   test_run:   {rule: test_run_status, text: "= result (GREEN | RED | ERROR)"}
   deploy:     {rule: deploy_status, text: "= result (PENDING | DEPLOYED | FAILED | ROLLED_BACK)"}

@@ -18,6 +18,7 @@ from app.web.spa import router as spa_router
 from config.settings import settings
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 mcp.settings.streamable_http_path = "/mcp"
 mcp_app = mcp.streamable_http_app()
