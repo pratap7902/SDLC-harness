@@ -65,7 +65,7 @@ def type_spec(bp: Blueprint, t: RecordType) -> str:
         lines.append(f"  status rule: {rule.text}")
     flags = []
     if t.scope == "global":
-        flags.append("global scope: write to initiative '_global'")
+        flags.append("global scope: write to initiative_id 0")
     if t.post_baseline_cause:
         flags.append("after a baseline, a material edit needs `because`")
     if flags:
@@ -120,6 +120,17 @@ def records_text(bp: Blueprint, records: List[Record], width: int = 140) -> str:
     return "\n".join(record_line(bp, r, width) for r in records)
 
 
+def answered_line(fields: dict) -> str:
+    """`assigned to arjun (engg) · answered by priya for arjun`."""
+    by = fields.get("answered_by") or "—"
+    assigned = fields.get("assigned_to")
+    role = f" ({fields['assigned_role']})" if fields.get("assigned_role") else ""
+    out = f"assigned to {assigned}{role} · answered by {by}" if assigned else f"answered by {by}"
+    if fields.get("answered_for"):
+        out += f" for {fields['answered_for']}"
+    return out
+
+
 def record_full(bp: Blueprint, r: Record, g: RecordGraph, history: Optional[List[RecordRevision]] = None) -> str:
     lines = [f"{r.ref} [{r.status}] rev {r.head_rev} {r.type} · {r.title}"]
     outs = g.edges_out(r.ref)
@@ -131,6 +142,13 @@ def record_full(bp: Blueprint, r: Record, g: RecordGraph, history: Optional[List
     stale = g.stale_slots(r)
     if stale:
         lines.append(f"STALE: {', '.join(stale)}")
+    if r.type == "gap" and (r.fields or {}).get("answered_by"):
+        lines.append(answered_line(r.fields))
+    elif r.type == "gap" and r.status == "OPEN":
+        from app.initiatives.services.routing import Router
+
+        route = Router(g).route(r)
+        lines.append(f"assigned to {route.person or '—'} ({route.role}) · any human may answer it")
     for item in g.open_review_items:
         if item.target_ref == r.ref:
             lines.append(f"UP FOR REVIEW #{item.id} because {item.cause_ref} — {item.what_moved}")
@@ -141,7 +159,10 @@ def record_full(bp: Blueprint, r: Record, g: RecordGraph, history: Optional[List
         for rev in history:
             note = f" — {rev.note}" if rev.note else ""
             because = f" because {', '.join(rev.cause_refs)}" if rev.cause_refs else ""
-            lines.append(f"  rev {rev.rev} {rev.created_at:%Y-%m-%d %H:%M} {rev.actor} ({rev.actor_kind}) [{rev.status}]{because}{note}")
+            answered = ""
+            if r.type == "gap" and (rev.fields or {}).get("answered_by") == rev.actor and rev.status == "ANSWERED" and (rev.fields or {}).get("assigned_to"):
+                answered = f" · {answered_line(rev.fields)}"
+            lines.append(f"  rev {rev.rev} {rev.created_at:%Y-%m-%d %H:%M} {rev.actor} ({rev.actor_kind}) [{rev.status}]{because}{note}{answered}")
     return "\n".join(lines)
 
 
@@ -172,7 +193,7 @@ def write_text(result: WriteResult) -> str:
 
 def state_text(state: dict) -> str:
     i = state["initiative"]
-    lines = [f"{i['slug']} — {i['title']} · phase {state['phase']}"]
+    lines = [f"{i['id']} · {i['slug']} — {i['title']} · phase {state['phase']}"]
     people = ", ".join(f"{a['role']} {a['person']}" for a in state["assignments"] if a["status"] == "ACTIVE")
     lines.append(f"people: {people or 'none'}")
     for g in state["gates"]:
@@ -246,5 +267,6 @@ def activity_text(feed: List[dict]) -> str:
         f"{(x['at'] or '')[:16]} {x['actor'] or '—'}{' (' + x['actor_kind'] + ')' if x.get('actor_kind') else ''} "
         f"{x['action']} {x['ref']}" + (f" rev {x['rev']}" if x.get("rev") else "") + (f" because {', '.join(x['because'])}" if x["because"] else "")
         + (f" — {clip(x['note'], 100)}" if x.get("note") else "")
+        + (f" · assigned to {x['assigned_to']}" + (f", answered for them by {x['answered_by']}" if x.get("answered_for") else "") if x.get("assigned_to") else "")
         for x in feed
     )

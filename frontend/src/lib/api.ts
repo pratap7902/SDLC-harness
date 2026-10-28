@@ -70,7 +70,7 @@ export function postJson<T>(url: string, body: unknown): Promise<T> {
   });
 }
 
-/** `/api/initiatives/{slug}/…` with each segment encoded. */
+/** `/api/initiatives/{id}/…` with each segment encoded. */
 export function api(...parts: (string | number)[]): string {
   return '/api/' + parts.map((p) => encodeURIComponent(String(p))).join('/');
 }

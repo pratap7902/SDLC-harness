@@ -104,7 +104,7 @@ class OverviewService:
         rows: List[dict] = []
         waiting: List[dict] = []
         # Live leases, by initiative: a leased item may leave the queue (a leased task is
-        # IN_PROGRESS), so leases are read directly. Keys are `<kind>:<slug>[:<ref>]`.
+        # IN_PROGRESS), so leases are read directly. Keys are `<kind>:<initiative id>[:<ref>]`.
         leases = {}
         for lease in self.worklist.leases.active(utcnow()):
             parts = lease.item_key.split(":")
@@ -115,7 +115,7 @@ class OverviewService:
             items = self.inbox.items_for(g)
             waiting += items
             agent = [x for x in self.worklist.items(g) if x["lane"] == "agent"]
-            held = leases.get(i.slug, [])
+            held = leases.get(str(i.id), [])
             held_keys = {h["key"] for h in held}
             people = {}
             for role in ROLES:

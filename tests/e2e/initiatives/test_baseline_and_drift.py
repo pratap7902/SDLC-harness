@@ -28,25 +28,25 @@ def test_vertical_slice(api):
     g1 = gate(state, "GATE_DRAFT")
     assert g1["status"] == "BLOCKED"
     assert g1["failing_rules"] == ["no_open_gap_blocking_draft", "approval_by_role"]
-    page = api.get(f"/api/initiatives/{SLUG}/draft")
+    page = api.get(f"{api.base(SLUG)}/draft")
     assert page["can_approve"] is False and page["approval_blockers"][0]["failing"] == ["G-1"]
 
     # the gap lands in the product person's inbox; an agent cannot answer it
-    inbox = api.get("/api/inbox/maya")
+    inbox = api.inbox("maya")
     assert [(x["kind"], x["ref"]) for x in inbox["items"]] == [("gap", "G-1")]
     errors = api.rejected(SLUG, [{"ref": "G-1", "fields": {"answer": "yes", "answered_by": "runner"}}])
     assert any("answer: human-only" in e for e in errors)
     api.answer(SLUG, "G-1", choice="yes", person="maya")
 
     # the answer queues D-2 (blocked by G-1) for review, routed to the engg assignee
-    reviews = api.get(f"/api/initiatives/{SLUG}/reviews")
+    reviews = api.get(f"{api.base(SLUG)}/reviews")
     assert [(r["target"], r["cause"], r["route_to"]) for r in reviews] == [("D-2", "G-1", "priya")]
     assert gate(api.state(SLUG), "GATE_DRAFT")["failing_rules"] == ["no_open_review_items_on_spec", "approval_by_role"]
     api.write(SLUG, [{"ref": "D-2", "fields": {"rationale": "Consumers parse CloudEvents; G-1: billing needs per-order ordering."}, "note": "per G-1"}])
-    assert api.get(f"/api/initiatives/{SLUG}/reviews") == []
+    assert api.get(f"{api.base(SLUG)}/reviews") == []
 
     # only the DRI approves; an agent is refused outright
-    assert api.agent().post(f"/api/initiatives/{SLUG}/approvals", json={"target": "draft", "role": "dri"}).status_code == 403
+    assert api.agent().post(f"{api.base(SLUG)}/approvals", json={"target": "draft", "role": "dri"}).status_code == 403
     refused = api.approve(SLUG, "draft", "dri", "priya", expect=422)
     assert "priya is not the dri" in refused["detail"]
     approved = api.approve(SLUG, "draft", "dri", "chandra")
@@ -62,7 +62,7 @@ def test_vertical_slice(api):
     # ── plan + build ──────────────────────────────────────────────────────
     api.write(SLUG, [task_op()])
     assert api.state(SLUG)["phase"] == "BUILD"
-    claimed = api.ok(api.agent().post("/api/leases/claim", json={"item_key": f"task:{SLUG}:T-1"}))
+    claimed = api.ok(api.agent().post("/api/leases/claim", json={"item_key": f"task:{api.id(SLUG)}:T-1"}))
     assert claimed["holder"] == "runner-sdk"
     assert api.record(SLUG, "T-1")["status"] == "IN_PROGRESS"
 
@@ -84,13 +84,13 @@ def test_vertical_slice(api):
     errors = api.rejected(SLUG, [{"ref": "D-1", "fields": {"verdict": "CDC"}, "because": ["G-2"]}])
     assert any("ADRs are superseded, never edited" in e for e in errors)
 
-    assert [x["ref"] for x in api.get("/api/inbox/priya")["items"]] == ["G-2"]
+    assert [x["ref"] for x in api.inbox("priya")["items"]] == ["G-2"]
     api.answer(SLUG, "G-2", answer="Use CDC — the outbox adds a table we don't own.", choice="cdc", person="priya")
     out = api.write(SLUG, supersede_batch())
     assert out["minted"] == {"#0": "D-3", "#1": "AC-4"}
     assert api.record(SLUG, "D-1")["status"] == "SUPERSEDED"
     assert api.record(SLUG, "AC-4")["status"] == "ADDED_AFTER_BASELINE"
-    assert api.get(f"/api/initiatives/{SLUG}/reviews") == []  # D-1 superseded, T-1 revised
+    assert api.get(f"{api.base(SLUG)}/reviews") == []  # D-1 superseded, T-1 revised
 
     # ── the drift report: the chain, 0 unexplained ────────────────────────
     report = api.drift(SLUG, task="T-1")
@@ -108,7 +108,7 @@ def test_vertical_slice(api):
     assert [a["ref"] for a in report["spec_diff"]["criteria"]["added"]] == ["AC-4"]
     assert [d["ref"] for d in report["current_spec"]["decisions"]] == ["D-2", "D-3"]
     assert [d["ref"] for d in report["approved_spec"]["decisions"]] == ["D-1", "D-2"]
-    md = api.as_("chandra").get(f"/api/initiatives/{SLUG}/drift", params={"task": "T-1", "format": "md"}).text
+    md = api.as_("chandra").get(f"{api.base(SLUG)}/drift", params={"task": "T-1", "format": "md"}).text
     assert "## Drift since baseline B-1" in md and "**3 changes · 3 explained · 0 unexplained**" in md
 
     # ── touchpoint 3: the PR, the engg approval, the deploy guard ─────────
@@ -131,22 +131,22 @@ def test_vertical_slice(api):
             }
         ],
     )
-    gpr = api.get(f"/api/initiatives/{SLUG}/tasks/T-1/gates")[0]
+    gpr = api.get(f"{api.base(SLUG)}/tasks/T-1/gates")[0]
     assert gpr["failing_rules"] == ["approval_by_role"]
-    assert [x["ref"] for x in api.get("/api/inbox/priya")["items"]] == ["T-1"]
+    assert [x["ref"] for x in api.inbox("priya")["items"]] == ["T-1"]
     approval = api.approve(SLUG, "T-1", "engg", "priya", at_sha="abc123")
     apr = api.record(SLUG, approval["results"][0]["ref"])
     assert apr["fields"]["drift_digest"] == report["digest"] and apr["status"] == "CURRENT"
-    assert api.get(f"/api/initiatives/{SLUG}/tasks/T-1/gates")[0]["status"] == "PASSED"
-    go = api.get("/api/deploy-guard", initiative=SLUG, task="T-1", sha="abc123", environment="staging")
+    assert api.get(f"{api.base(SLUG)}/tasks/T-1/gates")[0]["status"] == "PASSED"
+    go = api.get("/api/deploy-guard", initiative_id=api.id(SLUG), task="T-1", sha="abc123", environment="staging")
     assert go["decision"] == "GO", go["reasons"]
-    assert api.get("/api/deploy-guard", initiative=SLUG, task="T-1", sha="fff999", environment="staging")["decision"] == "NO-GO"
+    assert api.get("/api/deploy-guard", initiative_id=api.id(SLUG), task="T-1", sha="fff999", environment="staging")["decision"] == "NO-GO"
 
     # ── a later spec change moves the digest: the approval goes stale ─────
     api.write(SLUG, [{"type": "finding", "fields": {"summary": "AC-4 threshold should be 10s", "severity": "minor", "target": ["AC-4"], "at_sha": "abc123"}}])
     api.write(SLUG, [{"ref": "AC-4", "fields": {"text": "Given a row update, when CDC lags more than 10s, then the lag alert fires"}, "because": ["F-1"]}])
     assert api.record(SLUG, apr["ref"])["status"] == "STALE"
-    nogo = api.get("/api/deploy-guard", initiative=SLUG, task="T-1", sha="abc123", environment="staging")
+    nogo = api.get("/api/deploy-guard", initiative_id=api.id(SLUG), task="T-1", sha="abc123", environment="staging")
     assert nogo["decision"] == "NO-GO"
     assert any(r.startswith("GATE_PR") for r in nogo["reasons"])
     assert api.drift(SLUG, task="T-1")["summary"]["unexplained"] == 0
@@ -157,4 +157,4 @@ def test_vertical_slice(api):
     assert report["status"] == "UNEXPLAINED"
     assert [e["ref"] for e in report["entries"] if not e["explained"]] == ["AC-4"]
     assert api.record(SLUG, "draft")["status"] == "REOPENED"
-    assert "drift_explained_for_task" in api.get(f"/api/initiatives/{SLUG}/tasks/T-1/gates")[0]["failing_rules"]
+    assert "drift_explained_for_task" in api.get(f"{api.base(SLUG)}/tasks/T-1/gates")[0]["failing_rules"]

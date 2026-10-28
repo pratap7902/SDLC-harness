@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import './index.css';
 import { RefreshContext } from './lib/api';
-import { PersonaProvider, usePersona } from './lib/persona';
+import { PersonaProvider } from './lib/persona';
 import { ToastProvider } from './lib/toast';
 import { Shell } from './shell/Shell';
 
@@ -21,12 +21,6 @@ const ActivityPage = lazy(() => import('./pages/ActivityPage'));
 const GlobalPage = lazy(() => import('./pages/GlobalPage'));
 const BlueprintPage = lazy(() => import('./pages/BlueprintPage'));
 
-/** `/inbox` → the inbox of whoever the UI is viewing as. */
-function MyInbox() {
-  const { persona } = usePersona();
-  return persona ? <Navigate to={`/inbox/${persona}`} replace /> : null;
-}
-
 // Routes are the real page paths. Every path here is also in app/web/spa.py's PAGE_PATHS
 // (the backend serves index.html only at listed paths): a new page is a route in both.
 const router = createBrowserRouter([
@@ -35,18 +29,17 @@ const router = createBrowserRouter([
     children: [
       { path: '/', element: <FeaturesPage /> },
       { path: '/new', element: <NewFeaturePage /> },
-      { path: '/inbox', element: <MyInbox /> },
-      { path: '/inbox/:person', element: <InboxPage /> },
+      { path: '/inbox', element: <InboxPage /> },
       { path: '/standards', element: <GlobalPage kind="standards" /> },
       { path: '/learnings', element: <GlobalPage kind="learnings" /> },
       { path: '/blueprint', element: <BlueprintPage /> },
-      { path: '/i/:slug', element: <FeaturePage /> },
-      { path: '/i/:slug/draft', element: <DraftPage /> },
-      { path: '/i/:slug/drift', element: <DriftPage /> },
-      { path: '/i/:slug/t/:ref', element: <TaskPage /> },
-      { path: '/i/:slug/r/:ref', element: <RecordPage /> },
-      { path: '/i/:slug/reviews', element: <ReviewsPage /> },
-      { path: '/i/:slug/activity', element: <ActivityPage /> },
+      { path: '/features/:id', element: <FeaturePage /> },
+      { path: '/features/:id/draft', element: <DraftPage /> },
+      { path: '/features/:id/drift', element: <DriftPage /> },
+      { path: '/features/:id/tasks/:ref', element: <TaskPage /> },
+      { path: '/features/:id/records/:ref', element: <RecordPage /> },
+      { path: '/features/:id/reviews', element: <ReviewsPage /> },
+      { path: '/features/:id/activity', element: <ActivityPage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

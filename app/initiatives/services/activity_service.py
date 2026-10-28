@@ -18,7 +18,14 @@ class ActivityService:
         i = self.records.initiative(slug)
         types = {r.ref: r.type for r in self.records.records.list_for(i.id)}
         out = []
-        for rev in self.records.revisions.list_for_initiative(i.id):
+        answered = set()
+        for rev in sorted(self.records.revisions.list_for_initiative(i.id), key=lambda r: (r.created_at, r.id)):
+            f = rev.fields or {}
+            extra = {}
+            # the revision that answered a gap: who it was assigned to, who answered
+            if types.get(rev.ref) == "gap" and f.get("answer") and rev.ref not in answered:
+                answered.add(rev.ref)
+                extra = {"answered_by": f.get("answered_by") or rev.actor, "assigned_to": f.get("assigned_to"), "answered_for": f.get("answered_for")}
             out.append(
                 {
                     "kind": "revision",
@@ -34,6 +41,7 @@ class ActivityService:
                     "note": rev.note,
                     "because": rev.cause_refs or [],
                     "batch_id": rev.batch_id,
+                    **extra,
                     "_sort": (rev.created_at, 1, rev.id),
                 }
             )

@@ -7,7 +7,7 @@ def test_health(client):
 
 def test_pages_say_the_frontend_is_not_built(client, monkeypatch, tmp_path):
     monkeypatch.setattr(spa, "DIST_DIR", tmp_path)
-    r = client.get("/i/order-events/drift")
+    r = client.get("/features/1/drift")
     assert r.status_code == 404 and "not built" in r.json()["detail"]
 
 
@@ -16,7 +16,7 @@ def test_pages_serve_the_app_and_assets(client, monkeypatch, tmp_path):
     (tmp_path / "index.html").write_text("<div id=root></div>")
     (tmp_path / "assets" / "app.js").write_text("1")
     monkeypatch.setattr(spa, "DIST_DIR", tmp_path)
-    for path in ("/", "/new", "/inbox/maya", "/i/x", "/i/x/draft", "/i/x/drift", "/i/x/t/T-1", "/i/x/r/D-1", "/i/x/reviews", "/i/x/activity", "/standards", "/learnings", "/blueprint"):
+    for path in ("/", "/new", "/inbox", "/features/1", "/features/1/draft", "/features/1/drift", "/features/1/tasks/T-1", "/features/1/records/D-1", "/features/1/reviews", "/features/1/activity", "/standards", "/learnings", "/blueprint"):
         r = client.get(path)
         assert r.status_code == 200 and "root" in r.text, path
         assert r.headers["cache-control"] == "no-cache"

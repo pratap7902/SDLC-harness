@@ -74,29 +74,37 @@ def call(method: str, path: str, person=RUNNER, **kw):
 
 
 def write(slug: str, ops: list, agent: str, person=RUNNER) -> dict:
-    return call("POST", f"/api/initiatives/{slug}/records", person, json={"ops": ops, "agent": agent})
+    return call("POST", f"{P(slug)}/records", person, json={"ops": ops, "agent": agent})
 
 
 def human_write(slug: str, ops: list, person: str) -> dict:
-    return call("POST", f"/api/initiatives/{slug}/records", person, json={"ops": ops})
+    return call("POST", f"{P(slug)}/records", person, json={"ops": ops})
+
+
+IDS: dict = {}
+
+
+def P(slug: str) -> str:
+    """REST addresses an initiative by id; the seed names them by slug."""
+    return f"/api/initiatives/{IDS[slug]}"
 
 
 def start(slug: str, title: str, requirement: str, by: str, work_item: str | None = None, **people) -> None:
     body = {"title": title, "slug": slug, "requirement": requirement, **people}
     if work_item:
         body["work_item_url"] = ADO + work_item
-    call("POST", "/api/initiatives", by, json=body)
+    IDS[slug] = call("POST", "/api/initiatives", by, json=body)["initiative"]["id"]
 
 
 def answer(slug: str, ref: str, person: str, choice: str | None, text: str = "") -> dict:
     body = {"answer": text}
     if choice:
         body["choice"] = choice
-    return call("POST", f"/api/initiatives/{slug}/gaps/{ref}/answer", person, json=body)
+    return call("POST", f"{P(slug)}/gaps/{ref}/answer", person, json=body)
 
 
 def rule(slug: str, ref: str, person: str, verdict: str, rationale: str) -> dict:
-    return call("POST", f"/api/initiatives/{slug}/decisions/{ref}/rule", person, json={"verdict": verdict, "rationale": rationale})
+    return call("POST", f"{P(slug)}/decisions/{ref}/rule", person, json={"verdict": verdict, "rationale": rationale})
 
 
 def approve(slug: str, target: str, role: str, person: str, at_sha: str | None = None, note: str | None = None) -> dict:
@@ -105,7 +113,7 @@ def approve(slug: str, target: str, role: str, person: str, at_sha: str | None =
         body["at_sha"] = at_sha
     if note:
         body["note"] = note
-    return call("POST", f"/api/initiatives/{slug}/approvals", person, json=body)
+    return call("POST", f"{P(slug)}/approvals", person, json=body)
 
 
 def claim(key: str, agent: str, ttl_min: int = 240) -> None:
@@ -185,9 +193,9 @@ def ship(slug: str, ref: str, number: int, repo: str, sha: str, rows: list, engg
 
 def settle_reviews(slug: str, prefix: str, note: str, agent: str = "implement-task") -> None:
     """The agent works its review queue: items on `prefix…` targets it re-read and upheld."""
-    for item in call("GET", f"/api/initiatives/{slug}/reviews"):
+    for item in call("GET", f"{P(slug)}/reviews"):
         if item["target"].startswith(prefix):
-            call("POST", f"/api/initiatives/{slug}/reviews/{item['id']}/resolve", (f"runner-sdk/{agent}", "agent"), json={"resolution": "upheld", "note": note})
+            call("POST", f"{P(slug)}/reviews/{item['id']}/resolve", (f"runner-sdk/{agent}", "agent"), json={"resolution": "upheld", "note": note})
 
 
 # ── global scope ────────────────────────────────────────────────────────────
@@ -334,8 +342,8 @@ def order_events() -> None:
         "draft-from-ticket",
     )
     # review items the answer and the ruling put up (draft, D-1) — the agent re-read them
-    for item in call("GET", f"/api/initiatives/{slug}/reviews", "priya"):
-        call("POST", f"/api/initiatives/{slug}/reviews/{item['id']}/resolve", item["route_to"] or "priya", json={"resolution": "upheld", "note": "Re-read before approval: holds."})
+    for item in call("GET", f"{P(slug)}/reviews", "priya"):
+        call("POST", f"{P(slug)}/reviews/{item['id']}/resolve", item["route_to"] or "priya", json={"resolution": "upheld", "note": "Re-read before approval: holds."})
     at(days=4, hours=22)
     approve(slug, "draft", "dri", "priya", note="Scope is right. Ship behind the flag.")
 
@@ -358,7 +366,7 @@ def order_events() -> None:
     approve(slug, "T-3", "engg", "arjun", at_sha="a41c09e", note="Topic, role and dashboard as in the HLD.")
     # T-1: the implementing agent hits the DBA rule and raises a deviation, 2 hours ago
     at(hours=3)
-    claim(f"task:{slug}:T-1", "implement-task")
+    claim(f"task:{IDS[slug]}:T-1", "implement-task")
     at(hours=2)
     write(
         slug,
@@ -372,7 +380,7 @@ def order_events() -> None:
                     "domain": "engg",
                     "level": "MUST",
                     "asked_by": "runner-sdk/implement-task",
-                    "why_now": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.",
+                    "why_now": "Implementing T-1 hit the orders schema ownership rule: T-1 cannot finish as D-1 is written.",
                     "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables in the orders schema require DBA approval. Allow two weeks.\" — `orders-service/CLAUDE.md#schema-ownership`",
                     "options": [
                         {"key": "separate-schema", "label": "Outbox in a separate schema", "consequence": "No cross-schema transaction, so delivery is no longer exactly-once (breaks STD-1: the DRI has to approve an exception)."},
@@ -539,8 +547,8 @@ def payouts_v2() -> None:
     at(days=11, hours=10)
     rule(slug, "D-1", "arjun", "Refunds as negative ledger entries", "One ledger keeps payouts summable.")
     rule(slug, "D-2", "arjun", "Round per line item", "Matches partner invoices; STD-3.")
-    for item in call("GET", f"/api/initiatives/{slug}/reviews", "nikhil"):
-        call("POST", f"/api/initiatives/{slug}/reviews/{item['id']}/resolve", item["route_to"] or "nikhil", json={"resolution": "upheld", "note": "Holds."})
+    for item in call("GET", f"{P(slug)}/reviews", "nikhil"):
+        call("POST", f"{P(slug)}/reviews/{item['id']}/resolve", item["route_to"] or "nikhil", json={"resolution": "upheld", "note": "Holds."})
     at(days=11)
     approve(slug, "draft", "dri", "nikhil")
     at(days=10, hours=20)
@@ -564,7 +572,7 @@ def payouts_v2() -> None:
     tests(slug, "T-3", "e19b0c4", [("AC-4", "test_AC_9_refund_negative_entry"), ("AC-5", "test_AC_10_ledger_balances")], "payouts-svc suite")
     write(slug, [{"type": "finding", "title": "Ledger entry comment is out of date", "fields": {"summary": "Ledger entry comment is out of date", "severity": "minor", "target": ["T-3"], "at_sha": "e19b0c4", "resolution": "acknowledged", "resolution_note": "Comment fixed in a follow-up."}}], "review-pr")
     at(minutes=22)
-    claim(f"task:{slug}:T-4", "implement-task")
+    claim(f"task:{IDS[slug]}:T-4", "implement-task")
 
 
 def stale_standard() -> None:
@@ -643,7 +651,7 @@ def webhook_signing() -> None:
     at(minutes=6)
     start(slug, "Partner webhook signing", "# Partner webhook signing\nPartners want to verify that webhooks come from us.", "rahul", None, dri="rahul", engg="nikhil")
     at(minutes=4)
-    claim(f"draft:{slug}", "draft-from-ticket", ttl_min=60)
+    claim(f"draft:{IDS[slug]}", "draft-from-ticket", ttl_min=60)
 
 
 # ── inventory-sync-v3: shipped ───────────────────────────────────────────────
@@ -677,8 +685,8 @@ def inventory_sync_v3() -> None:
     answer("inventory-sync-v3", "G-1", "meera", "delta", "Delta sync — a minute is what partners were promised.")
     at(days=15, hours=18)
     write(slug, [decision("Delta sync every 30 seconds", "How often is inventory synced?", "SHOULD", verdict="Delta sync every 30 seconds", rationale="G-1: full sync is too slow for large partners.", by="runner-sdk/implement-task", on=day(16), supersedes=["D-1"], because=["G-1"]), {"ref": "G-1", "fields": {"resolution": "D-3 supersedes D-1."}}], "implement-task")
-    for item in call("GET", f"/api/initiatives/{slug}/reviews", "priya"):
-        call("POST", f"/api/initiatives/{slug}/reviews/{item['id']}/resolve", item["route_to"] or "priya", json={"resolution": "upheld", "note": "Holds under delta sync."})
+    for item in call("GET", f"{P(slug)}/reviews", "priya"):
+        call("POST", f"{P(slug)}/reviews/{item['id']}/resolve", item["route_to"] or "priya", json={"resolution": "upheld", "note": "Holds under delta sync."})
     at(days=15)
     write(
         slug,
@@ -693,10 +701,10 @@ def inventory_sync_v3() -> None:
     at(days=3)
     ship(slug, "T-2", 233, "partner-gw", "9c0d1e2f", [("AC-2", "test_AC_2_backoff"), ("AC-4", "smoke_sync_lag_panel")], "nikhil", "partner-gw suite + e2e smoke")
     at(days=2)
-    call("POST", f"/api/initiatives/{slug}/criteria/AC-4/sign", "sam", json={"at_sha": "9c0d1e2f"})
+    call("POST", f"{P(slug)}/criteria/AC-4/sign", "sam", json={"at_sha": "9c0d1e2f"})
     at(days=1)
     for t, sha in (("T-1", "8b9c0d1e"), ("T-2", "9c0d1e2f")):
-        call("POST", "/api/deploy-guard", ("github-actions", "system"), json={"initiative": slug, "task": t, "sha": sha, "environment": "staging"})
+        call("POST", "/api/deploy-guard", ("github-actions", "system"), json={"initiative_id": IDS[slug], "task": t, "sha": sha, "environment": "staging"})
 
 
 def main() -> int:

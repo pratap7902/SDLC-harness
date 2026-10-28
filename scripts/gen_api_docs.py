@@ -8,6 +8,7 @@ request and (trimmed) response of each into the document.
 
 import json
 import os
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -48,7 +49,28 @@ def h(text: str) -> None:
     OUT.append(text)
 
 
+IDS: dict = {}
+
+
+def iid(slug: str) -> int:
+    """Initiatives are addressed by id; the script names them by slug for readability."""
+    if slug not in IDS:
+        for row in client().get("/api/initiatives").json():
+            IDS[row["slug"]] = row["id"]
+    return IDS[slug]
+
+
+def by_id(text: str) -> str:
+    """`/api/initiatives/order-events/…` → `/api/initiatives/<id>/…`; `task:order-events:T-2` → `task:<id>:T-2`."""
+    text = re.sub(r"/api/initiatives/([a-z][a-z0-9-]+)", lambda m: f"/api/initiatives/{iid(m.group(1))}", text)
+    return re.sub(r"\b(task|draft|gap|decision|approval|review_item|manual_ac|tests|plan):([a-z][a-z0-9-]+)", lambda m: f"{m.group(1)}:{iid(m.group(2))}", text)
+
+
 def show(method: str, path: str, *, who=("priya", "human"), body=None, params=None, about: str = "", keep=2, expect=None, raw=False, title=None):
+    path = by_id(path)
+    title = by_id(title) if title else None
+    if body is not None:
+        body = json.loads(by_id(json.dumps(body)))
     r = client(*who).request(method, path, json=body, params=params)
     if expect is not None:
         assert r.status_code == expect, f"{method} {path}: {r.status_code} {r.text[:800]}"
@@ -80,10 +102,23 @@ running service against the demo data (`make seed`). Regenerate with
 
 - **Base URL**: `http://localhost:8791` (`make dev`). All JSON routes are under `/api`.
   The Vite dev server (`http://localhost:5173`) is allowed by CORS.
-- **Who is calling** (AUTH_MODE=header): every request sends `X-Actor: <person handle>`.
-  The web UI is a human: send `X-Actor-Kind: human` (it is also the default when no
-  `agent` label is given). Agents send `X-Actor-Kind: agent`. Human-only endpoints (marked
-  **human**) return **403** with `error_code: "HUMAN_ONLY"` to anyone else.
+- **Who is calling** comes only from headers (AUTH_MODE=header today, a bearer token
+  later), never from a path, query or body: every request sends `X-Actor: <person
+  handle>`. The web UI is a human: send `X-Actor-Kind: human` (it is also the default when
+  no `agent` label is given). Agents send `X-Actor-Kind: agent`. Human-only endpoints
+  (marked **human**) return **403** with `error_code: "HUMAN_ONLY"` to anyone else.
+  `GET /api/inbox` and `GET /api/overview` are the caller's.
+- **Ids in paths**: an initiative is addressed by its numeric `id`
+  (`/api/initiatives/{id}/…`, `initiative_id` in the deploy guard and MCP tools); `slug` is
+  a display label. Records are addressed by their ref within the initiative
+  (`/api/initiatives/{id}/records/D-3`). Work-item and lease keys are
+  `<kind>:<initiative id>[:<ref>]` (`task:3:T-1`).
+- **Gaps: anyone answers, both people are kept.** Any human may answer any open gap. The
+  answer stores `assigned_to` / `assigned_role` (who it was routed to at that moment,
+  frozen), `answered_by` (the caller) and `answered_on`; `answered_for` is set when the
+  answerer is not the assignee. The drift entry reads "G-2 answered by priya · assigned to
+  arjun"; the activity feed carries `answered_by`, `assigned_to`, `answered_for` on the
+  answering revision.
 - **Keys are snake_case**; timestamps are ISO-8601 UTC with a trailing `Z`.
 - **Statuses are derived**, never written. Each status has a pill colour in
   `GET /api/blueprint` → `pills` (green / amber / red / grey); every record JSON also
@@ -96,7 +131,7 @@ running service against the demo data (`make seed`). Regenerate with
   `F-n` finding · `R-n` test run · `DEP-n` deploy · `APR-n` approval · `B-n` baseline ·
   `A-n` assignment · `draft` and `initiative` (one each per initiative) · `STD-n`, `L-n`
   (global). Refs appear bare in text fields (`"see D-3"`): link them to
-  `/i/<slug>/r/<ref>`.
+  `/features/<id>/records/<ref>`.
 - **Record JSON** (lists, detail, everywhere): `{ref, type, title, status, pill, line,
   rev, fields, created_by, created_at, updated_by, updated_at}`; the detail endpoint adds
   `links {out: [{kind, to}], in: [{kind, from}]}`, `stamps` (who set each field, and as
@@ -108,37 +143,37 @@ running service against the demo data (`make seed`). Regenerate with
 
 | Page | Reads | Writes |
 |---|---|---|
-| `/` home (Features) | `GET /api/overview?person=` (one read: every initiative, decisions waiting, your PR approvals) | — |
+| `/` Features | `GET /api/overview` (the caller's view: every initiative, decisions waiting, your PR approvals) | — |
 | `/new` start a feature | — | `POST /api/initiatives` |
-| `/inbox/:person` (touchpoint 2) | `GET /api/inbox/{person}` | `POST …/gaps/{ref}/answer`, `POST …/decisions/{ref}/rule`, `POST …/approvals`, `POST …/criteria/{ref}/sign`, `POST …/reviews/{id}/resolve` |
-| `/i/:slug` initiative | `GET /api/initiatives/{slug}`, `GET …/worklist` | `POST …/snapshot` (re-pin requirement) |
-| `/i/:slug/draft` (touchpoint 1) | `GET /api/initiatives/{slug}/draft` | `POST …/approvals` `{target: "draft", role: "dri"}`, `POST …/gaps/{ref}/answer` |
-| `/i/:slug/drift` | `GET …/drift` (`?baseline=B-n` for older) | — |
-| `/i/:slug/t/:ref` (touchpoint 3) | `GET …/tasks/{ref}` (task + GATE_PR + scoped drift) | `POST …/approvals` `{target: "T-n", role: "engg", at_sha}` |
-| `/i/:slug/r/:ref` record | `GET …/records/{ref}`, `GET …/records/{ref}/history` | `POST …/criteria/{ref}/retire` (an AC) |
-| `/i/:slug/reviews` | `GET …/reviews?status=open|upheld|revised|dismissed|all` | `POST …/reviews/{id}/resolve` |
-| `/i/:slug/activity` | `GET …/activity`, `GET …/events?since=` | — |
+| `/inbox` (touchpoint 2) | `GET /api/inbox` (what is routed to the caller); `?view=all` — every open gap, from `GET /api/overview` → `waiting` | `POST …/gaps/{ref}/answer`, `POST …/decisions/{ref}/rule`, `POST …/approvals`, `POST …/criteria/{ref}/sign`, `POST …/reviews/{id}/resolve` |
+| `/features/:id` feature | `GET /api/initiatives/{id}`, `GET …/worklist`, `GET …/draft` | `POST …/snapshot` (re-pin requirement) |
+| `/features/:id/draft` (touchpoint 1) | `GET /api/initiatives/{id}/draft` | `POST …/approvals` `{target: "draft", role: "dri"}`, `POST …/gaps/{ref}/answer` |
+| `/features/:id/drift` | `GET …/drift` (`?baseline=B-n` for older) | — |
+| `/features/:id/tasks/:ref` (touchpoint 3) | `GET …/tasks/{ref}` (task + GATE_PR + scoped drift) | `POST …/approvals` `{target: "T-n", role: "engg", at_sha}` |
+| `/features/:id/records/:ref` record | `GET …/records/{ref}`, `GET …/records/{ref}/history` | `POST …/criteria/{ref}/retire` (an AC) |
+| `/features/:id/reviews` | `GET …/reviews?status=open|upheld|revised|dismissed|all` | `POST …/reviews/{id}/resolve` |
+| `/features/:id/activity` | `GET …/activity`, `GET …/events?since=` | — |
 | `/standards`, `/learnings` | `GET /api/standards`, `GET /api/learnings` | `POST /api/learnings/{ref}/promote` |
 | `/blueprint` | `GET /api/blueprint`, `GET /api/blueprint/lifecycle` | — |
 
 The three human touchpoints:
 
-1. **Draft review** — `/i/:slug/draft`. Show the draft sections (`problem`, `hld`, `lld`,
+1. **Draft review** — `/features/:id/draft`. Show the draft sections (`problem`, `hld`, `lld`,
    `scope_in`, `scope_out`, `test_strategy` — markdown), each decision with its `options`
    and `verdict`, each AC, each gap, the draft-phase catalog and `gate` (GATE_DRAFT, rule by
    rule). The **Approve** button is enabled when `can_approve` is true; otherwise list
    `approval_blockers`. Only the `approver` (the DRI) may approve.
-2. **Gap reviews** — `/inbox/:person`. Each item has `kind` (`gap` · `decision` ·
+2. **Gap reviews** — `/inbox`. Each item has `kind` (`gap` · `decision` ·
    `approval` · `review_item` · `manual_ac`), its context, `options` + `recommendation`
    (gaps), `blocks`, `sla_hours`, `due_at`, `overdue`. Answer = pick an option (`choice`)
-   or type (`answer`).
-3. **Final PR review** — `/i/:slug/t/:ref`. Render `drift` (the task-scoped drift report:
+   or type (`answer`). Any human may answer any open gap (see Conventions).
+3. **Final PR review** — `/features/:id/tasks/:ref`. Render `drift` (the task-scoped drift report:
    `entries` as a timeline between `approved_spec` and `current_spec`, `spec_diff`,
    `unexplained`), the `gate` (GATE_PR) and the PR. **Approve** posts the PR head sha
    (`task.fields.pr_sha`); the service pins the report's `digest`. A later push or new drift
    makes the approval `STALE` and the gate re-blocks on its own.
 
-### The drift report (`GET /api/initiatives/{slug}/drift`)
+### The drift report (`GET /api/initiatives/{id}/drift`)
 
 `status`: `NO_BASELINE` (draft not yet approved) · `CLEAN` (nothing changed) · `EXPLAINED`
 (every change has a human-grounded reason) · `UNEXPLAINED`.
@@ -191,7 +226,7 @@ def main() -> None:
     show(
         "GET",
         "/api/overview",
-        params={"person": "arjun"},
+        who=("arjun", "human"),
         keep=2,
         about="**The Features list in one read.** Per initiative: phase, `people` (role → person), `involved` (the `person` holds a role or has an item), `next` (the next open human item — yours first, then what blocks work — with `person` and a short `label`), `prs` (`approved`/`total`, `stale` task refs), `gate_draft.state` (`drafting` · `waiting` · `ready` · `approved` · `reopened`), `drift`, `updated_at` (latest revision or review move), `agents` (`queued`, `leased`, lease `holders`). Across initiatives: `waiting` (every routed human item, inbox-shaped, sorted for `person`), `decisions` (the same without task PR approvals) and `my_pr_approvals`.",
     )
@@ -208,7 +243,7 @@ def main() -> None:
             "product": "meera",
             "qa": "sam",
         },
-        about="**Start a feature** (the intake; `/new`). `requirement` (markdown), `title`, `dri`, `engg` are required; `slug` defaults from the title; `work_item_url` (Azure DevOps link), `product`, `design`, `qa`, `prd_refs` are optional. Pins `spec_snapshot` with its hash and writes the assignments. Returns the same body as `GET /api/initiatives/{slug}`. 422 lists every missing field in `error_data.errors`; 409 if an explicit `slug` exists.",
+        about="**Start a feature** (the intake; `/new`). `requirement` (markdown), `title`, `dri`, `engg` are required; `slug` defaults from the title; `work_item_url` (Azure DevOps link), `product`, `design`, `qa`, `prd_refs` are optional. Pins `spec_snapshot` with its hash and writes the assignments. Returns the same body as `GET /api/initiatives/{id}` (`initiative.id` is the new id). 422 lists every missing field in `error_data.errors`; 409 if an explicit `slug` exists.",
     )
     assert started["initiative"]["slug"] == "payment-webhooks"
     show("GET", "/api/initiatives/order-events", keep=3, about="**Initiative state**: the initiative with its `spec_snapshot`, `phase`, assignments, initiative-scope gates (rule by rule), tasks with their GATE_PR status and drift summary, counts by type and status, open refs, the current baseline, drift summary, stale narratives, and every catalog (phase → items with `disposition`: `addressed` · `not_applicable` · `UNASSESSED`).")
@@ -247,9 +282,10 @@ def main() -> None:
     )
 
     h("## The human lane (touchpoint 2)\n")
-    show("GET", "/api/inbox/arjun", about="One person's inbox across initiatives, overdue first. `kind`: `gap` (answer it), `decision` (rule it: MUST or escalated), `approval` (`target`: `draft` or a task; tasks carry `drift` and `digest`), `review_item` (`review_item_id`, `what_moved`), `manual_ac` (sign it). `route` says why it landed here (`role`, `domain`, `fallback` = routed to the DRI because nobody holds the role).")
-    show("GET", "/api/people", about="Everyone with an assignment and their inbox size (the inbox switcher).")
-    show("POST", "/api/initiatives/menu-sync-retries/gaps/G-1/answer", who=("meera", "human"), body={"choice": "per-partner", "answer": "Per partner: one flaky partner must not starve the rest."}, about="**human** — answer a gap: `choice` (an option key) and/or `answer` (text; defaults to the option's label). Returns the write result; `review_items` lists what the answer put up for review and who it went to.")
+    show("GET", "/api/inbox", who=("arjun", "human"), about="The caller's inbox (X-Actor) across initiatives, overdue first. `kind`: `gap` (answer it), `decision` (rule it: MUST or escalated), `approval` (`target`: `draft` or a task; tasks carry `drift` and `digest`), `review_item` (`review_item_id`, `what_moved`), `manual_ac` (sign it). `route` says why it landed here (`role`, `domain`, `fallback` = routed to the DRI because nobody holds the role).")
+    show("GET", "/api/people", about="Everyone with an assignment and their inbox size (the “Viewing as” switcher: who the UI sends as X-Actor).")
+    show("POST", "/api/initiatives/menu-sync-retries/gaps/G-1/answer", who=("priya", "human"), body={"choice": "per-partner", "answer": "Per partner: one flaky partner must not starve the rest."}, about="**human** — answer a gap: `choice` (an option key) and/or `answer` (text; defaults to the option's label). **Any human may answer any open gap**: here priya answers G-1, which is routed to meera (product). The service stores `answered_by` (the caller), `assigned_to` / `assigned_role` (the routing at this moment, frozen) and `answered_for` (the assignee, because they differ) — see the record below. Returns the write result; `review_items` lists what the answer put up for review and who it went to.")
+    show("GET", "/api/initiatives/menu-sync-retries/records/G-1", keep=3, title="GET /api/initiatives/menu-sync-retries/records/G-1 (answered on meera's behalf)", about="`fields.answered_by`, `assigned_to`, `assigned_role`, `answered_for`.")
     show("POST", "/api/initiatives/menu-sync-retries/decisions/D-2/rule", who=("meera", "human"), body={"verdict": "Per partner: 5 retries per hour each", "rationale": "G-1: partner timeouts are uneven."}, about="**human** — rule an OPEN or PROVISIONAL decision (MUST-level or escalated decisions can only be ruled here). A DECIDED decision returns 422: supersede it instead.")
     r = client("runner-sdk", "agent").post("/api/initiatives/payment-webhooks/approvals", json={"target": "draft", "role": "dri"})
     h("### 403 for agents on human endpoints\n")
@@ -274,8 +310,8 @@ def main() -> None:
     show("GET", "/api/initiatives/payment-webhooks/drift", keep=2, title="GET /api/initiatives/payment-webhooks/drift (initiative scope)", about="Initiative scope after an AC retirement and a requirement re-pin by humans.")
     show("GET", "/api/initiatives/order-events/gates", keep=3, about="Every gate: initiative gates once, task gates per task. Each: `{gate, scope, target, status, human_role, text, rules[{name, passed, failing, detail, args}], note, failing_rules}`.")
     show("GET", "/api/initiatives/order-events/tasks/T-2/gates")
-    show("GET", "/api/deploy-guard", params={"initiative": "order-events", "task": "T-3", "sha": "a41c09e", "environment": "staging"}, about="CI/CD asks before a deploy: `decision` GO | NO-GO, `reasons`, each check.")
-    show("POST", "/api/deploy-guard", who=("github-actions", "system"), body={"initiative": "order-events", "task": "T-3", "sha": "0000000", "environment": "production"}, about="Same check, recorded as a `deploy` row (`deploy` in the response).")
+    show("GET", "/api/deploy-guard", params={"initiative_id": iid("order-events"), "task": "T-3", "sha": "a41c09e", "environment": "staging"}, about="CI/CD asks before a deploy: `decision` GO | NO-GO, `reasons`, each check.")
+    show("POST", "/api/deploy-guard", who=("github-actions", "system"), body={"initiative_id": iid("order-events"), "task": "T-3", "sha": "0000000", "environment": "production"}, about="Same check, recorded as a `deploy` row (`deploy` in the response).")
 
     h("## Worklist, next work, leases\n")
     show("GET", "/api/initiatives/menu-sync-retries/worklist", about="Every open item of an initiative, both lanes (`agent` / `human`), grouped by kind, with leases.")

@@ -422,19 +422,24 @@ class DriftService:
                     "answer": answer,
                     "choice": fields.get("choice", ""),
                     "answered_by": fields.get("answered_by", ""),
+                    "assigned_to": fields.get("assigned_to", ""),
+                    "assigned_role": fields.get("assigned_role", ""),
+                    "answered_for": fields.get("answered_for", ""),
                     "blocks": list(fields.get("blocks") or []),
                     "resolution": g.f(record, "resolution", ""),
                     "kind": fields.get("kind", ""),
                     "proposed_change": fields.get("proposed_change", ""),
                 }
                 who = fields.get("answered_by") or r.actor
+                assigned = fields.get("assigned_to") or ""
+                by = f"{who} · assigned to {assigned}" if assigned and assigned != who else who
                 return [
                     self._entry(
                         g,
                         record,
                         r,
                         "gap_answered",
-                        f"{record.ref} answered by {who}: “{clip(answer, 140)}”",
+                        f"{record.ref} answered by {by}: “{clip(answer, 140)}”",
                         related=detail["blocks"],
                         detail=detail,
                         explained=(True, [Explanation(None, True, f"a human answer ({who})")]),

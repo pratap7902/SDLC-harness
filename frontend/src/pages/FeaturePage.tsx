@@ -2,11 +2,12 @@ import { Link, useParams } from 'react-router-dom';
 import type { DeployGuard, DraftPage, InboxItem, InitiativeState, TaskRow, Worklist } from '../api';
 import { all, api, useJson, useJsonAll } from '../lib/api';
 import { ROLE_SHORT, asList, asText, due, nm, phaseLabel, phaseTone, plural, prNumber, ruleText, shortSha, who, workItem } from '../lib/format';
-import { Refs } from '../lib/links';
+import { Refs, FeatureName } from '../lib/links';
 import { usePersona } from '../lib/persona';
 import { blocksText, itemHref, itemLabel, itemTitle, sortWaiting, useAllWaiting } from '../lib/waiting';
 import { Badge, CardHead, Empty, Kv, PersonChip, StatusBadge, toneText } from '../components/ui';
 import { Markdown } from '../components/Markdown';
+import { AnswerLink, answeredText } from '../components/gaps';
 import { PageHeader } from '../components/PageHeader';
 import { LoadError, Loading } from '../components/state';
 import type { Tone } from '../lib/format';
@@ -19,10 +20,13 @@ interface LogLine {
   tone: Tone;
   struck: boolean;
   order: number;
+  /** an open gap: anyone may answer it */
+  answer?: InboxItem;
 }
 
 function logLines(draft: DraftPage, waiting: InboxItem[], baselineMembers: string[]): LogLine[] {
   const waitingOn = (ref: string) => waiting.find((w) => w.ref === ref)?.person;
+  const gapItem = (ref: string) => waiting.find((w) => w.kind === 'gap' && w.ref === ref);
   const lines: LogLine[] = [];
   for (const g of draft.gaps) {
     const f = g.fields;
@@ -31,14 +35,15 @@ function logLines(draft: DraftPage, waiting: InboxItem[], baselineMembers: strin
       ref: g.ref,
       text: asText(f.question) || g.title,
       sub: open
-        ? `Raised by ${who(asText(f.asked_by) || g.created_by)}${waitingOn(g.ref) ? ` · waiting on ${nm(waitingOn(g.ref))}` : ''}`
+        ? `Raised by ${who(asText(f.asked_by) || g.created_by)}${waitingOn(g.ref) ? ` · assigned to ${nm(waitingOn(g.ref))}` : ''}`
         : g.status === 'ANSWERED'
-          ? `Answered by ${nm(asText(f.answered_by))}: ${asText(f.answer)}`
+          ? `${answeredText(f)}: ${asText(f.answer)}`
           : asText(f.withdrawn_because) || g.status,
       badge: g.status,
       tone: open ? 'human' : 'muted',
       struck: false,
       order: open ? 0 : 3,
+      answer: open ? gapItem(g.ref) : undefined,
     });
   }
   for (const d of draft.decisions) {
@@ -83,22 +88,22 @@ function taskNow(t: TaskRow): string {
 }
 
 export default function FeaturePage() {
-  const { slug = '' } = useParams();
+  const { id: fid = '' } = useParams();
   const { persona } = usePersona();
-  const state = useJson<InitiativeState>(api('initiatives', slug));
-  const draft = useJson<DraftPage>(api('initiatives', slug, 'draft'));
-  const worklist = useJson<Worklist>(api('initiatives', slug, 'worklist'));
+  const state = useJson<InitiativeState>(api('initiatives', fid));
+  const draft = useJson<DraftPage>(api('initiatives', fid, 'draft'));
+  const worklist = useJson<Worklist>(api('initiatives', fid, 'worklist'));
   const waiting = useAllWaiting();
   const tasks = state.kind === 'ready' ? state.data.tasks.filter((t) => asText(t.fields.pr_sha)) : null;
   const guards = useJsonAll<DeployGuard>(
-    tasks ? tasks.map((t) => `/api/deploy-guard?${new URLSearchParams({ initiative: slug, task: t.ref, sha: asText(t.fields.pr_sha), environment: 'staging' })}`) : null,
+    tasks ? tasks.map((t) => `/api/deploy-guard?${new URLSearchParams({ initiative_id: fid, task: t.ref, sha: asText(t.fields.pr_sha), environment: 'staging' })}`) : null,
   );
   const loaded = all(state, draft, worklist, waiting);
-  if (loaded.kind === 'error') return <LoadError what={`the feature ${slug}`} message={loaded.message} onRetry={state.reload} />;
+  if (loaded.kind === 'error') return <LoadError what={`the feature ${fid}`} message={loaded.message} onRetry={state.reload} />;
   if (loaded.kind === 'loading') return <Loading what="the feature" />;
   const [s, d, wl, allItems] = loaded.data;
   const i = s.initiative;
-  const items = sortWaiting(allItems.filter((w) => w.initiative === slug), persona);
+  const items = sortWaiting(allItems.filter((w) => w.initiative_id === Number(fid)), persona);
   const needs = items.filter((w) => w.person === persona);
   const others = items.filter((w) => w.person !== persona);
   const agents = wl.items.filter((w) => w.lane === 'agent');
@@ -130,7 +135,7 @@ export default function FeaturePage() {
   return (
     <>
       <PageHeader
-        crumbs={[{ label: 'Features', href: '/' }, { label: slug, mono: true }]}
+        crumbs={[{ label: 'Features', href: '/' }, { label: <FeatureName fid={fid} />, mono: true }]}
         title={i.title}
         aside={
           <Badge tone={phaseTone(s.phase)} big>
@@ -154,12 +159,12 @@ export default function FeaturePage() {
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
-          <Link to={`/i/${slug}/draft`}>
+          <Link to={`/features/${fid}/draft`}>
             {s.baseline ? `Spec ${s.baseline.ref} · draft rev ${d.draft?.rev ?? '—'}` : `Draft${d.draft ? ` rev ${d.draft.rev}` : ''} · review`}
           </Link>
-          <Link to={`/i/${slug}/drift`}>Drift report</Link>
-          <Link to={`/i/${slug}/reviews`}>Review queue{s.open.review_items ? ` (${s.open.review_items})` : ''}</Link>
-          <Link to={`/i/${slug}/activity`}>Activity</Link>
+          <Link to={`/features/${fid}/drift`}>Drift report</Link>
+          <Link to={`/features/${fid}/reviews`}>Review queue{s.open.review_items ? ` (${s.open.review_items})` : ''}</Link>
+          <Link to={`/features/${fid}/activity`}>Activity</Link>
         </div>
       </PageHeader>
 
@@ -183,7 +188,7 @@ export default function FeaturePage() {
               </span>
               <strong className="text-[15px]">{itemTitle(w)}</strong>
             </div>
-            <Link to={itemHref(w)} className="btn btn-primary no-underline hover:text-white">
+            <Link to={itemHref(w, persona)} className="btn btn-primary no-underline hover:text-white">
               {w.kind === 'gap' ? 'Answer' : w.kind === 'decision' ? 'Rule' : w.kind === 'approval' ? (w.target === 'draft' ? 'Review draft' : 'Open PR review') : w.kind === 'manual_ac' ? 'Sign' : 'Open'}
             </Link>
           </div>
@@ -194,7 +199,7 @@ export default function FeaturePage() {
             {others.map((w, n) => (
               <span key={w.key}>
                 {n > 0 && ', '}
-                <Link to={itemHref(w)}>
+                <Link to={itemHref(w, persona)}>
                   {nm(w.person)} ({w.kind === 'review_item' ? w.target : w.ref})
                 </Link>
               </span>
@@ -212,14 +217,17 @@ export default function FeaturePage() {
             <ol className="m-0 p-0 list-none">
               {log.map((l) => (
                 <li key={l.ref} className="flex flex-wrap gap-x-[14px] gap-y-1.5 px-[18px] py-3 items-baseline border-t border-line-soft first:border-t-0">
-                  <Link to={`/i/${slug}/r/${l.ref}`} className={`font-mono font-semibold text-[13px] basis-11 shrink-0 ${l.struck ? 'line-through text-ink-muted' : 'text-ink'}`}>
+                  <Link to={`/features/${fid}/records/${l.ref}`} className={`font-mono font-semibold text-[13px] basis-11 shrink-0 ${l.struck ? 'line-through text-ink-muted' : 'text-ink'}`}>
                     {l.ref}
                   </Link>
                   <span className="flex-[1_1_300px] min-w-0">
                     <strong className={l.struck ? 'line-through text-ink-muted' : ''}>{l.text}</strong>
                     <span className="small block">{l.sub}</span>
                   </span>
-                  <Badge tone={l.tone}>{l.badge}</Badge>
+                  <span className="flex items-center gap-2">
+                    {l.answer && <AnswerLink item={l.answer} persona={persona} button />}
+                    <Badge tone={l.tone}>{l.badge}</Badge>
+                  </span>
                 </li>
               ))}
             </ol>
@@ -294,17 +302,17 @@ export default function FeaturePage() {
                     </td>
                     <td className="font-mono text-xs">{asText(t.fields.repo)}</td>
                     <td className="text-xs">
-                      <Refs slug={slug} refs={asList(t.fields.implements)} />
+                      <Refs fid={fid} refs={asList(t.fields.implements)} />
                     </td>
                     <td className="text-xs">
-                      <Refs slug={slug} refs={asList(t.fields.covers)} />
+                      <Refs fid={fid} refs={asList(t.fields.covers)} />
                     </td>
                     <td>
                       <StatusBadge status={t.status} pill={t.pill} />
                     </td>
                     <td>
                       <span className="small">{taskNow(t)}</span>{' '}
-                      <Link to={`/i/${slug}/t/${t.ref}`} className="text-xs font-semibold whitespace-nowrap">
+                      <Link to={`/features/${fid}/tasks/${t.ref}`} className="text-xs font-semibold whitespace-nowrap">
                         {asText(t.fields.pr_url) ? 'Open PR review' : 'Details'}
                       </Link>
                     </td>
@@ -320,7 +328,7 @@ export default function FeaturePage() {
         <details className="card px-[18px] py-4">
           <summary className="cursor-pointer font-semibold">Requirement (pinned {i.snapshot_hash.slice(0, 8)})</summary>
           <div className="mt-3">
-            <Markdown text={i.spec_snapshot.requirement} slug={slug} />
+            <Markdown text={i.spec_snapshot.requirement} fid={fid} />
           </div>
         </details>
       )}

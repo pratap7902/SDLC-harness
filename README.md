@@ -41,18 +41,49 @@ STD-3 changed, so D-2 is up for review for arjun; T-3's PR waits on him. **store
 — validating, manual AC-10 waits on sam. **webhook-signing** — being drafted.
 **inventory-sync-v3** — shipped.
 
+## Routes
+
+Initiatives are addressed by numeric **id** everywhere (REST, MCP `initiative_id`, the
+deploy guard, UI routes); `slug` is a display label. Records are addressed by their ref
+within the initiative. **Who is calling comes only from headers** (`X-Actor`,
+`X-Actor-Kind`; a bearer token later) — never a path, query or body.
+
+| REST | |
+|---|---|
+| `GET /api/overview` · `GET /api/inbox` · `GET /api/people` | the caller's Features view · the caller's inbox · people and inbox sizes |
+| `GET/POST /api/initiatives` | list · start a feature (returns `initiative.id`) |
+| `GET /api/initiatives/{id}` · `…/draft` · `…/worklist` · `…/next-work` · `…/gates` | state · draft review · queues · gates |
+| `GET/POST /api/initiatives/{id}/records` · `GET …/records/{ref}` · `…/records/{ref}/history` | records |
+| `GET …/tasks/{ref}` · `…/tasks/{ref}/gates` · `GET …/drift` | PR review page · task gates · drift report |
+| `POST …/gaps/{ref}/answer` · `…/decisions/{ref}/rule` · `…/approvals` · `…/criteria/{ref}/sign` · `…/criteria/{ref}/retire` · `…/snapshot` | human-only writes |
+| `GET …/reviews` · `POST …/reviews/{item}/resolve` · `GET …/activity` · `…/events` | review queue, activity |
+| `GET/POST /api/deploy-guard` (`initiative_id`, `task`, `sha`, `environment`) | deploy guard |
+| `POST /api/leases/claim` · `/api/leases/{key}/heartbeat` · `DELETE /api/leases/{key}` | leases; keys `<kind>:<initiative id>[:<ref>]` |
+| `GET /api/standards` · `/api/learnings` · `POST /api/learnings/{ref}/promote` · `POST /api/global/records` | global scope |
+
+UI: `/`, `/new`, `/inbox` (`?view=all`), `/features/:id`, `/features/:id/draft`,
+`/features/:id/drift`, `/features/:id/tasks/:ref`, `/features/:id/records/:ref`,
+`/features/:id/reviews`, `/features/:id/activity`, `/standards`, `/learnings`, `/blueprint`.
+
+**Gaps: anyone answers, both people are kept.** Any human may answer any open gap,
+whoever it is routed to (agents still get 403). The answer records `assigned_to` and
+`assigned_role` (the routing at that moment, frozen), `answered_by` (the caller, from the
+header) and `answered_on`; `answered_for` is set when the answerer is not the assignee. The
+drift report reads "G-2 answered by priya · assigned to arjun"; the activity feed, the
+record history and the MCP text show both. `/inbox` lists only what is routed to you.
+
 ## The three human touchpoints
 
 | # | Touchpoint | The human sees | The service does |
 |---|---|---|---|
-| 1 | **Draft review** (`GATE_DRAFT`, `/i/:slug/draft`) | The draft (problem, HLD, LLD, scope, test strategy), its decisions with options, its acceptance criteria, its gaps, the draft-phase catalog. One button: *Approve*. | Refuses the approval while a decision is OPEN, a MUST gap blocks the spec, a spec record is up for review, the catalog is unaddressed, or a decision has no AC. The approval writes baseline **B-n**: a frozen snapshot of the draft and every decision, AC and gap. From then on every spec change must be *explained*. |
-| 2 | **Gap reviews** (`/inbox/:person`) | A personal inbox: gaps and decisions to rule, routed by domain (product / design / engg → the assignee of that role; unroutable → the DRI), with context, options, a recommendation, what they block, an SLA. | A gap's `answer` is `actor: human` — agents cannot write it. Answering is a material change: what the gap blocks goes up for review (routed too), and the answer becomes the provenance of the drift that follows. MUST-level gaps block what they name; SHOULD-level ones let work continue. |
-| 3 | **Final PR review, per task** (`GATE_PR`, `/i/:slug/t/:ref`) | The task-scoped **drift report**: "approved baseline B-1 → these answers/decisions changed the spec for T-1 → resulting spec; 0 unexplained". The reviewer approves the drift, not the feature. | `GATE_PR` needs the PR open, no open blocker finding at the head, every covered AC tested, `drift_report(task).unexplained == []`, and an engg approval **pinned to the PR sha and the report's digest**. A new push or new drift makes the approval STALE: the gate re-blocks and the deploy guard goes NO-GO without anyone flipping a bit. |
+| 1 | **Draft review** (`GATE_DRAFT`, `/features/:id/draft`) | The draft (problem, HLD, LLD, scope, test strategy), its decisions with options, its acceptance criteria, its gaps, the draft-phase catalog. One button: *Approve*. | Refuses the approval while a decision is OPEN, a MUST gap blocks the spec, a spec record is up for review, the catalog is unaddressed, or a decision has no AC. The approval writes baseline **B-n**: a frozen snapshot of the draft and every decision, AC and gap. From then on every spec change must be *explained*. |
+| 2 | **Gap reviews** (`/inbox`) | A personal inbox: gaps and decisions to rule, routed by domain (product / design / engg → the assignee of that role; unroutable → the DRI), with context, options, a recommendation, what they block, an SLA. | A gap's `answer` is `actor: human` — agents cannot write it. Answering is a material change: what the gap blocks goes up for review (routed too), and the answer becomes the provenance of the drift that follows. MUST-level gaps block what they name; SHOULD-level ones let work continue. |
+| 3 | **Final PR review, per task** (`GATE_PR`, `/features/:id/tasks/:ref`) | The task-scoped **drift report**: "approved baseline B-1 → these answers/decisions changed the spec for T-1 → resulting spec; 0 unexplained". The reviewer approves the drift, not the feature. | `GATE_PR` needs the PR open, no open blocker finding at the head, every covered AC tested, `drift_report(task).unexplained == []`, and an engg approval **pinned to the PR sha and the report's digest**. A new push or new drift makes the approval STALE: the gate re-blocks and the deploy guard goes NO-GO without anyone flipping a bit. |
 
 ## The drift report
 
 *Given approved baseline B-k, what is different in the spec now, and which human decision
-authorised each difference?* (`GET /api/initiatives/{slug}/drift?task=T-n`, MCP
+authorised each difference?* (`GET /api/initiatives/{id}/drift?task=T-n`, MCP
 `drift_report`, `format=json|md|text`.)
 
 It is a pure query over what the write path already stores: the baseline's members and
@@ -145,7 +176,7 @@ MCP tool `create_initiative`, with `{title, slug?, requirement (markdown), work_
 dri, engg, product?, design?, qa?}`. It creates the initiative, pins `spec_snapshot =
 {requirement, work_item_url, created_by, at}` and its sha256, and writes the `assignment`
 records in the same batch. A human may re-pin the requirement
-(`POST /api/initiatives/{slug}/snapshot`) — a material change that puts the draft up for
+(`POST /api/initiatives/{id}/snapshot`) — a material change that puts the draft up for
 review and shows in the drift report.
 
 Both paths call one function, `IntakeService.start(StartFeature, actor)`
@@ -176,11 +207,13 @@ make dev                       # → http://localhost:8791
   kept in localStorage. Answers, rulings, approvals and sign-offs are recorded under it, and
   buttons for another role are disabled with the reason.
 - Pages: `/` features (decisions waiting across every inbox, PR approvals, all features),
-  `/new`, `/inbox/:person` (touchpoint 2), `/i/:slug`, `/i/:slug/draft` (touchpoint 1),
-  `/i/:slug/t/:ref` (touchpoint 3, the task's drift report), `/i/:slug/drift`,
-  `/i/:slug/r/:ref`, `/i/:slug/reviews`, `/i/:slug/activity`, `/standards`, `/learnings`,
-  `/blueprint`. `app/web/spa.py` serves `index.html` at exactly these paths (listed, never a
-  catch-all) and `/assets/*`: a new page is a route in `src/main.tsx` and a path there.
+  `/new`, `/inbox` (touchpoint 2: what is routed to you; `?view=all` lists every open
+  question), `/features/:id`, `/features/:id/draft` (touchpoint 1),
+  `/features/:id/tasks/:ref` (touchpoint 3, the task's drift report), `/features/:id/drift`,
+  `/features/:id/records/:ref`, `/features/:id/reviews`, `/features/:id/activity`,
+  `/standards`, `/learnings`, `/blueprint`. `app/web/spa.py` serves `index.html` at exactly
+  these paths (listed, never a catch-all) and `/assets/*`: a new page is a route in
+  `src/main.tsx` and a path there.
 - The Features list reads one endpoint, `GET /api/overview?person=<p>`: per initiative its
   phase, people, next open human item, PR approvals (approved / total, stale), drift,
   GATE_DRAFT state, latest activity and agent lane (queued / leased); across initiatives the

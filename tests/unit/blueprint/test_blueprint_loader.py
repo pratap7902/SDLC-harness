@@ -33,7 +33,7 @@ def test_the_real_blueprint_loads():
     assert bp.type_of_ref("AC-12") == "acceptance_criterion"
     assert bp.type_of_ref("draft") == "draft"
     assert bp.type_of_ref("XX-1") is None
-    assert bp.types["gap"].human_fields({}) == {"answer", "answered_by", "answered_on", "choice"}
+    assert bp.types["gap"].human_fields({}) == {"answer", "answered_by", "answered_on", "assigned_to", "assigned_role", "answered_for", "choice"}
     assert "verdict" in bp.types["decision"].human_fields({"level": "MUST"})
     assert "verdict" not in bp.types["decision"].human_fields({"level": "SHOULD"})
     assert bp.types["decision"].fields["supersedes"].link_kind == "supersedes"

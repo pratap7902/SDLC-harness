@@ -5,9 +5,11 @@ import type { InboxItem, Overview } from '../api';
 import { useJson, type Loaded } from './api';
 import { usePersona } from './persona';
 
+/** The caller's overview: the caller is the X-Actor header ("Viewing as"); switching
+ * persona re-fetches every page (PersonaProvider bumps the refresh version). */
 export function useOverview() {
   const { persona } = usePersona();
-  return useJson<Overview>(persona ? `/api/overview?${new URLSearchParams({ person: persona })}` : null);
+  return useJson<Overview>(persona ? '/api/overview' : null);
 }
 
 export function useAllWaiting(): Loaded<InboxItem[]> {
@@ -84,8 +86,22 @@ export function sortWaiting(items: InboxItem[], persona: string): InboxItem[] {
   );
 }
 
-/** Where an item is acted on: drafts and PRs have their review pages; the rest the inbox. */
-export function itemHref(it: InboxItem): string {
-  if (it.kind === 'approval') return it.target === 'draft' ? `/i/${it.initiative}/draft` : `/i/${it.initiative}/t/${it.target}`;
-  return `/inbox/${it.person}?item=${encodeURIComponent(it.key)}`;
+/** Where an item is acted on: drafts and PRs have their review pages; gaps can be answered
+ * by anyone (the inbox's "All open questions" view); the viewer's own items are in /inbox;
+ * someone else's other items are shown on their record. */
+export function itemHref(it: InboxItem, viewer: string): string {
+  if (it.kind === 'approval') return it.target === 'draft' ? `/features/${it.initiative_id}/draft` : `/features/${it.initiative_id}/tasks/${it.target}`;
+  if (it.person === viewer) return inboxHref(it.key);
+  if (it.kind === 'gap') return inboxHref(it.key, true);
+  const ref = it.kind === 'review_item' ? it.target : it.ref;
+  return `/features/${it.initiative_id}/records/${ref}`;
+}
+
+/** `/inbox` is the caller's own queue; `?view=all` lists every open question. */
+export function inboxHref(item?: string, all = false): string {
+  const q = new URLSearchParams();
+  if (all) q.set('view', 'all');
+  if (item) q.set('item', item);
+  const s = q.toString();
+  return s ? `/inbox?${s}` : '/inbox';
 }

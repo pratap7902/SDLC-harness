@@ -1,5 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import type { InitiativeRow } from '../api';
+import { useJson } from './api';
 
 type Props = React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string };
 
@@ -19,32 +21,42 @@ export function AppLink({ href, children, ...rest }: Props) {
   );
 }
 
+/** An initiative's id (from the route or JSON). Slugs are display labels only. */
+export type Fid = string | number;
+
 /** Where a ref lives: tasks have the PR review page, the draft its review page, everything
  * else the record page. */
-export function refHref(slug: string, ref: string): string {
-  if (/^T-\d+$/.test(ref)) return `/i/${slug}/t/${ref}`;
-  if (ref === 'draft') return `/i/${slug}/draft`;
-  if (ref === 'initiative') return `/i/${slug}`;
-  return `/i/${slug}/r/${ref}`;
+export function refHref(fid: Fid, ref: string): string {
+  if (/^T-\d+$/.test(ref)) return `/features/${fid}/tasks/${ref}`;
+  if (ref === 'draft') return `/features/${fid}/draft`;
+  if (ref === 'initiative') return `/features/${fid}`;
+  return `/features/${fid}/records/${ref}`;
 }
 
-export function RefLink({ slug, r, className = '' }: { slug: string; r: string; className?: string }) {
+/** The slug of initiative `fid`, for breadcrumbs (ids address, slugs label). */
+export function FeatureName({ fid }: { fid: Fid }) {
+  const list = useJson<InitiativeRow[]>('/api/initiatives');
+  const row = list.kind === 'ready' ? list.data.find((i) => String(i.id) === String(fid)) : null;
+  return <>{row ? row.slug : `#${fid}`}</>;
+}
+
+export function RefLink({ fid, r, className = '' }: { fid: Fid; r: string; className?: string }) {
   return (
-    <Link to={refHref(slug, r)} className={`font-mono ${className}`}>
+    <Link to={refHref(fid, r)} className={`font-mono ${className}`}>
       {r}
     </Link>
   );
 }
 
 /** A list of refs, linked, comma separated; a dash when empty. */
-export function Refs({ slug, refs, empty = '—' }: { slug: string; refs: string[]; empty?: string }) {
+export function Refs({ fid, refs, empty = '—' }: { fid: Fid; refs: string[]; empty?: string }) {
   if (!refs.length) return <span className="text-ink-muted">{empty}</span>;
   return (
     <span className="font-mono">
       {refs.map((r, i) => (
         <span key={r}>
           {i > 0 && ' '}
-          <Link to={refHref(slug, r)}>{r}</Link>
+          <Link to={refHref(fid, r)}>{r}</Link>
         </span>
       ))}
     </span>
@@ -54,7 +66,7 @@ export function Refs({ slug, refs, empty = '—' }: { slug: string; refs: string
 // Plain text as agents write it: bare refs (D-4, AC-12), URLs and `code`.
 const INLINE_RE = /(https?:\/\/[^\s<>")]+[^\s<>").,;:])|(`[^`]+`)|(\*\*[^*]+\*\*)|((?<![\w#-])(?:STD|DEP|APR|AC|[DGTFRBAL])-\d+(?![\w-]))/g;
 
-export function Inline({ text, slug }: { text: string; slug?: string }) {
+export function Inline({ text, fid }: { text: string; fid?: Fid }) {
   const parts: React.ReactNode[] = [];
   let last = 0;
   for (const m of text.matchAll(INLINE_RE)) {
@@ -75,9 +87,9 @@ export function Inline({ text, slug }: { text: string; slug?: string }) {
       );
     } else if (bold) {
       parts.push(<strong key={i}>{bold.slice(2, -2)}</strong>);
-    } else if (ref && slug && !/^(STD|L)-/.test(ref)) {
+    } else if (ref && fid && !/^(STD|L)-/.test(ref)) {
       parts.push(
-        <Link key={i} to={refHref(slug, ref)} className="font-mono">
+        <Link key={i} to={refHref(fid, ref)} className="font-mono">
           {ref}
         </Link>,
       );

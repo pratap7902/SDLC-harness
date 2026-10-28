@@ -11,6 +11,7 @@ _batch = itertools.count(1)
 class Api:
     def __init__(self, app):
         self.app = app
+        self._ids: dict = {}
 
     def as_(self, person: str, kind: str = "human") -> TestClient:
         return TestClient(self.app, headers={"X-Actor": person, "X-Actor-Kind": kind})
@@ -43,7 +44,7 @@ class Api:
         body = {"ops": ops, "batch_id": batch_id or f"b-{next(_batch)}"}
         if who is None:
             who, body["agent"] = self.agent(), "draft-skill"
-        r = who.post(f"/api/initiatives/{slug}/records", json=body)
+        r = who.post(f"{self.base(slug)}/records", json=body)
         if expect != 200:
             assert r.status_code == expect, f"{r.status_code}: {r.text[:2000]}"
             return r.json()
@@ -54,24 +55,38 @@ class Api:
         out = self.write(slug, ops, who, expect=422)
         return [e for r in out["error_data"]["results"] for e in r["errors"]]
 
+    def id(self, slug: str) -> int:
+        """Initiatives are addressed by id; tests name them by slug."""
+        if slug not in self._ids:
+            for row in self.ok(self.as_("chandra").get("/api/initiatives")):
+                self._ids[row["slug"]] = row["id"]
+        return self._ids[slug]
+
+    def base(self, slug: str) -> str:
+        return f"/api/initiatives/{self.id(slug)}"
+
+    def inbox(self, person: str) -> Any:
+        """GET /api/inbox as that person (the caller comes from X-Actor)."""
+        return self.ok(self.as_(person).get("/api/inbox"))
+
     def get(self, path: str, **params) -> Any:
         return self.ok(self.as_("chandra").get(path, params=params))
 
     def answer(self, slug, ref, answer="", choice=None, person="priya") -> dict:
-        return self.ok(self.as_(person).post(f"/api/initiatives/{slug}/gaps/{ref}/answer", json={"answer": answer, "choice": choice}))
+        return self.ok(self.as_(person).post(f"{self.base(slug)}/gaps/{ref}/answer", json={"answer": answer, "choice": choice}))
 
     def approve(self, slug, target, role, person, at_sha=None, expect=201) -> dict:
-        r = self.as_(person).post(f"/api/initiatives/{slug}/approvals", json={"target": target, "role": role, "at_sha": at_sha})
+        r = self.as_(person).post(f"{self.base(slug)}/approvals", json={"target": target, "role": role, "at_sha": at_sha})
         assert r.status_code == expect, f"{r.status_code}: {r.text[:2000]}"
         return r.json()
 
     def state(self, slug) -> dict:
-        return self.get(f"/api/initiatives/{slug}")
+        return self.get(f"{self.base(slug)}")
 
     def drift(self, slug, task=None, **params) -> dict:
         if task:
             params["task"] = task
-        return self.get(f"/api/initiatives/{slug}/drift", **params)
+        return self.get(f"{self.base(slug)}/drift", **params)
 
     def record(self, slug, ref) -> dict:
-        return self.get(f"/api/initiatives/{slug}/records/{ref}")
+        return self.get(f"{self.base(slug)}/records/{ref}")

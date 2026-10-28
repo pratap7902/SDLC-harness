@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import type { ReviewItem } from '../api';
 import { api, errorText, postJson, useJson, useRefresh } from '../lib/api';
 import { ago, nm } from '../lib/format';
-import { refHref } from '../lib/links';
+import { refHref, type Fid, FeatureName } from '../lib/links';
 import { usePersona } from '../lib/persona';
 import { useToast } from '../lib/toast';
 import { Badge, Banner, Card, Empty } from '../components/ui';
@@ -12,7 +12,7 @@ import { LoadError, Loading } from '../components/state';
 
 const FILTERS = ['open', 'upheld', 'revised', 'dismissed', 'all'];
 
-function Resolve({ slug, item }: { slug: string; item: ReviewItem }) {
+function Resolve({ fid, item }: { fid: Fid; item: ReviewItem }) {
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -22,7 +22,7 @@ function Resolve({ slug, item }: { slug: string; item: ReviewItem }) {
     setBusy(true);
     setError('');
     try {
-      await postJson<ReviewItem>(api('initiatives', slug, 'reviews', item.id, 'resolve'), { resolution, note: note.trim() });
+      await postJson<ReviewItem>(api('initiatives', fid, 'reviews', item.id, 'resolve'), { resolution, note: note.trim() });
       say(`Review item on ${item.target} ${resolution}.`);
       bump();
     } catch (e) {
@@ -55,13 +55,13 @@ function Resolve({ slug, item }: { slug: string; item: ReviewItem }) {
 
 /** The review queue: records put up for review because something they rest on changed. */
 export default function ReviewsPage() {
-  const { slug = '' } = useParams();
+  const { id: fid = '' } = useParams();
   const { persona } = usePersona();
   const [status, setStatus] = useState('open');
-  const items = useJson<ReviewItem[]>(`${api('initiatives', slug, 'reviews')}?status=${status}`);
+  const items = useJson<ReviewItem[]>(`${api('initiatives', fid, 'reviews')}?status=${status}`);
   return (
     <>
-      <PageHeader crumbs={[{ label: 'Features', href: '/' }, { label: slug, href: `/i/${slug}`, mono: true }, { label: 'Reviews' }]} title="Review queue">
+      <PageHeader crumbs={[{ label: 'Features', href: '/' }, { label: <FeatureName fid={fid} />, href: `/features/${fid}`, mono: true }, { label: 'Reviews' }]} title="Review queue">
         <p className="m-0 text-ink-muted">A change puts what rests on it up for review. Say it still holds (upheld) or change it (revised).</p>
       </PageHeader>
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter by status">
@@ -78,11 +78,11 @@ export default function ReviewsPage() {
         items.data.map((x) => (
           <Card key={x.id} className="px-[18px] py-4 flex flex-col gap-1">
             <div className="flex flex-wrap gap-2 items-center">
-              <Link to={refHref(slug, x.target)} className="font-mono font-semibold">
+              <Link to={refHref(fid, x.target)} className="font-mono font-semibold">
                 {x.target}
               </Link>
               <span>←</span>
-              <Link to={refHref(slug, x.cause)} className="font-mono">
+              <Link to={refHref(fid, x.cause)} className="font-mono">
                 {x.cause}
               </Link>
               <Badge tone={x.status === 'open' ? 'human' : 'muted'}>{x.status}</Badge>
@@ -92,7 +92,7 @@ export default function ReviewsPage() {
             </div>
             <span className="text-[13px]">{x.what_moved}</span>
             {x.note && <span className="small">“{x.note}” · {nm(x.resolved_by)}</span>}
-            {x.status === 'open' && <Resolve slug={slug} item={x} />}
+            {x.status === 'open' && <Resolve fid={fid} item={x} />}
           </Card>
         ))}
     </>

@@ -75,6 +75,7 @@ def review_item_json(i: ReviewItem) -> dict:
 
 def initiative_json(i: Initiative, g: Optional[RecordGraph] = None) -> dict:
     out = {
+        "id": i.id,
         "slug": i.slug,
         "title": i.title,
         "work_item_url": i.work_item_url,

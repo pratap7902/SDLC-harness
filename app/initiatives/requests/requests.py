@@ -73,7 +73,7 @@ class HeartbeatRequest(_Body):
 
 
 class DeployGuardRequest(_Body):
-    initiative: str
+    initiative_id: int
     task: str
     sha: str
     environment: str

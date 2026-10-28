@@ -19,7 +19,7 @@ import json
 import re
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Annotated, Any, Dict, List, Optional, Tuple
+from typing import Annotated, Any, Dict, List, Optional, Tuple, Union
 from uuid import uuid4
 
 from fastapi import Depends
@@ -110,13 +110,18 @@ class RecordService:
 
     # ── reads ────────────────────────────────────────────────────────────
 
-    def initiative(self, slug: str) -> Initiative:
-        if slug == GLOBAL_SLUG:
+    def initiative(self, key: Union[int, str]) -> Initiative:
+        """By id (what REST and MCP address); the slug is only accepted from in-process
+        callers (the global scope's sentinel, the intake right after minting)."""
+        if key == GLOBAL_SLUG or key == 0:
             return Initiative(id=0, slug=GLOBAL_SLUG, title="Global (standards, learnings)", spec_snapshot={}, snapshot_hash="")
-        initiative = self.initiatives.get_by_slug(slug)
+        if isinstance(key, int) or (isinstance(key, str) and key.isdigit()):
+            initiative = self.initiatives.get_by_id(int(key))
+        else:
+            initiative = self.initiatives.get_by_slug(key)
         if initiative is None:
-            known = ", ".join(i.slug for i in self.initiatives.list_ordered())
-            raise NotFoundException(message=f"No initiative '{slug}'. Known: {known or 'none yet'}")
+            known = ", ".join(f"{i.id} ({i.slug})" for i in self.initiatives.list_ordered())
+            raise NotFoundException(message=f"No initiative {key}. Known: {known or 'none yet'}")
         return initiative
 
     def graph(self, initiative: Initiative, derive: bool = True) -> RecordGraph:
@@ -417,9 +422,9 @@ class RecordService:
     def _scope_error(self, initiative: Initiative, type_key: str) -> str:
         scope = self.bp.types[type_key].scope
         if scope == "global" and initiative.id != 0:
-            return f"type: a {type_key} lives in the global scope — write it to '{GLOBAL_SLUG}'"
+            return f"type: a {type_key} lives in the global scope — write it to initiative 0 (POST /api/global/records)"
         if scope != "global" and initiative.id == 0:
-            return f"type: a {type_key} belongs to an initiative, not '{GLOBAL_SLUG}'"
+            return f"type: a {type_key} belongs to an initiative, not the global scope (0)"
         return ""
 
     # ── 3–7: prepare one op ──────────────────────────────────────────────

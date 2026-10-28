@@ -65,6 +65,9 @@ export interface DriftSummary {
 }
 
 export interface Initiative {
+  /** what paths address (`/api/initiatives/{id}`, `/features/{id}`) */
+  id: number;
+  /** a display label */
   slug: string;
   title: string;
   work_item_url: string | null;
@@ -275,6 +278,7 @@ export interface TaskPage {
 
 export interface DeployGuard {
   decision: 'GO' | 'NO-GO' | string;
+  initiative_id: number;
   initiative: string;
   task: string;
   sha: string;
@@ -299,6 +303,8 @@ export interface DecisionOption {
 
 interface InboxBase {
   key: string;
+  initiative_id: number;
+  /** the slug, for display */
   initiative: string;
   initiative_title: string;
   ref: string;
@@ -382,6 +388,7 @@ export interface WorklistItem {
   key: string;
   kind: string;
   lane: 'human' | 'agent' | string;
+  initiative_id: number;
   initiative: string;
   ref: string | null;
   title: string;
@@ -432,6 +439,10 @@ export interface ActivityEntry {
   because: string[];
   batch_id?: string;
   review_item_id?: number;
+  /** on the revision that answered a gap */
+  answered_by?: string;
+  assigned_to?: string | null;
+  answered_for?: string | null;
 }
 
 /** Every human write returns the write path's result. */
@@ -460,7 +471,7 @@ export interface Lifecycle {
   handoff: Record<string, number>;
 }
 
-// ── the overview (GET /api/overview?person=) — the Features list in one read ───
+// ── the overview (GET /api/overview, for the caller) — the Features list in one read ──
 
 export interface OverviewRow extends Initiative {
   dri: string | null;

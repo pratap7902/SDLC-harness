@@ -37,12 +37,13 @@ class WorklistService:
         phase = g.get("initiative").status if g.get("initiative") is not None else "UNASSIGNED"
 
         def add(kind, ref, title, why, lane="agent", person=None, **extra):
-            key = f"{kind}:{slug}" + (f":{ref}" if ref else "")
+            key = f"{kind}:{g.initiative.id}" + (f":{ref}" if ref else "")
             out.append(
                 {
                     "key": key,
                     "kind": kind,
                     "lane": lane,
+                    "initiative_id": g.initiative.id,
                     "initiative": slug,
                     "ref": ref,
                     "title": title,
@@ -109,7 +110,7 @@ class WorklistService:
         groups = {}
         for x in items:
             groups.setdefault(x["kind"], []).append(x)
-        return {"initiative": slug, "count": len(items), "groups": groups, "items": items}
+        return {"initiative_id": g.initiative.id, "initiative": g.initiative.slug, "count": len(items), "groups": groups, "items": items}
 
     def next_work(self, slug: Optional[str], kind: Optional[str], person: Optional[str], holder: str, limit: int = 10) -> dict:
         if kind and kind not in KINDS:
@@ -137,9 +138,10 @@ class WorklistService:
         g = self.records.graph(self.records.initiative(GLOBAL_SLUG))
         return [
             {
-                "key": f"promotion:{GLOBAL_SLUG}:{r.ref}",
+                "key": f"promotion:0:{r.ref}",
                 "kind": "promotion",
                 "lane": "human",
+                "initiative_id": 0,
                 "initiative": GLOBAL_SLUG,
                 "ref": r.ref,
                 "title": r.title,
@@ -194,7 +196,7 @@ class WorklistService:
         if not holder:
             raise ValidationException(message="Who is claiming? Send X-Actor.")
         if not key or ":" not in key:
-            raise ValidationException(message="item_key: like task:<initiative>:T-3 (from next_work)")
+            raise ValidationException(message="item_key: like task:<initiative id>:T-3 (from next_work)")
         ttl = int(ttl_min or settings.app.LEASE_DEFAULT_TTL_MIN)
         if ttl < 1 or ttl > 240:
             raise ValidationException(message="ttl_min: 1–240")

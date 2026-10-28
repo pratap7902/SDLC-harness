@@ -83,7 +83,7 @@ export default function NewFeaturePage() {
       const state = await postJson<InitiativeState>('/api/initiatives', body);
       say(`Feature started as ${state.initiative.slug}. The drafting agent will route its questions to the people you chose.`);
       bump();
-      navigate(`/i/${state.initiative.slug}`);
+      navigate(`/features/${state.initiative.id}`);
     } catch (err) {
       const errors = err instanceof ApiError ? ((err.data.errors as string[] | undefined) || []) : [];
       setError([(err as Error).message, ...errors.filter((x) => !(err as Error).message.includes(x))].join(' · '));

@@ -121,8 +121,11 @@ types:
       proposed_change: {type: markdown, help: "kind=deviation: the exact spec change wanted (old → new)"}
       answer:      {type: markdown, material: true, actor: human}
       choice:      {type: string, max: 80, actor: human, help: "the option key the human picked, if any"}
-      answered_by: {type: string, max: 80, actor: human}
+      answered_by: {type: string, max: 80, actor: human, help: "who answered: the caller (X-Actor), never the request body"}
       answered_on: {type: string, max: 30, actor: human}
+      assigned_to: {type: string, max: 80, actor: human, help: "who the gap was routed to when it was answered (frozen)"}
+      assigned_role: {type: string, max: 20, actor: human, help: "the role it was routed by when it was answered (frozen)"}
+      answered_for: {type: string, max: 80, actor: human, help: "set when answered_by is not assigned_to: answered on the assignee's behalf"}
       withdrawn_because: {type: string, max: 300}
       conversation: {type: rows, verbatim: true, columns: ["on", by, text]}
       resolution:  {type: string, max: 600, help: "What the agent did with the answer: D-n superseded, AC-n added"}

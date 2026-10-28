@@ -15,17 +15,16 @@ PAGE_PATHS = (
     "/",
     "/new",
     "/inbox",
-    "/inbox/{person}",
     "/standards",
     "/learnings",
     "/blueprint",
-    "/i/{slug}",
-    "/i/{slug}/draft",
-    "/i/{slug}/drift",
-    "/i/{slug}/t/{ref}",
-    "/i/{slug}/r/{ref}",
-    "/i/{slug}/reviews",
-    "/i/{slug}/activity",
+    "/features/{initiative_id}",
+    "/features/{initiative_id}/draft",
+    "/features/{initiative_id}/drift",
+    "/features/{initiative_id}/tasks/{ref}",
+    "/features/{initiative_id}/records/{ref}",
+    "/features/{initiative_id}/reviews",
+    "/features/{initiative_id}/activity",
 )
 
 router = APIRouter(include_in_schema=False)
@@ -40,7 +39,7 @@ def _index():
     return FileResponse(index, headers={"Cache-Control": "no-cache"})
 
 
-def page(slug: str = "", ref: str = "", person: str = ""):
+def page(initiative_id: str = "", ref: str = ""):
     return _index()
 
 

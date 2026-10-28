@@ -75,8 +75,8 @@ def green_run(sha="s1", ac="AC-1"):
     "extra, task_fields, leases, expected",
     [
         ([], {}, (), "READY"),
-        ([], {}, ("task:t:T-1",), "IN_PROGRESS"),
-        ([], {}, ("task:other-initiative:T-1",), "READY"),
+        ([], {}, ("task:1:T-1",), "IN_PROGRESS"),
+        ([], {}, ("task:2:T-1",), "READY"),
         ([], {"pr_state": "draft"}, (), "IN_PROGRESS"),
         ([], {"pr_state": "open", "pr_sha": "s1", "pr_url": "u"}, (), "IN_REVIEW"),
         ([green_run()], {"pr_state": "merged", "pr_sha": "s1", "pr_url": "u"}, (), "DONE"),

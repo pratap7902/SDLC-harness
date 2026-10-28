@@ -2,7 +2,7 @@
 before every deploy; POST records the ask as a `deploy` row. Same code path for REST and
 MCP."""
 
-from typing import Annotated, List
+from typing import Annotated, List, Union
 
 from fastapi import Depends
 
@@ -16,13 +16,13 @@ class DeployGuard:
     def __init__(self, records: Annotated[RecordService, Depends()]):
         self.records = records
 
-    def check(self, slug: str, task: str, sha: str, environment: str) -> dict:
+    def check(self, slug: Union[int, str], task: str, sha: str, environment: str) -> dict:
         if environment not in self.records.bp.vocab["environment"]:
             raise ValidationException(message=f"environment: one of {' | '.join(self.records.bp.vocab['environment'])}")
         g = self.records.graph(self.records.initiative(slug))
         t = g.get(task)
         if t is None or t.type != "task":
-            raise ValidationException(message=f"{task} is not a task of {slug}")
+            raise ValidationException(message=f"{task} is not a task of {g.initiative.slug}")
         checks: List[dict] = []
         gate_pr = g.gate("GATE_PR", task=task)
         checks.append({"name": "GATE_PR", "passed": gate_pr.status == "PASSED", "detail": ", ".join(gate_pr.failing_rules) or "passed"})
@@ -39,7 +39,8 @@ class DeployGuard:
         drift = g.drift(task=task)
         return {
             "decision": "GO" if go else "NO-GO",
-            "initiative": slug,
+            "initiative_id": g.initiative.id,
+            "initiative": g.initiative.slug,
             "task": task,
             "sha": sha,
             "environment": environment,
@@ -48,7 +49,7 @@ class DeployGuard:
             "drift": {**drift.summary(), "digest": drift.digest, "status": drift.status},
         }
 
-    def record(self, slug: str, task: str, sha: str, environment: str, actor: Actor) -> dict:
+    def record(self, slug: Union[int, str], task: str, sha: str, environment: str, actor: Actor) -> dict:
         verdict = self.check(slug, task, sha, environment)
         text = f"{verdict['decision']}" + ("" if verdict["decision"] == "GO" else ": " + "; ".join(verdict["reasons"]))
         result = self.records.write(

@@ -94,7 +94,7 @@ def test_a_human_confirming_a_provisional_member_is_evidence(api):
     api.write(SLUG, [{"ref": "D-2", "fields": {"rationale": "per G-1"}, "note": "per G-1"}])
     api.approve(SLUG, "draft", "dri", "chandra")
     verdict = api.record(SLUG, "D-2")["fields"]["verdict"]
-    api.ok(api.as_("priya").post(f"/api/initiatives/{SLUG}/decisions/D-2/rule", json={"verdict": verdict, "rationale": "Confirmed with billing."}))
+    api.ok(api.as_("priya").post(f"{api.base(SLUG)}/decisions/D-2/rule", json={"verdict": verdict, "rationale": "Confirmed with billing."}))
     report = api.drift(SLUG)
     assert kinds(report) == [("decision_confirmed", "D-2", True)]
     assert api.record(SLUG, "D-2")["status"] == "DECIDED"
@@ -102,8 +102,8 @@ def test_a_human_confirming_a_provisional_member_is_evidence(api):
 
 def test_retiring_an_ac_is_a_human_act_and_shows_in_the_diff(api):
     to_baseline(api)
-    assert api.agent().post(f"/api/initiatives/{SLUG}/criteria/AC-2/retire", json={"because": "x"}).status_code == 403
-    api.ok(api.as_("chandra").post(f"/api/initiatives/{SLUG}/criteria/AC-2/retire", json={"because": "relay latency is an SLO, not an AC"}))
+    assert api.agent().post(f"{api.base(SLUG)}/criteria/AC-2/retire", json={"because": "x"}).status_code == 403
+    api.ok(api.as_("chandra").post(f"{api.base(SLUG)}/criteria/AC-2/retire", json={"because": "relay latency is an SLO, not an AC"}))
     report = api.drift(SLUG)
     assert kinds(report) == [("ac_retired", "AC-2", True)]
     assert report["spec_diff"]["criteria"]["retired"][0]["ref"] == "AC-2"
@@ -141,13 +141,13 @@ def test_reapproval_starts_a_new_baseline_and_old_reports_stop_at_it(api):
     old = api.drift(SLUG, baseline="B-1")
     assert old["until"] == "B-2" and kinds(old) == [("draft_edited", "draft", True)]
     assert old["current_spec"]["draft"]["lld"] == "v2 lld"
-    assert [b["status"] for b in api.get(f"/api/initiatives/{SLUG}/draft")["baselines"]] == ["SUPERSEDED", "CURRENT"]
+    assert [b["status"] for b in api.get(f"{api.base(SLUG)}/draft")["baselines"]] == ["SUPERSEDED", "CURRENT"]
 
 
 def test_repinning_the_requirement_is_a_human_material_change(api):
     to_baseline(api)
-    assert api.agent().post(f"/api/initiatives/{SLUG}/snapshot", json={"requirement": "x"}).status_code == 403
-    out = api.ok(api.as_("chandra").post(f"/api/initiatives/{SLUG}/snapshot", json={"requirement": "# Order events v2\nAlso emit refunds."}))
+    assert api.agent().post(f"{api.base(SLUG)}/snapshot", json={"requirement": "x"}).status_code == 403
+    out = api.ok(api.as_("chandra").post(f"{api.base(SLUG)}/snapshot", json={"requirement": "# Order events v2\nAlso emit refunds."}))
     assert out["write"]["review_items"][0].startswith("draft ← initiative: snapshot_hash")
     report = api.drift(SLUG)
     assert kinds(report) == [("requirement_repinned", "initiative", True)]
@@ -171,5 +171,5 @@ def test_cause_ok_walks_one_chain(api, db_session):
 @pytest.mark.parametrize("fmt", ["md", "text"])
 def test_renderings(api, fmt):
     to_baseline(api)
-    text = api.as_("chandra").get(f"/api/initiatives/{SLUG}/drift", params={"format": fmt}).text
+    text = api.as_("chandra").get(f"{api.base(SLUG)}/drift", params={"format": fmt}).text
     assert "B-1" in text

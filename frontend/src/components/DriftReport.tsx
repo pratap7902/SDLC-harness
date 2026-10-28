@@ -1,6 +1,6 @@
 import type { DriftReport as Report, Spec } from '../api';
 import { nm, plural, shortDate, who } from '../lib/format';
-import { Inline, Refs, refHref } from '../lib/links';
+import { Inline, Refs, refHref, type Fid } from '../lib/links';
 import { Link } from 'react-router-dom';
 import { Badge, Card, Diff } from './ui';
 
@@ -10,7 +10,7 @@ function isSpec(s: Spec | Record<string, never>): s is Spec {
 
 /** "What changed since the spec was approved": the timeline of drift entries, each with who
  * made it (human or agent) and the reason it cites. */
-export function DriftTimeline({ report, slug }: { report: Report; slug: string }) {
+export function DriftTimeline({ report, fid }: { report: Report; fid: Fid }) {
   const r = report;
   const n = r.summary.changes;
   const intro =
@@ -42,10 +42,10 @@ export function DriftTimeline({ report, slug }: { report: Report; slug: string }
               <li key={e.id} className="flex flex-wrap gap-x-[14px] gap-y-1.5 py-3 items-baseline border-t border-line-soft first:border-t-0">
                 <span className="font-mono small basis-[70px] shrink-0">{shortDate(e.at)}</span>
                 <span className="flex-[1_1_300px] min-w-0">
-                  <Inline text={e.summary} slug={slug} />{' '}
+                  <Inline text={e.summary} fid={fid} />{' '}
                   {e.because.length > 0 && (
                     <span className={e.explained ? 'text-ok font-semibold' : 'text-bad font-semibold'}>
-                      · because <Refs slug={slug} refs={e.because} />
+                      · because <Refs fid={fid} refs={e.because} />
                     </span>
                   )}
                   {!e.explained && (
@@ -71,7 +71,7 @@ export function DriftTimeline({ report, slug }: { report: Report; slug: string }
       )}
       {(r.pending_gaps.length > 0 || r.pending_decisions.length > 0) && (
         <p className="m-0 text-[13px] text-human font-semibold">
-          Still open since the baseline (not drift yet): <Refs slug={slug} refs={[...r.pending_gaps, ...r.pending_decisions].map((x) => x.ref)} />
+          Still open since the baseline (not drift yet): <Refs fid={fid} refs={[...r.pending_gaps, ...r.pending_decisions].map((x) => x.ref)} />
         </p>
       )}
       {r.summary.other_changes > 0 && <p className="m-0 small">{plural(r.summary.other_changes, 'other change')} in this feature fall outside {r.task || 'this scope'}.</p>}
@@ -80,7 +80,7 @@ export function DriftTimeline({ report, slug }: { report: Report; slug: string }
 }
 
 /** Approved vs now, side by side, then the unified diff of every draft section that moved. */
-export function SpecCompare({ report, slug }: { report: Report; slug: string }) {
+export function SpecCompare({ report, fid }: { report: Report; fid: Fid }) {
   const a = report.approved_spec;
   const c = report.current_spec;
   if (!isSpec(a) || !isSpec(c)) return null;
@@ -95,11 +95,11 @@ export function SpecCompare({ report, slug }: { report: Report; slug: string }) 
   if (report.summary.changes === 0 && sections.length === 0) return null;
   const row = (ref: string, text: string, cls: string, note?: string) => (
     <span key={ref}>
-      <Link to={refHref(slug, ref)} className={`font-mono font-semibold ${cls}`}>
+      <Link to={refHref(fid, ref)} className={`font-mono font-semibold ${cls}`}>
         {ref}
       </Link>{' '}
       <span className={cls.includes('line-through') ? 'text-ink-muted' : ''}>
-        <Inline text={text} slug={slug} />
+        <Inline text={text} fid={fid} />
       </span>
       {note && <span className="small"> · {note}</span>}
     </span>

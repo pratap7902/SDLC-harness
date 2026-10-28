@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import type { DeployGuard, TaskPage as Page, WriteResult } from '../api';
 import { api, errorText, postJson, useJson, useRefresh } from '../lib/api';
 import { asList, asText, nm, plural, prNumber, ruleText, shortSha, who } from '../lib/format';
-import { Inline, Refs } from '../lib/links';
+import { Inline, Refs, FeatureName } from '../lib/links';
 import { usePersona } from '../lib/persona';
 import { useToast } from '../lib/toast';
 import { Badge, Banner, Card, Field, StatusBadge } from '../components/ui';
@@ -19,18 +19,18 @@ interface CoverRow {
 }
 
 export default function TaskPage() {
-  const { slug = '', ref = '' } = useParams();
+  const { id: fid = '', ref = '' } = useParams();
   const { persona } = usePersona();
   const { bump } = useRefresh();
   const say = useToast();
-  const page = useJson<Page>(api('initiatives', slug, 'tasks', ref));
+  const page = useJson<Page>(api('initiatives', fid, 'tasks', ref));
   const sha = page.kind === 'ready' ? asText(page.data.task.fields.pr_sha) : '';
-  const guard = useJson<DeployGuard>(sha ? `/api/deploy-guard?${new URLSearchParams({ initiative: slug, task: ref, sha, environment: 'staging' })}` : null);
+  const guard = useJson<DeployGuard>(sha ? `/api/deploy-guard?${new URLSearchParams({ initiative_id: fid, task: ref, sha, environment: 'staging' })}` : null);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  if (page.kind === 'error') return <LoadError what={`${ref} of ${slug}`} message={page.message} onRetry={page.reload} />;
+  if (page.kind === 'error') return <LoadError what={`${ref} of ${fid}`} message={page.message} onRetry={page.reload} />;
   if (page.kind === 'loading') return <Loading what="the PR review" />;
   const { task, gate, drift, approver, test_runs, findings, deploys } = page.data;
   const f = task.fields;
@@ -60,10 +60,10 @@ export default function TaskPage() {
     setError('');
     try {
       if (kind === 'approve') {
-        await postJson<WriteResult>(api('initiatives', slug, 'approvals'), { target: ref, role: 'engg', at_sha: sha, note: note.trim() || undefined });
+        await postJson<WriteResult>(api('initiatives', fid, 'approvals'), { target: ref, role: 'engg', at_sha: sha, note: note.trim() || undefined });
         say(`Approved ${ref} at ${shortSha(sha)}. A new push or spec change will ask you again.`);
       } else {
-        await postJson<WriteResult>(api('initiatives', slug, 'records'), {
+        await postJson<WriteResult>(api('initiatives', fid, 'records'), {
           ops: [{ type: 'finding', title: `Changes requested on ${ref}`, fields: { summary: note.trim().slice(0, 400), details: note.trim(), severity: 'blocker', target: [ref], at_sha: sha } }],
         });
         say(`Changes requested on ${ref}: a blocker finding at ${shortSha(sha)} for the implementing agent. You review again after the next push.`);
@@ -123,7 +123,7 @@ export default function TaskPage() {
   return (
     <>
       <PageHeader
-        crumbs={[{ label: 'Features', href: '/' }, { label: slug, href: `/i/${slug}`, mono: true }, { label: ref, mono: true }]}
+        crumbs={[{ label: 'Features', href: '/' }, { label: <FeatureName fid={fid} />, href: `/features/${fid}`, mono: true }, { label: ref, mono: true }]}
         title={`${ref} · ${task.title}`}
         badge={
           <Badge tone="human" big>
@@ -144,10 +144,10 @@ export default function TaskPage() {
             at <span className="font-mono text-ink">{shortSha(sha)}</span>
           </span>
           <span>
-            implements <Refs slug={slug} refs={asList(f.implements)} />
+            implements <Refs fid={fid} refs={asList(f.implements)} />
           </span>
           <span>
-            covers <Refs slug={slug} refs={covers} />
+            covers <Refs fid={fid} refs={covers} />
           </span>
           <StatusBadge status={task.status} pill={task.pill} />
           <span>GATE_PR {gate.status}</span>
@@ -166,8 +166,8 @@ export default function TaskPage() {
 
       <div className="flex flex-wrap gap-[22px] items-start">
         <div className="flex-[999_1_560px] min-w-0 flex flex-col gap-[22px]">
-          <DriftTimeline report={drift} slug={slug} />
-          <SpecCompare report={drift} slug={slug} />
+          <DriftTimeline report={drift} fid={fid} />
+          <SpecCompare report={drift} fid={fid} />
         </div>
         <aside className="flex-[1_1_300px] min-w-0 flex flex-col gap-[22px]">
           <Card className="px-[18px] py-4 flex flex-col gap-2.5" aria-labelledby="pa-h">
@@ -199,7 +199,7 @@ export default function TaskPage() {
                   <span className="font-mono font-semibold">{x.ref}</span> · {asText(x.fields.severity)} · {who(x.created_by)}
                 </span>
                 <span>
-                  <Inline text={asText(x.fields.summary)} slug={slug} />
+                  <Inline text={asText(x.fields.summary)} fid={fid} />
                 </span>
                 <span className={x.status === 'OPEN' ? 'text-bad font-semibold' : 'text-ok font-semibold'}>
                   {x.status.toLowerCase()}

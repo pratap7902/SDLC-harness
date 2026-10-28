@@ -43,8 +43,9 @@ class InboxService:
             age = (now - since).total_seconds() / 3600 if since else 0
             items.append(
                 {
-                    "key": f"{kind}:{slug}:{ref}",
+                    "key": f"{kind}:{g.initiative.id}:{ref}",
                     "kind": kind,
+                    "initiative_id": g.initiative.id,
                     "initiative": slug,
                     "initiative_title": g.initiative.title,
                     "ref": ref,
@@ -222,7 +223,15 @@ class InboxService:
         text = (answer or "").strip() or (options[choice].get("label", choice) if choice else "")
         if not text:
             raise ValidationException(message="answer: required — pick an option or type an answer")
+        # Any human may answer any open gap; the record keeps who it was routed to at this
+        # moment (frozen, even if routing changes later) and who actually answered.
+        route = Router(g).route(gap)
         fields = {"answer": text, "answered_by": actor.principal, "answered_on": iso(utcnow())}
+        if route.person:
+            fields["assigned_to"] = route.person
+            fields["assigned_role"] = route.role
+            if route.person != actor.principal:
+                fields["answered_for"] = route.person
         if choice:
             fields["choice"] = choice
         return self._write(slug, [WriteOp(ref=ref, fields=fields, note="answered in the inbox")], actor)

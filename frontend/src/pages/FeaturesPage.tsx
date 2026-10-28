@@ -5,6 +5,7 @@ import { PHASES, ago, due, nm, phaseLabel, phaseTone, plural, workItem } from '.
 import { usePersona } from '../lib/persona';
 import { blocksText, isBlocking, itemHref, itemLabel, itemTitle, useOverview } from '../lib/waiting';
 import { Badge, Empty, Section } from '../components/ui';
+import { AnswerLink } from '../components/gaps';
 import { LoadError, Loading } from '../components/state';
 
 function actionLabel(it: InboxItem): string {
@@ -41,13 +42,18 @@ export function DecisionCard({ it, persona, compact = false }: { it: InboxItem; 
       {!compact && <div className={`text-xs ${blocking ? 'text-bad font-semibold' : 'text-ink-muted'}`}>Blocks: {blocksText(it)}</div>}
       <div className="flex flex-wrap gap-2 items-center">
         {mine ? (
-          <Link to={itemHref(it)} className="btn btn-primary no-underline hover:text-white">
+          <Link to={itemHref(it, persona)} className="btn btn-primary no-underline hover:text-white">
             {actionLabel(it)}
           </Link>
+        ) : it.kind === 'gap' ? (
+          <>
+            <AnswerLink item={it} persona={persona} button />
+            <span className="small">Assigned to {nm(it.person)}</span>
+          </>
         ) : (
           <>
             <span className="small">Waiting on {nm(it.person)}</span>
-            <Link to={itemHref(it)} className="btn btn-link no-underline">
+            <Link to={itemHref(it, persona)} className="btn btn-link no-underline">
               Details
             </Link>
           </>
@@ -147,7 +153,7 @@ export default function FeaturesPage() {
           <div className="card flex flex-wrap items-center gap-x-[14px] gap-y-1.5 px-[14px] py-2.5 text-[13px]">
             <strong>PR approvals waiting on you</strong>
             {o.my_pr_approvals.map((a) => (
-              <Link key={a.key} to={itemHref(a)} className="font-semibold">
+              <Link key={a.key} to={itemHref(a, persona)} className="font-semibold">
                 {a.title}
               </Link>
             ))}
@@ -201,7 +207,7 @@ export default function FeaturesPage() {
                 return (
                   <tr key={f.slug} className={f.slug === created ? '[&>td]:bg-agent-row' : unexplained ? '[&>td]:bg-bad-row' : ''}>
                     <td>
-                      <button type="button" className="bg-transparent border-0 p-0 font-semibold text-ink cursor-pointer text-left text-sm hover:text-agent hover:underline" onClick={() => navigate(`/i/${f.slug}`)}>
+                      <button type="button" className="bg-transparent border-0 p-0 font-semibold text-ink cursor-pointer text-left text-sm hover:text-agent hover:underline" onClick={() => navigate(`/features/${f.id}`)}>
                         {f.title}
                       </button>
                       <div className="small">

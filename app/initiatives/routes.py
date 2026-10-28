@@ -69,11 +69,12 @@ def list_initiatives(service: Initiatives):
 
 
 @router.get("/overview")
-def overview(service: Overview, person: Optional[str] = None):
+def overview(service: Overview, actor: Caller):
     """The Features list in one read: per initiative its phase, people, next open human item,
     PR approvals, drift, GATE_DRAFT state, latest activity and agent lane; across initiatives
-    the decisions waiting (yours first when `person` is given) and your PR approvals."""
-    return service.overview(person)
+    the decisions waiting (the caller's first) and the caller's PR approvals. The caller is
+    X-Actor (a bearer token later), never a path or query parameter."""
+    return service.overview(actor.principal or None)
 
 
 @router.post("/initiatives", status_code=201)
@@ -83,58 +84,58 @@ def start_initiative(body: StartFeatureRequest, service: Initiatives, actor: Cal
     return service.start(StartFeature(**body.model_dump()), actor)
 
 
-@router.get("/initiatives/{slug}")
-def get_state(slug: str, service: Initiatives):
-    return service.state(slug)
+@router.get("/initiatives/{initiative_id}")
+def get_state(initiative_id: int, service: Initiatives):
+    return service.state(initiative_id)
 
 
-@router.post("/initiatives/{slug}/snapshot")
-def repin_snapshot(slug: str, body: RepinRequest, service: Initiatives, actor: Human):
-    return service.repin(slug, body.requirement, body.work_item_url, actor)
+@router.post("/initiatives/{initiative_id}/snapshot")
+def repin_snapshot(initiative_id: int, body: RepinRequest, service: Initiatives, actor: Human):
+    return service.repin(initiative_id, body.requirement, body.work_item_url, actor)
 
 
-@router.get("/initiatives/{slug}/draft")
-def draft_page(slug: str, service: Initiatives):
-    return service.draft_page(slug)
+@router.get("/initiatives/{initiative_id}/draft")
+def draft_page(initiative_id: int, service: Initiatives):
+    return service.draft_page(initiative_id)
 
 
 # ── records ─────────────────────────────────────────────────────────────────
 
 
-@router.get("/initiatives/{slug}/records")
+@router.get("/initiatives/{initiative_id}/records")
 def list_records(
-    slug: str,
+    initiative_id: int,
     controller: RecordsCtl,
     type: Optional[str] = None,
     status: Optional[str] = None,
     q: Optional[str] = None,
     since: Optional[str] = None,
 ):
-    return controller.list_records(slug, type, status, q, since)
+    return controller.list_records(initiative_id, type, status, q, since)
 
 
-@router.post("/initiatives/{slug}/records")
-def write_records(slug: str, body: WriteRequest, controller: RecordsCtl, request: Request):
-    return controller.write(slug, body, actor_from_request(request, body.agent))
+@router.post("/initiatives/{initiative_id}/records")
+def write_records(initiative_id: int, body: WriteRequest, controller: RecordsCtl, request: Request):
+    return controller.write(initiative_id, body, actor_from_request(request, body.agent))
 
 
-@router.get("/initiatives/{slug}/records/{ref}")
-def get_record(slug: str, ref: str, controller: RecordsCtl):
-    return controller.get_record(slug, ref)
+@router.get("/initiatives/{initiative_id}/records/{ref}")
+def get_record(initiative_id: int, ref: str, controller: RecordsCtl):
+    return controller.get_record(initiative_id, ref)
 
 
-@router.get("/initiatives/{slug}/records/{ref}/history")
-def record_history(slug: str, ref: str, controller: RecordsCtl):
-    return controller.history(slug, ref)
+@router.get("/initiatives/{initiative_id}/records/{ref}/history")
+def record_history(initiative_id: int, ref: str, controller: RecordsCtl):
+    return controller.history(initiative_id, ref)
 
 
-@router.get("/initiatives/{slug}/tasks/{ref}")
-def task_page(slug: str, ref: str, records: Records):
+@router.get("/initiatives/{initiative_id}/tasks/{ref}")
+def task_page(initiative_id: int, ref: str, records: Records):
     """The task page (touchpoint 3): the task, its GATE_PR, its scoped drift report."""
-    g = records.graph(records.initiative(slug))
+    g = records.graph(records.initiative(initiative_id))
     task = g.get(ref)
     if task is None or task.type != "task":
-        raise NotFoundException(message=f"No task '{ref}' in {slug}")
+        raise NotFoundException(message=f"No task '{ref}' in initiative {initiative_id}")
     report = g.drift(task=ref)
     return {
         "task": record_json(task, g, detail=True),
@@ -150,14 +151,14 @@ def task_page(slug: str, ref: str, records: Records):
 # ── worklist, next work, leases ─────────────────────────────────────────────
 
 
-@router.get("/initiatives/{slug}/worklist")
-def worklist(slug: str, service: Worklist):
-    return service.worklist(slug)
+@router.get("/initiatives/{initiative_id}/worklist")
+def worklist(initiative_id: int, service: Worklist):
+    return service.worklist(initiative_id)
 
 
-@router.get("/initiatives/{slug}/next-work")
-def next_work(slug: str, service: Worklist, actor: Caller, kind: Optional[str] = None, person: Optional[str] = None, limit: int = 10):
-    return service.next_work(slug, kind, person, actor.name, limit)
+@router.get("/initiatives/{initiative_id}/next-work")
+def next_work(initiative_id: int, service: Worklist, actor: Caller, kind: Optional[str] = None, person: Optional[str] = None, limit: int = 10):
+    return service.next_work(initiative_id, kind, person, actor.name, limit)
 
 
 @router.get("/next-work")
@@ -183,9 +184,9 @@ def release(key: str, service: Worklist, actor: Caller):
 # ── gates, drift ────────────────────────────────────────────────────────────
 
 
-@router.get("/initiatives/{slug}/gates")
-def gates(slug: str, records: Records):
-    g = records.graph(records.initiative(slug))
+@router.get("/initiatives/{initiative_id}/gates")
+def gates(initiative_id: int, records: Records):
+    g = records.graph(records.initiative(initiative_id))
     out = []
     for key, gate in records.bp.lifecycle.gates.items():
         if gate.scope == "initiative":
@@ -195,21 +196,21 @@ def gates(slug: str, records: Records):
     return out
 
 
-@router.get("/initiatives/{slug}/tasks/{ref}/gates")
-def task_gates(slug: str, ref: str, records: Records):
-    g = records.graph(records.initiative(slug))
+@router.get("/initiatives/{initiative_id}/tasks/{ref}/gates")
+def task_gates(initiative_id: int, ref: str, records: Records):
+    g = records.graph(records.initiative(initiative_id))
     if g.get(ref) is None or g.get(ref).type != "task":
-        raise NotFoundException(message=f"No task '{ref}' in {slug}")
+        raise NotFoundException(message=f"No task '{ref}' in initiative {initiative_id}")
     return [g.gate(key, task=ref).to_dict() for key, gate in records.bp.lifecycle.gates.items() if gate.scope == "task"]
 
 
-@router.get("/initiatives/{slug}/drift")
-def drift(slug: str, records: Records, request: Request, task: Optional[str] = None, baseline: Optional[str] = None, format: str = Query("json", pattern="^(json|md|text)$")):
-    g = records.graph(records.initiative(slug))
+@router.get("/initiatives/{initiative_id}/drift")
+def drift(initiative_id: int, records: Records, request: Request, task: Optional[str] = None, baseline: Optional[str] = None, format: str = Query("json", pattern="^(json|md|text)$")):
+    g = records.graph(records.initiative(initiative_id))
     if task and (g.get(task) is None or g.get(task).type != "task"):
-        raise NotFoundException(message=f"No task '{task}' in {slug}")
+        raise NotFoundException(message=f"No task '{task}' in initiative {initiative_id}")
     if baseline and (g.get(baseline) is None or g.get(baseline).type != "baseline"):
-        raise NotFoundException(message=f"No baseline '{baseline}' in {slug}")
+        raise NotFoundException(message=f"No baseline '{baseline}' in initiative {initiative_id}")
     report = g.drift(task=task, baseline=baseline)
     if format == "md":
         return PlainTextResponse(drift_render.markdown(report, str(request.base_url).rstrip("/")), media_type="text/markdown")
@@ -221,16 +222,16 @@ def drift(slug: str, records: Records, request: Request, task: Optional[str] = N
 # ── review queue ────────────────────────────────────────────────────────────
 
 
-@router.get("/initiatives/{slug}/reviews")
-def reviews(slug: str, records: Records, status: Optional[str] = "open"):
-    i = records.initiative(slug)
+@router.get("/initiatives/{initiative_id}/reviews")
+def reviews(initiative_id: int, records: Records, status: Optional[str] = "open"):
+    i = records.initiative(initiative_id)
     items = records.reviews.all_for(i.id, None if status in (None, "", "all") else status)
     return [review_item_json(x) for x in items]
 
 
-@router.post("/initiatives/{slug}/reviews/{item_id}/resolve")
-def resolve_review(slug: str, item_id: int, body: ResolveReviewRequest, records: Records, actor: Caller):
-    i = records.initiative(slug)
+@router.post("/initiatives/{initiative_id}/reviews/{item_id}/resolve")
+def resolve_review(initiative_id: int, item_id: int, body: ResolveReviewRequest, records: Records, actor: Caller):
+    i = records.initiative(initiative_id)
     item = ReviewService(records.db, records.bp).resolve(i, item_id, body.resolution, body.note, actor.name)
     records.events.add("review_item_resolved", i.id, item.target_ref, actor.name, "", {"id": item.id, "resolution": item.status})
     records.db.commit()
@@ -240,9 +241,10 @@ def resolve_review(slug: str, item_id: int, body: ResolveReviewRequest, records:
 # ── the human lane ──────────────────────────────────────────────────────────
 
 
-@router.get("/inbox/{person}")
-def inbox(person: str, service: Inbox):
-    return service.inbox(person)
+@router.get("/inbox")
+def inbox(service: Inbox, actor: Caller):
+    """The caller's inbox: what is routed to X-Actor, across initiatives."""
+    return service.inbox(actor.principal)
 
 
 @router.get("/people")
@@ -250,29 +252,29 @@ def people(service: Inbox):
     return service.people()
 
 
-@router.post("/initiatives/{slug}/gaps/{ref}/answer")
-def answer_gap(slug: str, ref: str, body: AnswerGapRequest, service: Inbox, actor: Human):
-    return service.answer_gap(slug, ref, body.answer or "", body.choice, actor).to_dict()
+@router.post("/initiatives/{initiative_id}/gaps/{ref}/answer")
+def answer_gap(initiative_id: int, ref: str, body: AnswerGapRequest, service: Inbox, actor: Human):
+    return service.answer_gap(initiative_id, ref, body.answer or "", body.choice, actor).to_dict()
 
 
-@router.post("/initiatives/{slug}/decisions/{ref}/rule")
-def rule_decision(slug: str, ref: str, body: RuleDecisionRequest, service: Inbox, actor: Human):
-    return service.rule_decision(slug, ref, body.verdict, body.rationale, actor).to_dict()
+@router.post("/initiatives/{initiative_id}/decisions/{ref}/rule")
+def rule_decision(initiative_id: int, ref: str, body: RuleDecisionRequest, service: Inbox, actor: Human):
+    return service.rule_decision(initiative_id, ref, body.verdict, body.rationale, actor).to_dict()
 
 
-@router.post("/initiatives/{slug}/approvals", status_code=201)
-def approve(slug: str, body: ApprovalRequest, service: Inbox, actor: Human):
-    return service.approve(slug, body.target, body.role, body.at_sha, body.note, actor).to_dict()
+@router.post("/initiatives/{initiative_id}/approvals", status_code=201)
+def approve(initiative_id: int, body: ApprovalRequest, service: Inbox, actor: Human):
+    return service.approve(initiative_id, body.target, body.role, body.at_sha, body.note, actor).to_dict()
 
 
-@router.post("/initiatives/{slug}/criteria/{ref}/sign")
-def sign(slug: str, ref: str, body: SignRequest, service: Inbox, actor: Human):
-    return service.sign_ac(slug, ref, body.at_sha, actor).to_dict()
+@router.post("/initiatives/{initiative_id}/criteria/{ref}/sign")
+def sign(initiative_id: int, ref: str, body: SignRequest, service: Inbox, actor: Human):
+    return service.sign_ac(initiative_id, ref, body.at_sha, actor).to_dict()
 
 
-@router.post("/initiatives/{slug}/criteria/{ref}/retire")
-def retire(slug: str, ref: str, body: RetireRequest, service: Inbox, actor: Human):
-    return service.retire_ac(slug, ref, body.because, actor).to_dict()
+@router.post("/initiatives/{initiative_id}/criteria/{ref}/retire")
+def retire(initiative_id: int, ref: str, body: RetireRequest, service: Inbox, actor: Human):
+    return service.retire_ac(initiative_id, ref, body.because, actor).to_dict()
 
 
 # ── global scope ────────────────────────────────────────────────────────────
@@ -304,26 +306,26 @@ def promote(ref: str, service: Inbox, actor: Human):
 
 
 @router.get("/deploy-guard")
-def deploy_guard(guard: Guard, initiative: str, task: str, sha: str, environment: str):
-    return guard.check(initiative, task, sha, environment)
+def deploy_guard(guard: Guard, initiative_id: int, task: str, sha: str, environment: str):
+    return guard.check(initiative_id, task, sha, environment)
 
 
 @router.post("/deploy-guard")
 def deploy_guard_record(body: DeployGuardRequest, guard: Guard, actor: Caller):
-    return guard.record(body.initiative, body.task, body.sha, body.environment, actor)
+    return guard.record(body.initiative_id, body.task, body.sha, body.environment, actor)
 
 
 # ── activity ────────────────────────────────────────────────────────────────
 
 
-@router.get("/initiatives/{slug}/activity")
-def activity(slug: str, service: Activity, since: Optional[str] = None, ref: Optional[str] = None, actor: Optional[str] = None, limit: int = 200):
-    return service.feed(slug, since, ref, actor, limit)
+@router.get("/initiatives/{initiative_id}/activity")
+def activity(initiative_id: int, service: Activity, since: Optional[str] = None, ref: Optional[str] = None, actor: Optional[str] = None, limit: int = 200):
+    return service.feed(initiative_id, since, ref, actor, limit)
 
 
-@router.get("/initiatives/{slug}/events")
-def events(slug: str, service: Activity, since: int = 0, limit: int = 200):
-    return service.events(slug, since, limit)
+@router.get("/initiatives/{initiative_id}/events")
+def events(initiative_id: int, service: Activity, since: int = 0, limit: int = 200):
+    return service.events(initiative_id, since, limit)
 
 
 @router.get("/events")

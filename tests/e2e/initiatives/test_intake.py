@@ -45,5 +45,5 @@ def test_list(api):
 
 
 def test_unknown_initiative_is_404(api):
-    r = api.as_("chandra").get("/api/initiatives/nope")
-    assert r.status_code == 404 and "No initiative 'nope'" in r.json()["detail"]
+    r = api.as_("chandra").get("/api/initiatives/999999")
+    assert r.status_code == 404 and "No initiative 999999" in r.json()["detail"]

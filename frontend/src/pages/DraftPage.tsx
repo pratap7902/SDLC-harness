@@ -3,10 +3,11 @@ import { Link, useParams } from 'react-router-dom';
 import type { DraftPage as Draft, InitiativeState, RecordJson, Revision, WriteResult } from '../api';
 import { all, api, errorText, postJson, useJson, useRefresh } from '../lib/api';
 import { asList, asText, dateTime, nm, plural, ruleText, who } from '../lib/format';
-import { Inline, Refs } from '../lib/links';
+import { Inline, Refs, type Fid, FeatureName } from '../lib/links';
 import { usePersona } from '../lib/persona';
 import { useToast } from '../lib/toast';
 import { useAllWaiting } from '../lib/waiting';
+import { AnswerLink, answeredText } from '../components/gaps';
 import { Badge, Banner, Card, CardHead, Check, Empty, Field, StatusBadge, Tabs } from '../components/ui';
 import { Markdown } from '../components/Markdown';
 import { PageHeader } from '../components/PageHeader';
@@ -23,7 +24,7 @@ function chosenOption(d: RecordJson): string | null {
   return hits.length === 1 ? hits[0] : null;
 }
 
-function DecisionBlock({ d, slug }: { d: RecordJson; slug: string }) {
+function DecisionBlock({ d, fid }: { d: RecordJson; fid: Fid }) {
   const f = d.fields;
   const options = (f.options as { name: string; consequences?: string; cost_risk?: string }[] | undefined) || [];
   const chosen = chosenOption(d);
@@ -31,7 +32,7 @@ function DecisionBlock({ d, slug }: { d: RecordJson; slug: string }) {
   return (
     <article className={`flex flex-col gap-2 border border-line rounded-item px-4 py-[14px] ${superseded ? 'opacity-70' : ''}`}>
       <div className="flex flex-wrap gap-2 items-center">
-        <Link to={`/i/${slug}/r/${d.ref}`} className={`font-mono font-semibold ${superseded ? 'line-through text-ink-muted' : 'text-ink'}`}>
+        <Link to={`/features/${fid}/records/${d.ref}`} className={`font-mono font-semibold ${superseded ? 'line-through text-ink-muted' : 'text-ink'}`}>
           {d.ref}
         </Link>
         <strong>{asText(f.question) || d.title}</strong>
@@ -41,7 +42,7 @@ function DecisionBlock({ d, slug }: { d: RecordJson; slug: string }) {
         </Badge>
       </div>
       <div className="text-[15px]">
-        <strong>Verdict:</strong> {asText(f.verdict) ? <Inline text={asText(f.verdict)} slug={slug} /> : <span className="text-human font-semibold">Not decided yet</span>}
+        <strong>Verdict:</strong> {asText(f.verdict) ? <Inline text={asText(f.verdict)} fid={fid} /> : <span className="text-human font-semibold">Not decided yet</span>}
       </div>
       {options.length > 0 && (
         <div className="tbl">
@@ -63,10 +64,10 @@ function DecisionBlock({ d, slug }: { d: RecordJson; slug: string }) {
         </div>
       )}
       <span className="small">
-        {superseded && <>Superseded by <Refs slug={slug} refs={d.superseded_by || []} />. </>}
-        {asText(f.rationale) && <Inline text={asText(f.rationale)} slug={slug} />}
+        {superseded && <>Superseded by <Refs fid={fid} refs={d.superseded_by || []} />. </>}
+        {asText(f.rationale) && <Inline text={asText(f.rationale)} fid={fid} />}
         {asList(f.cites).length > 0 && <> · cites {asList(f.cites).join(', ')}</>}
-        {(d.sourced_acs || []).length > 0 && <> · criteria <Refs slug={slug} refs={d.sourced_acs || []} /></>}
+        {(d.sourced_acs || []).length > 0 && <> · criteria <Refs fid={fid} refs={d.sourced_acs || []} /></>}
       </span>
     </article>
   );
@@ -81,14 +82,15 @@ function sectionText(draft: RecordJson | null, tab: Tab): string {
 }
 
 export default function DraftPage() {
-  const { slug = '' } = useParams();
+  const { id: fid = '' } = useParams();
   const { persona } = usePersona();
   const { bump } = useRefresh();
   const say = useToast();
-  const page = useJson<Draft>(api('initiatives', slug, 'draft'));
-  const state = useJson<InitiativeState>(api('initiatives', slug));
-  const history = useJson<Revision[]>(api('initiatives', slug, 'records', 'draft', 'history'));
-  const findings = useJson<RecordJson[]>(`${api('initiatives', slug, 'records')}?type=finding`);
+  const page = useJson<Draft>(api('initiatives', fid, 'draft'));
+  const state = useJson<InitiativeState>(api('initiatives', fid));
+  const hasDraft = page.kind === 'ready' && !!page.data.draft;
+  const history = useJson<Revision[]>(hasDraft ? api('initiatives', fid, 'records', 'draft', 'history') : null);
+  const findings = useJson<RecordJson[]>(`${api('initiatives', fid, 'records')}?type=finding`);
   const waiting = useAllWaiting();
   const [tab, setTab] = useState<Tab>('hld');
   const [note, setNote] = useState('');
@@ -96,7 +98,7 @@ export default function DraftPage() {
   const [error, setError] = useState('');
 
   const loaded = all(page, state, findings, waiting);
-  if (loaded.kind === 'error') return <LoadError what={`the draft of ${slug}`} message={loaded.message} onRetry={page.reload} />;
+  if (loaded.kind === 'error') return <LoadError what={`the draft of ${fid}`} message={loaded.message} onRetry={page.reload} />;
   if (loaded.kind === 'loading') return <Loading what="the draft" />;
   const [d, s, fs, items] = loaded.data;
   const draft = d.draft;
@@ -119,10 +121,10 @@ export default function DraftPage() {
     setError('');
     try {
       if (kind === 'approve') {
-        const r = await postJson<WriteResult>(api('initiatives', slug, 'approvals'), { target: 'draft', role: 'dri', note: note.trim() || undefined });
+        const r = await postJson<WriteResult>(api('initiatives', fid, 'approvals'), { target: 'draft', role: 'dri', note: note.trim() || undefined });
         say(`Approved. Baseline ${r.baseline || 'B-n'} is frozen; from here every spec change needs a recorded reason.`);
       } else {
-        await postJson<WriteResult>(api('initiatives', slug, 'records'), {
+        await postJson<WriteResult>(api('initiatives', fid, 'records'), {
           ops: [{ type: 'finding', title: `Changes requested on draft rev ${rev}`, fields: { summary: note.trim().slice(0, 400), details: note.trim(), severity: 'major', target: ['draft'], at_rev: String(rev) } }],
         });
         say('Changes requested: recorded as a finding on the draft for the drafting agent. You review the next revision here.');
@@ -149,7 +151,7 @@ export default function DraftPage() {
   return (
     <>
       <PageHeader
-        crumbs={[{ label: 'Features', href: '/' }, { label: slug, href: `/i/${slug}`, mono: true }, { label: 'Draft' }]}
+        crumbs={[{ label: 'Features', href: '/' }, { label: <FeatureName fid={fid} />, href: `/features/${fid}`, mono: true }, { label: 'Draft' }]}
         title={headline}
         badge={
           <Badge tone="human" big>
@@ -168,7 +170,7 @@ export default function DraftPage() {
           Approved by {nm(s.baseline.approved_by)} as baseline {s.baseline.ref}.{' '}
           {drift && drift.changes ? (
             <>
-              {plural(drift.changes, 'spec change')} since, {drift.unexplained ? `${drift.unexplained} unexplained` : 'all explained'}. <Link to={`/i/${slug}/drift`}>See the drift report</Link>
+              {plural(drift.changes, 'spec change')} since, {drift.unexplained ? `${drift.unexplained} unexplained` : 'all explained'}. <Link to={`/features/${fid}/drift`}>See the drift report</Link>
             </>
           ) : (
             'No spec changes since.'
@@ -188,7 +190,7 @@ export default function DraftPage() {
             </div>
             {d.decisions.length === 0 && <Empty>No decisions yet.</Empty>}
             {[...live, ...d.decisions.filter((x) => x.status === 'SUPERSEDED')].map((x) => (
-              <DecisionBlock key={x.ref} d={x} slug={slug} />
+              <DecisionBlock key={x.ref} d={x} fid={fid} />
             ))}
           </Card>
 
@@ -197,10 +199,10 @@ export default function DraftPage() {
               <CardHead id="dgap-h" title="Questions" aside={openGaps.length ? `${openGaps.length} open` : 'all answered'} />
               <ul className="m-0 p-0 list-none">
                 {d.gaps.map((g) => {
-                  const w = items.find((i) => i.initiative === slug && i.ref === g.ref);
+                  const w = items.find((i) => i.initiative_id === Number(fid) && i.ref === g.ref);
                   return (
                     <li key={g.ref} className="flex flex-wrap gap-x-[14px] gap-y-1.5 px-[18px] py-3 items-baseline border-t border-line-soft first:border-t-0">
-                      <Link to={`/i/${slug}/r/${g.ref}`} className="font-mono font-semibold text-[13px] text-ink">
+                      <Link to={`/features/${fid}/records/${g.ref}`} className="font-mono font-semibold text-[13px] text-ink">
                         {g.ref}
                       </Link>
                       <span className="flex-[1_1_300px] min-w-0">
@@ -208,17 +210,17 @@ export default function DraftPage() {
                         <span className="small block">
                           {g.status === 'OPEN' ? (
                             <>
-                              Waiting on {nm(w?.person)}
+                              Assigned to {w?.person === persona ? 'you' : nm(w?.person)}
                               {w && (
                                 <>
                                   {' · '}
-                                  <Link to={`/inbox/${w.person}?item=${encodeURIComponent(w.key)}`}>answer in the inbox</Link>
+                                  <AnswerLink item={w} persona={persona} />
                                 </>
                               )}
                             </>
                           ) : (
                             <>
-                              Answered by {nm(asText(g.fields.answered_by))}: <Inline text={asText(g.fields.answer)} slug={slug} />
+                              {answeredText(g.fields)}: <Inline text={asText(g.fields.answer)} fid={fid} />
                             </>
                           )}
                         </span>
@@ -235,7 +237,7 @@ export default function DraftPage() {
             <h2 id="dprob-h" className="text-[17px]">
               Problem
             </h2>
-            {asText(draft?.fields.problem) ? <Markdown text={asText(draft?.fields.problem)} slug={slug} /> : <span className="small">Not written yet.</span>}
+            {asText(draft?.fields.problem) ? <Markdown text={asText(draft?.fields.problem)} fid={fid} /> : <span className="small">Not written yet.</span>}
           </Card>
 
           <Card className="px-[18px] py-4 flex flex-col gap-3">
@@ -258,7 +260,7 @@ export default function DraftPage() {
                     <ul className="m-0 mt-1 pl-5 list-disc">
                       {scopeIn.map((x) => (
                         <li key={x}>
-                          <Inline text={x} slug={slug} />
+                          <Inline text={x} fid={fid} />
                         </li>
                       ))}
                     </ul>
@@ -272,7 +274,7 @@ export default function DraftPage() {
                     <ul className="m-0 mt-1 pl-5 list-disc">
                       {scopeOut.map((x) => (
                         <li key={x}>
-                          <Inline text={x} slug={slug} />
+                          <Inline text={x} fid={fid} />
                         </li>
                       ))}
                     </ul>
@@ -282,7 +284,7 @@ export default function DraftPage() {
                 </div>
               </div>
             ) : sectionText(draft, tab) ? (
-              <Markdown text={sectionText(draft, tab)} slug={slug} />
+              <Markdown text={sectionText(draft, tab)} fid={fid} />
             ) : (
               <p className="small m-0">Not written yet.</p>
             )}
@@ -310,14 +312,14 @@ export default function DraftPage() {
                       return (
                         <tr key={c.ref} className={c.status === 'RETIRED' ? 'text-ink-muted' : ''}>
                           <td className="font-mono whitespace-nowrap">
-                            <Link to={`/i/${slug}/r/${c.ref}`}>{c.ref}</Link>
+                            <Link to={`/features/${fid}/records/${c.ref}`}>{c.ref}</Link>
                           </td>
                           <td className={c.status === 'RETIRED' ? 'line-through' : ''}>
-                            <Inline text={asText(c.fields.text)} slug={slug} />
+                            <Inline text={asText(c.fields.text)} fid={fid} />
                           </td>
                           <td className={manual ? 'text-human font-semibold' : ''}>{manual ? `${asText(c.fields.level) || 'manual'} · QA` : asText(c.fields.level)}</td>
                           <td className="text-xs">
-                            <Refs slug={slug} refs={asList(c.fields.source)} />
+                            <Refs fid={fid} refs={asList(c.fields.source)} />
                           </td>
                           <td>
                             <StatusBadge status={c.status} pill={c.pill} />
@@ -343,7 +345,7 @@ export default function DraftPage() {
                   {ruleText(r.name, r.passed)}
                   {!r.passed && r.failing.length > 0 && (
                     <>
-                      : <Refs slug={slug} refs={r.failing.filter((x) => /^[A-Z]+-\d+$/.test(x))} empty="" />
+                      : <Refs fid={fid} refs={r.failing.filter((x) => /^[A-Z]+-\d+$/.test(x))} empty="" />
                       {r.failing.filter((x) => !/^[A-Z]+-\d+$/.test(x)).length > 0 && <span className="small"> {r.failing.filter((x) => !/^[A-Z]+-\d+$/.test(x)).join(', ').replace(/_/g, ' ')}</span>}
                     </>
                   )}
@@ -387,7 +389,8 @@ export default function DraftPage() {
               History
             </h2>
             {history.kind === 'error' && <span className="small text-bad">Could not load the history: {history.message}</span>}
-            {history.kind === 'loading' && <span className="small">Loading…</span>}
+            {!draft && <span className="small">No draft yet.</span>}
+            {draft && history.kind === 'loading' && <span className="small">Loading…</span>}
             {history.kind === 'ready' &&
               [
                 ...history.data.map((h) => ({ at: h.at, text: `rev ${h.rev} · ${who(h.actor)} ${h.rev === 1 ? 'wrote the draft' : 'revised it'}${h.because.length ? ` because ${h.because.join(', ')}` : ''}${h.note ? ` (${h.note})` : ''}` })),

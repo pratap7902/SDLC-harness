@@ -17,12 +17,12 @@ def test_human_endpoints_return_403_to_agents(api):
     api.write(SLUG, draft_batch())
     agent = api.agent()
     for path, body in [
-        (f"/api/initiatives/{SLUG}/gaps/G-1/answer", {"answer": "yes"}),
-        (f"/api/initiatives/{SLUG}/decisions/D-1/rule", {"verdict": "v", "rationale": "r"}),
-        (f"/api/initiatives/{SLUG}/approvals", {"target": "draft", "role": "dri"}),
-        (f"/api/initiatives/{SLUG}/criteria/AC-1/sign", {"at_sha": "x"}),
-        (f"/api/initiatives/{SLUG}/criteria/AC-1/retire", {"because": "x"}),
-        (f"/api/initiatives/{SLUG}/snapshot", {"requirement": "x"}),
+        (f"{api.base(SLUG)}/gaps/G-1/answer", {"answer": "yes"}),
+        (f"{api.base(SLUG)}/decisions/D-1/rule", {"verdict": "v", "rationale": "r"}),
+        (f"{api.base(SLUG)}/approvals", {"target": "draft", "role": "dri"}),
+        (f"{api.base(SLUG)}/criteria/AC-1/sign", {"at_sha": "x"}),
+        (f"{api.base(SLUG)}/criteria/AC-1/retire", {"because": "x"}),
+        (f"{api.base(SLUG)}/snapshot", {"requirement": "x"}),
     ]:
         r = agent.post(path, json=body)
         assert r.status_code == 403, path
@@ -37,12 +37,12 @@ def test_must_and_escalated_verdicts_are_human_only(api):
     assert api.rejected(SLUG, [esc])[0].startswith("verdict: human-only")
     del must["fields"]["verdict"]
     api.write(SLUG, [must])
-    assert [x["ref"] for x in api.get("/api/inbox/maya")["items"]] == ["D-1"]
-    api.ok(api.as_("maya").post(f"/api/initiatives/{SLUG}/decisions/D-1/rule", json={"verdict": "No emails in events", "rationale": "GDPR"}))
+    assert [x["ref"] for x in api.inbox("maya")["items"]] == ["D-1"]
+    api.ok(api.as_("maya").post(f"{api.base(SLUG)}/decisions/D-1/rule", json={"verdict": "No emails in events", "rationale": "GDPR"}))
     d1 = api.record(SLUG, "D-1")
     assert d1["status"] == "DECIDED" and d1["fields"]["decided_by"] == "maya"
     assert d1["stamps"]["verdict"]["kind"] == "human"
-    r = api.as_("maya").post(f"/api/initiatives/{SLUG}/decisions/D-1/rule", json={"verdict": "x", "rationale": "y"})
+    r = api.as_("maya").post(f"{api.base(SLUG)}/decisions/D-1/rule", json={"verdict": "x", "rationale": "y"})
     assert r.status_code == 422 and "ADRs are superseded" in r.json()["detail"]
 
 

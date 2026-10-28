@@ -1,7 +1,7 @@
 import React, { Suspense, useEffect } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import type { Inbox } from '../api';
-import { api, useJson } from '../lib/api';
+import { useJson } from '../lib/api';
 import { ROLE_LABEL, nm } from '../lib/format';
 import { usePersona } from '../lib/persona';
 import { useToast } from '../lib/toast';
@@ -64,7 +64,7 @@ export function Shell() {
   const { persona, setPersona, people, peopleError } = usePersona();
   const location = useLocation();
   const say = useToast();
-  const inbox = useJson<Inbox>(persona ? api('inbox', persona) : null);
+  const inbox = useJson<Inbox>(persona ? '/api/inbox' : null);
   const count = inbox.kind === 'ready' ? inbox.data.count : 0;
   const on = section(location.pathname);
   useEffect(() => {
@@ -88,7 +88,7 @@ export function Shell() {
         <NavItem to="/" on={on === 'features'} icon={ICON.features}>
           Features
         </NavItem>
-        <NavItem to={persona ? `/inbox/${persona}` : '/inbox'} on={on === 'inbox'} icon={ICON.inbox} count={count}>
+        <NavItem to="/inbox" on={on === 'inbox'} icon={ICON.inbox} count={count}>
           Inbox
         </NavItem>
         <NavItem to="/new" on={on === 'new'} icon={ICON.new}>

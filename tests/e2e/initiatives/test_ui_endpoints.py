@@ -16,7 +16,7 @@ def test_state_shape(api):
 def test_draft_page_shape(api):
     api.start()
     api.write(SLUG, draft_batch())
-    page = api.get(f"/api/initiatives/{SLUG}/draft")
+    page = api.get(f"{api.base(SLUG)}/draft")
     assert set(page) == {"initiative", "draft", "decisions", "criteria", "gaps", "catalog", "gate", "can_approve", "approver", "approval_blockers", "approvals", "baselines", "review_items"}
     assert page["approver"] == "chandra"
     d1 = page["decisions"][0]
@@ -28,28 +28,28 @@ def test_draft_page_shape(api):
 def test_task_page_records_and_activity(api):
     to_task(api)
     pr_open(api)
-    page = api.get(f"/api/initiatives/{SLUG}/tasks/T-1")
+    page = api.get(f"{api.base(SLUG)}/tasks/T-1")
     assert set(page) == {"task", "gate", "drift", "approver", "test_runs", "findings", "deploys"}
     assert page["approver"] == "priya" and page["test_runs"][0]["ref"] == "R-1"
     assert page["drift"]["task"] == "T-1"
-    decisions = api.get(f"/api/initiatives/{SLUG}/records", type="decision")
+    decisions = api.get(f"{api.base(SLUG)}/records", type="decision")
     assert [d["ref"] for d in decisions] == ["D-1", "D-2"]
-    assert api.get(f"/api/initiatives/{SLUG}/records", q="partition")[0]["ref"] == "D-2"
-    assert api.get(f"/api/initiatives/{SLUG}/records", status="ANSWERED")[0]["ref"] == "G-1"
-    feed = api.get(f"/api/initiatives/{SLUG}/activity", limit=5)
+    assert api.get(f"{api.base(SLUG)}/records", q="partition")[0]["ref"] == "D-2"
+    assert api.get(f"{api.base(SLUG)}/records", status="ANSWERED")[0]["ref"] == "G-1"
+    feed = api.get(f"{api.base(SLUG)}/activity", limit=5)
     assert feed[0]["ref"] == "R-1" and feed[0]["actor_kind"] == "agent"
-    approvals = api.get(f"/api/initiatives/{SLUG}/activity", ref="APR-1")
+    approvals = api.get(f"{api.base(SLUG)}/activity", ref="APR-1")
     assert approvals[0]["actor"] == "chandra" and approvals[0]["actor_kind"] == "human"
-    events = api.get(f"/api/initiatives/{SLUG}/events")
+    events = api.get(f"{api.base(SLUG)}/events")
     kinds = {e["kind"] for e in events}
     assert {"initiative_created", "record_written", "baseline_created", "review_item_queued", "gate_changed"} <= kinds
     since = events[-3]["id"]
-    assert [e["id"] for e in api.get(f"/api/initiatives/{SLUG}/events", since=since)] == [e["id"] for e in events[-2:]]
+    assert [e["id"] for e in api.get(f"{api.base(SLUG)}/events", since=since)] == [e["id"] for e in events[-2:]]
 
 
 def test_404s(api):
     api.start()
     c = api.as_("chandra")
-    assert c.get(f"/api/initiatives/{SLUG}/records/D-9").status_code == 404
-    assert c.get(f"/api/initiatives/{SLUG}/tasks/T-9").status_code == 404
-    assert c.get(f"/api/initiatives/{SLUG}/drift", params={"task": "T-9"}).status_code == 404
+    assert c.get(f"{api.base(SLUG)}/records/D-9").status_code == 404
+    assert c.get(f"{api.base(SLUG)}/tasks/T-9").status_code == 404
+    assert c.get(f"{api.base(SLUG)}/drift", params={"task": "T-9"}).status_code == 404

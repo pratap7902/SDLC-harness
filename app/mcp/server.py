@@ -29,7 +29,8 @@ worklist and the drift report are derived from them.
 Records: initiative · assignment (A-n) · draft · decision (D-n) · gap (G-n) ·
 acceptance_criterion (AC-n) · task (T-n) · finding (F-n) · test_run (R-n) · deploy (DEP-n) ·
 approval (APR-n, humans only) · baseline (B-n, written by the service).
-Loop: next_work → claim → read the context → write → release. get_state shows the gates.
+Initiatives are addressed by their numeric id (`initiatives` lists them; the slug is a
+label). Loop: next_work → claim → read the context → write → release. get_state shows the gates.
 Statuses are DERIVED — never send `status`. Refs in text (`see D-3`) become links.
 Three humans touch the work: the DRI approves the draft (baseline B-n), people answer gaps
 in their inbox, an engineer approves each task's drift report at its PR head.
@@ -101,11 +102,11 @@ def blueprint(type: Optional[str] = None) -> str:
 
 @mcp.tool()
 def initiatives() -> str:
-    """List initiatives: slug — title [phase] people."""
+    """List initiatives: id · slug — title [phase] people. Tools address an initiative by its id."""
     with _services() as records:
         rows = InitiativeService(records).list()
         return "\n".join(
-            f"{i['slug']} — {i['title']} [{i['phase']}] dri {i['dri'] or '—'} · engg {i['engg'] or '—'}" for i in rows
+            f"{i['id']} · {i['slug']} — {i['title']} [{i['phase']}] dri {i['dri'] or '—'} · engg {i['engg'] or '—'}" for i in rows
         ) or "none yet — create_initiative first"
 
 
@@ -134,26 +135,26 @@ def create_initiative(
 
 
 @mcp.tool()
-def get_state(initiative: str) -> str:
+def get_state(initiative_id: int) -> str:
     """Phase, each gate PASSED/BLOCKED with the failing rules, tasks with GATE_PR, counts by
     status, baseline and drift counts, stale narratives, unassessed catalog items."""
     with _services() as records:
-        return fmt.state_text(InitiativeService(records).state(initiative))
+        return fmt.state_text(InitiativeService(records).state(initiative_id))
 
 
 @mcp.tool()
-def next_work(ctx: Context, initiative: Optional[str] = None, kind: Optional[str] = None, person: Optional[str] = None, limit: int = 5) -> str:
+def next_work(ctx: Context, initiative_id: Optional[int] = None, kind: Optional[str] = None, person: Optional[str] = None, limit: int = 5) -> str:
     """Prioritised items you may take now (not leased by someone else), each with its
     context (the record, what it cites, open review items, the phase catalog, drift).
     kind ∈ review, gap, decision, approval, draft, plan, tests, task, promotion, manual_ac."""
     with _services() as records:
-        out = WorklistService(records).next_work(initiative, kind, person, _actor(ctx, None).name, limit)
+        out = WorklistService(records).next_work(initiative_id, kind, person, _actor(ctx, None).name, limit)
         return fmt.items_text(out["items"])
 
 
 @mcp.tool()
 def claim(item_key: str, ctx: Context, ttl_min: int = 15, agent: Optional[str] = None) -> str:
-    """Lease a work item (key from next_work, e.g. task:order-events:T-1)."""
+    """Lease a work item (key from next_work, e.g. task:3:T-1 — kind:initiative id:ref)."""
     with _services() as records:
         lease = WorklistService(records).claim(item_key, _actor(ctx, agent).name, ttl_min)
         return f"claimed {lease['item_key']} until {lease['expires_at']}"
@@ -176,13 +177,13 @@ def release(item_key: str, ctx: Context, agent: Optional[str] = None) -> str:
 
 
 @mcp.tool()
-def read_record(initiative: str, refs: Union[List[str], str], history: bool = False, as_json: bool = False) -> str:
+def read_record(initiative_id: int, refs: Union[List[str], str], history: bool = False, as_json: bool = False) -> str:
     """Full records: links in/out, open review items, fields; history adds revisions with
     who (human/agent) and because. as_json returns the REST JSON shape."""
     if isinstance(refs, str):
         refs = [r.strip() for r in refs.split(",") if r.strip()]
     with _services() as records:
-        i = records.initiative(initiative)
+        i = records.initiative(initiative_id)
         g = records.graph(i)
         out = []
         for ref in refs:
@@ -196,49 +197,49 @@ def read_record(initiative: str, refs: Union[List[str], str], history: bool = Fa
 
 
 @mcp.tool()
-def search_records(initiative: str, type: Optional[str] = None, status: Optional[str] = None, query: Optional[str] = None, since: Optional[str] = None) -> str:
+def search_records(initiative_id: int, type: Optional[str] = None, status: Optional[str] = None, query: Optional[str] = None, since: Optional[str] = None) -> str:
     """Records of an initiative, one per line. Filters: type, status, free text, since (ISO)."""
     with _services() as records:
-        g = records.graph(records.initiative(initiative))
+        g = records.graph(records.initiative(initiative_id))
         return fmt.records_text(records.bp, records.find(g, type, status, query, since))
 
 
 @mcp.tool()
-def history(initiative: str, ref: str) -> str:
+def history(initiative_id: int, ref: str) -> str:
     """Every revision of a record: rev, when, who (human/agent), because, note."""
     with _services() as records:
-        i = records.initiative(initiative)
+        i = records.initiative(initiative_id)
         r = records.get(i, ref)
         return fmt.record_full(records.bp, r, records.graph(i), records.history(r))
 
 
 @mcp.tool()
-def write(initiative: str, ops: Union[List[Dict[str, Any]], str], ctx: Context, batch_id: Optional[str] = None, agent: Optional[str] = None) -> str:
+def write(initiative_id: int, ops: Union[List[Dict[str, Any]], str], ctx: Context, batch_id: Optional[str] = None, agent: Optional[str] = None) -> str:
     """Write a batch atomically. op = {ref?, type?, title?, fields, link?, unlink?, note?,
     base_rev?, because?, reviewed?}. Omit ref and give type to mint (D-n…); `#0` names the
     ref op 0 minted. Never send status. Reuse batch_id to retry safely (idempotent)."""
     with _services() as records:
-        result = records.write(initiative, [parse_op(o) for o in _ops(ops)], _actor(ctx, agent), batch_id)
+        result = records.write(initiative_id, [parse_op(o) for o in _ops(ops)], _actor(ctx, agent), batch_id)
         if not result.ok:
             raise ValueError(fmt.write_text(result))
         return fmt.write_text(result)
 
 
 @mcp.tool()
-def resolve_review_item(initiative: str, id: int, resolution: str, note: str, ctx: Context, agent: Optional[str] = None) -> str:
+def resolve_review_item(initiative_id: int, id: int, resolution: str, note: str, ctx: Context, agent: Optional[str] = None) -> str:
     """Close a review item: upheld (still holds — say why) · revised · dismissed."""
     with _services() as records:
-        i = records.initiative(initiative)
+        i = records.initiative(initiative_id)
         item = ReviewService(records.db, records.bp).resolve(i, id, resolution, note, _actor(ctx, agent).name)
         records.db.commit()
         return f"review item {item.id} ({item.target_ref} ← {item.cause_ref}) {item.status}"
 
 
 @mcp.tool()
-def gate_status(initiative: str, gate: Optional[str] = None, task: Optional[str] = None) -> str:
+def gate_status(initiative_id: int, gate: Optional[str] = None, task: Optional[str] = None) -> str:
     """Each gate's rules: ok / !! with the refs that fail it. GATE_PR needs `task`."""
     with _services() as records:
-        g = records.graph(records.initiative(initiative))
+        g = records.graph(records.initiative(initiative_id))
         gates = records.bp.lifecycle.gates
         keys = [gate] if gate else list(gates)
         out = []
@@ -254,12 +255,12 @@ def gate_status(initiative: str, gate: Optional[str] = None, task: Optional[str]
 
 
 @mcp.tool()
-def drift_report(initiative: str, task: Optional[str] = None, baseline: Optional[str] = None, format: str = "text") -> str:
+def drift_report(initiative_id: int, task: Optional[str] = None, baseline: Optional[str] = None, format: str = "text") -> str:
     """What changed in the spec since the approved baseline and which human decision
     authorised each change. task scopes it to one task (what its PR review reads).
     format: text | markdown | json."""
     with _services() as records:
-        g = records.graph(records.initiative(initiative))
+        g = records.graph(records.initiative(initiative_id))
         report = g.drift(task=task, baseline=baseline)
         if format == "markdown":
             return drift_render.markdown(report)
@@ -269,11 +270,11 @@ def drift_report(initiative: str, task: Optional[str] = None, baseline: Optional
 
 
 @mcp.tool()
-def deploy_guard(initiative: str, task: str, sha: str, environment: str, ctx: Context, record: bool = False, agent: Optional[str] = None) -> str:
+def deploy_guard(initiative_id: int, task: str, sha: str, environment: str, ctx: Context, record: bool = False, agent: Optional[str] = None) -> str:
     """GO / NO-GO for deploying a task at a sha. record=true writes the ask as a deploy row."""
     with _services() as records:
         guard = DeployGuard(records)
-        out = guard.record(initiative, task, sha, environment, _actor(ctx, agent)) if record else guard.check(initiative, task, sha, environment)
+        out = guard.record(initiative_id, task, sha, environment, _actor(ctx, agent)) if record else guard.check(initiative_id, task, sha, environment)
         lines = [f"{out['decision']} — {task} @ {sha} → {environment}"]
         lines += [f"  {'ok' if c['passed'] else '!!'} {c['name']}: {c['detail']}" for c in out["checks"]]
         return "\n".join(lines)
@@ -288,14 +289,14 @@ def inbox(person: str) -> str:
 
 
 @mcp.tool()
-def worklist(initiative: str) -> str:
+def worklist(initiative_id: int) -> str:
     """Every open item of an initiative, both lanes, with leases."""
     with _services() as records:
-        return fmt.items_text(WorklistService(records).worklist(initiative)["items"])
+        return fmt.items_text(WorklistService(records).worklist(initiative_id)["items"])
 
 
 @mcp.tool()
-def activity(initiative: str, since: Optional[str] = None, ref: Optional[str] = None, actor: Optional[str] = None, limit: int = 50) -> str:
+def activity(initiative_id: int, since: Optional[str] = None, ref: Optional[str] = None, actor: Optional[str] = None, limit: int = 50) -> str:
     """Revisions and review-queue moves, newest first."""
     with _services() as records:
-        return fmt.activity_text(ActivityService(records).feed(initiative, since, ref, actor, limit))
+        return fmt.activity_text(ActivityService(records).feed(initiative_id, since, ref, actor, limit))

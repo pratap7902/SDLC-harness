@@ -2,15 +2,18 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type { RecordJson, Revision, WriteResult } from '../api';
 import { all, api, errorText, postJson, useJson, useRefresh } from '../lib/api';
-import { dateTime, nm, who } from '../lib/format';
-import { Inline, refHref } from '../lib/links';
+import { asText, dateTime, nm, who } from '../lib/format';
+import { Inline, refHref, type Fid, FeatureName } from '../lib/links';
 import { useToast } from '../lib/toast';
 import { Badge, Banner, Card, CardHead, Field, StatusBadge } from '../components/ui';
 import { Markdown } from '../components/Markdown';
+import { AnswerLink, answeredText } from '../components/gaps';
+import { useAllWaiting } from '../lib/waiting';
+import { usePersona } from '../lib/persona';
 import { PageHeader } from '../components/PageHeader';
 import { LoadError, Loading } from '../components/state';
 
-function Value({ v, slug }: { v: unknown; slug: string }) {
+function Value({ v, fid }: { v: unknown; fid: Fid }) {
   if (v === null || v === undefined || v === '') return <span className="text-ink-muted">—</span>;
   if (Array.isArray(v)) {
     if (v.every((x) => typeof x !== 'object' || x === null)) {
@@ -18,7 +21,7 @@ function Value({ v, slug }: { v: unknown; slug: string }) {
         <span className="flex flex-wrap gap-x-2">
           {v.map((x, i) => (
             <span key={i}>
-              <Inline text={String(x)} slug={slug} />
+              <Inline text={String(x)} fid={fid} />
             </span>
           ))}
         </span>
@@ -40,7 +43,7 @@ function Value({ v, slug }: { v: unknown; slug: string }) {
               <tr key={i}>
                 {cols.map((c) => (
                   <td key={c}>
-                    <Inline text={String((row as Record<string, unknown>)[c] ?? '')} slug={slug} />
+                    <Inline text={String((row as Record<string, unknown>)[c] ?? '')} fid={fid} />
                   </td>
                 ))}
               </tr>
@@ -52,10 +55,10 @@ function Value({ v, slug }: { v: unknown; slug: string }) {
   }
   if (typeof v === 'object') return <pre className="m-0 text-xs font-mono whitespace-pre-wrap">{JSON.stringify(v, null, 2)}</pre>;
   const s = String(v);
-  return s.includes('\n') ? <Markdown text={s} slug={slug} /> : <Inline text={s} slug={slug} />;
+  return s.includes('\n') ? <Markdown text={s} fid={fid} /> : <Inline text={s} fid={fid} />;
 }
 
-function RetireForm({ slug, r }: { slug: string; r: RecordJson }) {
+function RetireForm({ fid, r }: { fid: Fid; r: RecordJson }) {
   const [because, setBecause] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -65,7 +68,7 @@ function RetireForm({ slug, r }: { slug: string; r: RecordJson }) {
     setBusy(true);
     setError('');
     try {
-      await postJson<WriteResult>(api('initiatives', slug, 'criteria', r.ref, 'retire'), { because: because.trim() });
+      await postJson<WriteResult>(api('initiatives', fid, 'criteria', r.ref, 'retire'), { because: because.trim() });
       say(`${r.ref} retired. It shows as ac_retired in the drift report, with your reason.`);
       setBecause('');
       bump();
@@ -93,9 +96,11 @@ function RetireForm({ slug, r }: { slug: string; r: RecordJson }) {
 }
 
 export default function RecordPage() {
-  const { slug = '', ref = '' } = useParams();
-  const record = useJson<RecordJson>(api('initiatives', slug, 'records', ref));
-  const history = useJson<Revision[]>(api('initiatives', slug, 'records', ref, 'history'));
+  const { id: fid = '', ref = '' } = useParams();
+  const record = useJson<RecordJson>(api('initiatives', fid, 'records', ref));
+  const history = useJson<Revision[]>(api('initiatives', fid, 'records', ref, 'history'));
+  const waiting = useAllWaiting();
+  const { persona } = usePersona();
   const loaded = all(record, history);
   if (loaded.kind === 'error') return <LoadError what={ref} message={loaded.message} onRetry={record.reload} />;
   if (loaded.kind === 'loading') return <Loading what={ref} />;
@@ -104,7 +109,7 @@ export default function RecordPage() {
   return (
     <>
       <PageHeader
-        crumbs={[{ label: 'Features', href: '/' }, { label: slug, href: `/i/${slug}`, mono: true }, { label: ref, mono: true }]}
+        crumbs={[{ label: 'Features', href: '/' }, { label: <FeatureName fid={fid} />, href: `/features/${fid}`, mono: true }, { label: ref, mono: true }]}
         title={
           <>
             <span className="font-mono">{r.ref}</span> {r.title}
@@ -117,11 +122,21 @@ export default function RecordPage() {
           {/^T-\d+$/.test(r.ref) && (
             <>
               {' · '}
-              <Link to={`/i/${slug}/t/${r.ref}`}>PR review</Link>
+              <Link to={`/features/${fid}/tasks/${r.ref}`}>PR review</Link>
             </>
           )}
         </p>
       </PageHeader>
+      {r.type === 'gap' && asText(r.fields.answered_by) && <Banner tone="muted">{answeredText(r.fields)}</Banner>}
+      {r.type === 'gap' && r.status === 'OPEN' && (() => {
+        const item = waiting.kind === 'ready' ? waiting.data.find((w) => w.kind === 'gap' && w.initiative_id === Number(fid) && w.ref === r.ref) : undefined;
+        return (
+          <div className="flex flex-wrap items-center gap-3">
+            {item && <AnswerLink item={item} persona={persona} button />}
+            <span className="small">{item ? `Assigned to ${item.person === persona ? 'you' : nm(item.person)}. Anyone can answer it.` : 'Open question.'}</span>
+          </div>
+        );
+      })()}
       {(r.stale || []).length > 0 && <Banner tone="warn">Stale narrative: {(r.stale || []).join(', ')} should be rewritten.</Banner>}
       <div className="flex flex-wrap gap-[22px] items-start">
         <div className="flex-[999_1_560px] min-w-0 flex flex-col gap-[22px]">
@@ -141,14 +156,14 @@ export default function RecordPage() {
                       )}
                     </dt>
                     <dd className="m-0 min-w-0 text-[13px]">
-                      <Value v={v} slug={slug} />
+                      <Value v={v} fid={fid} />
                     </dd>
                   </div>
                 );
               })}
             </dl>
           </Card>
-          {r.type === 'acceptance_criterion' && r.status !== 'RETIRED' && <RetireForm slug={slug} r={r} />}
+          {r.type === 'acceptance_criterion' && r.status !== 'RETIRED' && <RetireForm fid={fid} r={r} />}
         </div>
         <aside className="flex-[1_1_300px] min-w-0 flex flex-col gap-[22px]">
           <Card className="px-[18px] py-4 flex flex-col gap-1.5">
@@ -159,7 +174,7 @@ export default function RecordPage() {
                 <span className="small">
                   {l.dir} {l.kind}
                 </span>{' '}
-                <Link to={refHref(slug, l.ref)} className="font-mono">
+                <Link to={refHref(fid, l.ref)} className="font-mono">
                   {l.ref}
                 </Link>
               </span>
@@ -170,7 +185,7 @@ export default function RecordPage() {
               <h2 className="text-[17px]">Up for review</h2>
               {(r.review_items || []).map((x) => (
                 <span key={x.id} className="text-[13px]">
-                  ← {x.cause}: {x.what_moved} · {nm(x.route_to)} · <Link to={`/i/${slug}/reviews`}>resolve</Link>
+                  ← {x.cause}: {x.what_moved} · {nm(x.route_to)} · <Link to={`/features/${fid}/reviews`}>resolve</Link>
                 </span>
               ))}
             </Card>
@@ -182,6 +197,7 @@ export default function RecordPage() {
                 <span className="font-mono">rev {h.rev}</span> · {dateTime(h.at)} · <span className={h.actor_kind === 'human' ? 'text-human font-semibold' : 'text-agent font-semibold'}>{who(h.actor)}</span> · {h.status}
                 {h.because.length > 0 && ` · because ${h.because.join(', ')}`}
                 {h.note && ` · ${h.note}`}
+                {asText(h.fields?.answered_for) && h.actor === asText(h.fields?.answered_by) && h.status === 'ANSWERED' && ` · answered for ${nm(asText(h.fields.answered_for))}`}
               </span>
             ))}
             <Badge tone="muted">{revs.length} revisions</Badge>

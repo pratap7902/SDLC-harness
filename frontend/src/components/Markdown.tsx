@@ -1,10 +1,10 @@
 import React from 'react';
-import { Inline } from '../lib/links';
+import { Inline, type Fid } from '../lib/links';
 
 /** The markdown agents write (draft sections, contexts, requirements): fenced code,
  * headings, lists and paragraphs, with refs, `code` and URLs inline. Rendered as React
  * elements — no HTML from the record ever reaches the DOM. */
-export function Markdown({ text, slug, className = '' }: { text: string; slug?: string; className?: string }) {
+export function Markdown({ text, fid, className = '' }: { text: string; fid?: Fid; className?: string }) {
   const blocks: React.ReactNode[] = [];
   const lines = text.replace(/\r\n/g, '\n').split('\n');
   let i = 0;
@@ -19,11 +19,21 @@ export function Markdown({ text, slug, className = '' }: { text: string; slug?: 
       blocks.push(<pre key={key++}>{body.join('\n')}</pre>);
       continue;
     }
+    if (/^>\s?/.test(line)) {
+      const quote: string[] = [];
+      while (i < lines.length && /^>\s?/.test(lines[i])) quote.push(lines[i++].replace(/^>\s?/, ''));
+      blocks.push(
+        <blockquote key={key++} className="m-0 mb-2 px-3 py-2 bg-page rounded-md text-[13px] text-ink-soft">
+          <Inline text={quote.join(' ')} fid={fid} />
+        </blockquote>,
+      );
+      continue;
+    }
     const h = line.match(/^(#{1,4})\s+(.*)$/);
     if (h) {
       blocks.push(
         <h3 key={key++}>
-          <Inline text={h[2]} slug={slug} />
+          <Inline text={h[2]} fid={fid} />
         </h3>,
       );
       i++;
@@ -41,7 +51,7 @@ export function Markdown({ text, slug, className = '' }: { text: string; slug?: 
         <Tag key={key++}>
           {items.map((it, j) => (
             <li key={j}>
-              <Inline text={it} slug={slug} />
+              <Inline text={it} fid={fid} />
             </li>
           ))}
         </Tag>,
@@ -53,12 +63,12 @@ export function Markdown({ text, slug, className = '' }: { text: string; slug?: 
       continue;
     }
     const para: string[] = [];
-    while (i < lines.length && lines[i].trim() && !/^```/.test(lines[i]) && !/^#{1,4}\s/.test(lines[i]) && !/^\s*([-*]|\d+[.)])\s+/.test(lines[i])) {
+    while (i < lines.length && lines[i].trim() && !/^```/.test(lines[i]) && !/^>/.test(lines[i]) && !/^#{1,4}\s/.test(lines[i]) && !/^\s*([-*]|\d+[.)])\s+/.test(lines[i])) {
       para.push(lines[i++]);
     }
     blocks.push(
       <p key={key++}>
-        <Inline text={para.join(' ')} slug={slug} />
+        <Inline text={para.join(' ')} fid={fid} />
       </p>,
     );
   }

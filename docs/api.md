@@ -9,10 +9,23 @@ running service against the demo data (`make seed`). Regenerate with
 
 - **Base URL**: `http://localhost:8791` (`make dev`). All JSON routes are under `/api`.
   The Vite dev server (`http://localhost:5173`) is allowed by CORS.
-- **Who is calling** (AUTH_MODE=header): every request sends `X-Actor: <person handle>`.
-  The web UI is a human: send `X-Actor-Kind: human` (it is also the default when no
-  `agent` label is given). Agents send `X-Actor-Kind: agent`. Human-only endpoints (marked
-  **human**) return **403** with `error_code: "HUMAN_ONLY"` to anyone else.
+- **Who is calling** comes only from headers (AUTH_MODE=header today, a bearer token
+  later), never from a path, query or body: every request sends `X-Actor: <person
+  handle>`. The web UI is a human: send `X-Actor-Kind: human` (it is also the default when
+  no `agent` label is given). Agents send `X-Actor-Kind: agent`. Human-only endpoints
+  (marked **human**) return **403** with `error_code: "HUMAN_ONLY"` to anyone else.
+  `GET /api/inbox` and `GET /api/overview` are the caller's.
+- **Ids in paths**: an initiative is addressed by its numeric `id`
+  (`/api/initiatives/{id}/…`, `initiative_id` in the deploy guard and MCP tools); `slug` is
+  a display label. Records are addressed by their ref within the initiative
+  (`/api/initiatives/{id}/records/D-3`). Work-item and lease keys are
+  `<kind>:<initiative id>[:<ref>]` (`task:3:T-1`).
+- **Gaps: anyone answers, both people are kept.** Any human may answer any open gap. The
+  answer stores `assigned_to` / `assigned_role` (who it was routed to at that moment,
+  frozen), `answered_by` (the caller) and `answered_on`; `answered_for` is set when the
+  answerer is not the assignee. The drift entry reads "G-2 answered by priya · assigned to
+  arjun"; the activity feed carries `answered_by`, `assigned_to`, `answered_for` on the
+  answering revision.
 - **Keys are snake_case**; timestamps are ISO-8601 UTC with a trailing `Z`.
 - **Statuses are derived**, never written. Each status has a pill colour in
   `GET /api/blueprint` → `pills` (green / amber / red / grey); every record JSON also
@@ -25,7 +38,7 @@ running service against the demo data (`make seed`). Regenerate with
   `F-n` finding · `R-n` test run · `DEP-n` deploy · `APR-n` approval · `B-n` baseline ·
   `A-n` assignment · `draft` and `initiative` (one each per initiative) · `STD-n`, `L-n`
   (global). Refs appear bare in text fields (`"see D-3"`): link them to
-  `/i/<slug>/r/<ref>`.
+  `/features/<id>/records/<ref>`.
 - **Record JSON** (lists, detail, everywhere): `{ref, type, title, status, pill, line,
   rev, fields, created_by, created_at, updated_by, updated_at}`; the detail endpoint adds
   `links {out: [{kind, to}], in: [{kind, from}]}`, `stamps` (who set each field, and as
@@ -37,37 +50,37 @@ running service against the demo data (`make seed`). Regenerate with
 
 | Page | Reads | Writes |
 |---|---|---|
-| `/` home (Features) | `GET /api/overview?person=` (one read: every initiative, decisions waiting, your PR approvals) | — |
+| `/` Features | `GET /api/overview` (the caller's view: every initiative, decisions waiting, your PR approvals) | — |
 | `/new` start a feature | — | `POST /api/initiatives` |
-| `/inbox/:person` (touchpoint 2) | `GET /api/inbox/{person}` | `POST …/gaps/{ref}/answer`, `POST …/decisions/{ref}/rule`, `POST …/approvals`, `POST …/criteria/{ref}/sign`, `POST …/reviews/{id}/resolve` |
-| `/i/:slug` initiative | `GET /api/initiatives/{slug}`, `GET …/worklist` | `POST …/snapshot` (re-pin requirement) |
-| `/i/:slug/draft` (touchpoint 1) | `GET /api/initiatives/{slug}/draft` | `POST …/approvals` `{target: "draft", role: "dri"}`, `POST …/gaps/{ref}/answer` |
-| `/i/:slug/drift` | `GET …/drift` (`?baseline=B-n` for older) | — |
-| `/i/:slug/t/:ref` (touchpoint 3) | `GET …/tasks/{ref}` (task + GATE_PR + scoped drift) | `POST …/approvals` `{target: "T-n", role: "engg", at_sha}` |
-| `/i/:slug/r/:ref` record | `GET …/records/{ref}`, `GET …/records/{ref}/history` | `POST …/criteria/{ref}/retire` (an AC) |
-| `/i/:slug/reviews` | `GET …/reviews?status=open|upheld|revised|dismissed|all` | `POST …/reviews/{id}/resolve` |
-| `/i/:slug/activity` | `GET …/activity`, `GET …/events?since=` | — |
+| `/inbox` (touchpoint 2) | `GET /api/inbox` (what is routed to the caller); `?view=all` — every open gap, from `GET /api/overview` → `waiting` | `POST …/gaps/{ref}/answer`, `POST …/decisions/{ref}/rule`, `POST …/approvals`, `POST …/criteria/{ref}/sign`, `POST …/reviews/{id}/resolve` |
+| `/features/:id` feature | `GET /api/initiatives/{id}`, `GET …/worklist`, `GET …/draft` | `POST …/snapshot` (re-pin requirement) |
+| `/features/:id/draft` (touchpoint 1) | `GET /api/initiatives/{id}/draft` | `POST …/approvals` `{target: "draft", role: "dri"}`, `POST …/gaps/{ref}/answer` |
+| `/features/:id/drift` | `GET …/drift` (`?baseline=B-n` for older) | — |
+| `/features/:id/tasks/:ref` (touchpoint 3) | `GET …/tasks/{ref}` (task + GATE_PR + scoped drift) | `POST …/approvals` `{target: "T-n", role: "engg", at_sha}` |
+| `/features/:id/records/:ref` record | `GET …/records/{ref}`, `GET …/records/{ref}/history` | `POST …/criteria/{ref}/retire` (an AC) |
+| `/features/:id/reviews` | `GET …/reviews?status=open|upheld|revised|dismissed|all` | `POST …/reviews/{id}/resolve` |
+| `/features/:id/activity` | `GET …/activity`, `GET …/events?since=` | — |
 | `/standards`, `/learnings` | `GET /api/standards`, `GET /api/learnings` | `POST /api/learnings/{ref}/promote` |
 | `/blueprint` | `GET /api/blueprint`, `GET /api/blueprint/lifecycle` | — |
 
 The three human touchpoints:
 
-1. **Draft review** — `/i/:slug/draft`. Show the draft sections (`problem`, `hld`, `lld`,
+1. **Draft review** — `/features/:id/draft`. Show the draft sections (`problem`, `hld`, `lld`,
    `scope_in`, `scope_out`, `test_strategy` — markdown), each decision with its `options`
    and `verdict`, each AC, each gap, the draft-phase catalog and `gate` (GATE_DRAFT, rule by
    rule). The **Approve** button is enabled when `can_approve` is true; otherwise list
    `approval_blockers`. Only the `approver` (the DRI) may approve.
-2. **Gap reviews** — `/inbox/:person`. Each item has `kind` (`gap` · `decision` ·
+2. **Gap reviews** — `/inbox`. Each item has `kind` (`gap` · `decision` ·
    `approval` · `review_item` · `manual_ac`), its context, `options` + `recommendation`
    (gaps), `blocks`, `sla_hours`, `due_at`, `overdue`. Answer = pick an option (`choice`)
-   or type (`answer`).
-3. **Final PR review** — `/i/:slug/t/:ref`. Render `drift` (the task-scoped drift report:
+   or type (`answer`). Any human may answer any open gap (see Conventions).
+3. **Final PR review** — `/features/:id/tasks/:ref`. Render `drift` (the task-scoped drift report:
    `entries` as a timeline between `approved_spec` and `current_spec`, `spec_diff`,
    `unexplained`), the `gate` (GATE_PR) and the PR. **Approve** posts the PR head sha
    (`task.fields.pr_sha`); the service pins the report's `digest`. A later push or new drift
    makes the approval `STALE` and the gate re-blocks on its own.
 
-### The drift report (`GET /api/initiatives/{slug}/drift`)
+### The drift report (`GET /api/initiatives/{id}/drift`)
 
 `status`: `NO_BASELINE` (draft not yet approved) · `CLEAN` (nothing changed) · `EXPLAINED`
 (every change has a human-grounded reason) · `UNEXPLAINED`.
@@ -634,13 +647,14 @@ Response:
 ```json
 [
   {
+    "id": 7,
     "slug": "webhook-signing",
     "title": "Partner webhook signing",
     "work_item_url": null,
     "created_by": "rahul",
-    "created_at": "2026-10-28T20:58:00Z",
+    "created_at": "2026-10-28T21:13:00Z",
     "closed_at": null,
-    "snapshot_hash": "fb19baa328a2fbf1d4b40b4ffad1ed5601d0af570b75c7d026fe828cfd4355c9",
+    "snapshot_hash": "5d1daac03f797441f4825586ee47e303737397ed735995f5244a994a293e5e67",
     "phase": "DRAFT",
     "pill": "amber",
     "summary": "",
@@ -657,13 +671,14 @@ Response:
     "drift": null
   },
   {
+    "id": 6,
     "slug": "menu-sync-retries",
     "title": "Menu sync retries",
     "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4833",
     "created_by": "priya",
-    "created_at": "2026-10-27T19:04:00Z",
+    "created_at": "2026-10-27T19:19:00Z",
     "closed_at": null,
-    "snapshot_hash": "983736abb1d556c54f443d0981e7f949ee35c12ade6549f074e46a54e65b9a17",
+    "snapshot_hash": "40981636ec304794750262f99880e767936b311941a60be5f41356a31a823426",
     "phase": "DRAFT",
     "pill": "amber",
     "summary": "",
@@ -683,11 +698,11 @@ Response:
 ]
 ```
 
-### GET /api/overview?person=arjun
+### GET /api/overview
 
 **The Features list in one read.** Per initiative: phase, `people` (role → person), `involved` (the `person` holds a role or has an item), `next` (the next open human item — yours first, then what blocks work — with `person` and a short `label`), `prs` (`approved`/`total`, `stale` task refs), `gate_draft.state` (`drafting` · `waiting` · `ready` · `approved` · `reopened`), `drift`, `updated_at` (latest revision or review move), `agents` (`queued`, `leased`, lease `holders`). Across initiatives: `waiting` (every routed human item, inbox-shaped, sorted for `person`), `decisions` (the same without task PR approvals) and `my_pr_approvals`.
 
-`GET /api/overview?person=arjun` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/overview` — X-Actor: arjun · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -702,13 +717,14 @@ Response:
   },
   "initiatives": [
     {
+      "id": 7,
       "slug": "webhook-signing",
       "title": "Partner webhook signing",
       "work_item_url": null,
       "created_by": "rahul",
-      "created_at": "2026-10-28T20:58:00Z",
+      "created_at": "2026-10-28T21:13:00Z",
       "closed_at": null,
-      "snapshot_hash": "fb19baa328a2fbf1d4b40b4ffad1ed5601d0af570b75c7d026fe828cfd4355c9",
+      "snapshot_hash": "5d1daac03f797441f4825586ee47e303737397ed735995f5244a994a293e5e67",
       "phase": "DRAFT",
       "pill": "amber",
       "summary": "",
@@ -747,7 +763,7 @@ Response:
       },
       "baseline": null,
       "drift": null,
-      "updated_at": "2026-10-28T20:58:00Z",
+      "updated_at": "2026-10-28T21:13:00Z",
       "agents": {
         "queued": 0,
         "leased": 1,
@@ -764,13 +780,14 @@ Response:
       }
     },
     {
+      "id": 6,
       "slug": "menu-sync-retries",
       "title": "Menu sync retries",
       "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4833",
       "created_by": "priya",
-      "created_at": "2026-10-27T19:04:00Z",
+      "created_at": "2026-10-27T19:19:00Z",
       "closed_at": null,
-      "snapshot_hash": "983736abb1d556c54f443d0981e7f949ee35c12ade6549f074e46a54e65b9a17",
+      "snapshot_hash": "40981636ec304794750262f99880e767936b311941a60be5f41356a31a823426",
       "phase": "DRAFT",
       "pill": "amber",
       "summary": "",
@@ -791,14 +808,14 @@ Response:
         "waiting": 1
       },
       "next": {
-        "key": "gap:menu-sync-retries:G-1",
+        "key": "gap:6:G-1",
         "kind": "gap",
         "ref": "G-1",
         "person": "meera",
         "label": "G-1 · gap",
         "title": "Is the retry budget per partner or global?",
         "overdue": false,
-        "due_at": "2026-10-29T17:04:00Z"
+        "due_at": "2026-10-29T17:19:00Z"
       },
       "prs": {
         "total": 0,
@@ -820,7 +837,7 @@ Response:
       },
       "baseline": null,
       "drift": null,
-      "updated_at": "2026-10-28T17:04:00Z",
+      "updated_at": "2026-10-28T17:19:00Z",
       "agents": {
         "queued": 1,
         "leased": 0,
@@ -838,8 +855,9 @@ Response:
   ],
   "waiting": [
     {
-      "key": "gap:order-events:G-2",
+      "key": "gap:5:G-2",
       "kind": "gap",
+      "initiative_id": 5,
       "initiative": "order-events",
       "initiative_title": "Order events for downstream consumers",
       "ref": "G-2",
@@ -850,10 +868,10 @@ Response:
         "fallback": false
       },
       "person": "arjun",
-      "since": "2026-10-28T19:04:00Z",
+      "since": "2026-10-28T19:19:00Z",
       "age_hours": 2.0,
       "sla_hours": 24,
-      "due_at": "2026-10-29T19:04:00Z",
+      "due_at": "2026-10-29T19:19:00Z",
       "overdue": false,
       "priority": 10,
       "title": "The outbox table can't be added to the orders schema in time",
@@ -871,7 +889,7 @@ Response:
           "domain": "engg",
           "level": "MUST",
           "asked_by": "runner-sdk/implement-task",
-          "why_now": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.",
+          "why_now": "Implementing T-1 hit the orders schema ownership rule: T-1 cannot finish as D-1 is written.",
           "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
           "options": [
             {
@@ -895,9 +913,9 @@ Response:
           "proposed_change": "D-1 verdict: outbox → CDC via Debezium on the orders table. Add AC: CDC lag over 5 s for 2 min fires the alert. LLD event delivery section rewritten."
         },
         "created_by": "runner-sdk/implement-task",
-        "created_at": "2026-10-28T19:04:00Z",
+        "created_at": "2026-10-28T19:19:00Z",
         "updated_by": "runner-sdk/implement-task",
-        "updated_at": "2026-10-28T19:04:00Z"
+        "updated_at": "2026-10-28T19:19:00Z"
       },
       "question": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
       "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
@@ -923,8 +941,9 @@ Response:
       "level": "MUST"
     },
     {
-      "key": "approval:payouts-v2:T-3",
+      "key": "approval:2:T-3",
       "kind": "approval",
+      "initiative_id": 2,
       "initiative": "payouts-v2",
       "initiative_title": "Payouts v2: refunds ledger",
       "ref": "T-3",
@@ -935,10 +954,10 @@ Response:
         "fallback": false
       },
       "person": "arjun",
-      "since": "2026-10-27T18:04:00Z",
+      "since": "2026-10-27T18:19:00Z",
       "age_hours": 27.0,
       "sla_hours": 48,
-      "due_at": "2026-10-29T18:04:00Z",
+      "due_at": "2026-10-29T18:19:00Z",
       "overdue": false,
       "priority": 20,
       "title": "Review the drift of T-3: Refunds ledger API",
@@ -955,15 +974,16 @@ Response:
         "pending_decisions": 0,
         "other_changes": 0
       },
-      "digest": "8fe2ace47793d29c3be4cb80d40418f055bc0a01e12b4cd5927e700efe458766",
+      "digest": "c3cae686a243a8aaad6af20d9991576bf4694954cea07b15dcf6f061984b19ed",
       "stale_approvals": []
     },
     "… (+6 more)"
   ],
   "decisions": [
     {
-      "key": "gap:order-events:G-2",
+      "key": "gap:5:G-2",
       "kind": "gap",
+      "initiative_id": 5,
       "initiative": "order-events",
       "initiative_title": "Order events for downstream consumers",
       "ref": "G-2",
@@ -974,10 +994,10 @@ Response:
         "fallback": false
       },
       "person": "arjun",
-      "since": "2026-10-28T19:04:00Z",
+      "since": "2026-10-28T19:19:00Z",
       "age_hours": 2.0,
       "sla_hours": 24,
-      "due_at": "2026-10-29T19:04:00Z",
+      "due_at": "2026-10-29T19:19:00Z",
       "overdue": false,
       "priority": 10,
       "title": "The outbox table can't be added to the orders schema in time",
@@ -995,7 +1015,7 @@ Response:
           "domain": "engg",
           "level": "MUST",
           "asked_by": "runner-sdk/implement-task",
-          "why_now": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.",
+          "why_now": "Implementing T-1 hit the orders schema ownership rule: T-1 cannot finish as D-1 is written.",
           "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
           "options": [
             {
@@ -1019,9 +1039,9 @@ Response:
           "proposed_change": "D-1 verdict: outbox → CDC via Debezium on the orders table. Add AC: CDC lag over 5 s for 2 min fires the alert. LLD event delivery section rewritten."
         },
         "created_by": "runner-sdk/implement-task",
-        "created_at": "2026-10-28T19:04:00Z",
+        "created_at": "2026-10-28T19:19:00Z",
         "updated_by": "runner-sdk/implement-task",
-        "updated_at": "2026-10-28T19:04:00Z"
+        "updated_at": "2026-10-28T19:19:00Z"
       },
       "question": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
       "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
@@ -1047,8 +1067,9 @@ Response:
       "level": "MUST"
     },
     {
-      "key": "review_item:payouts-v2:22",
+      "key": "review_item:2:22",
       "kind": "review_item",
+      "initiative_id": 2,
       "initiative": "payouts-v2",
       "initiative_title": "Payouts v2: refunds ledger",
       "ref": "22",
@@ -1059,10 +1080,10 @@ Response:
         "fallback": false
       },
       "person": "arjun",
-      "since": "2026-10-28T01:04:00Z",
+      "since": "2026-10-28T01:19:00Z",
       "age_hours": 20.0,
       "sla_hours": 48,
-      "due_at": "2026-10-30T01:04:00Z",
+      "due_at": "2026-10-30T01:19:00Z",
       "overdue": false,
       "priority": 30,
       "title": "D-2 ← G-1: does it still hold?",
@@ -1075,8 +1096,9 @@ Response:
   ],
   "my_pr_approvals": [
     {
-      "key": "approval:payouts-v2:T-3",
+      "key": "approval:2:T-3",
       "kind": "approval",
+      "initiative_id": 2,
       "initiative": "payouts-v2",
       "initiative_title": "Payouts v2: refunds ledger",
       "ref": "T-3",
@@ -1087,10 +1109,10 @@ Response:
         "fallback": false
       },
       "person": "arjun",
-      "since": "2026-10-27T18:04:00Z",
+      "since": "2026-10-27T18:19:00Z",
       "age_hours": 27.0,
       "sla_hours": 48,
-      "due_at": "2026-10-29T18:04:00Z",
+      "due_at": "2026-10-29T18:19:00Z",
       "overdue": false,
       "priority": 20,
       "title": "Review the drift of T-3: Refunds ledger API",
@@ -1107,7 +1129,7 @@ Response:
         "pending_decisions": 0,
         "other_changes": 0
       },
-      "digest": "8fe2ace47793d29c3be4cb80d40418f055bc0a01e12b4cd5927e700efe458766",
+      "digest": "c3cae686a243a8aaad6af20d9991576bf4694954cea07b15dcf6f061984b19ed",
       "stale_approvals": []
     }
   ]
@@ -1116,7 +1138,7 @@ Response:
 
 ### POST /api/initiatives
 
-**Start a feature** (the intake; `/new`). `requirement` (markdown), `title`, `dri`, `engg` are required; `slug` defaults from the title; `work_item_url` (Azure DevOps link), `product`, `design`, `qa`, `prd_refs` are optional. Pins `spec_snapshot` with its hash and writes the assignments. Returns the same body as `GET /api/initiatives/{slug}`. 422 lists every missing field in `error_data.errors`; 409 if an explicit `slug` exists.
+**Start a feature** (the intake; `/new`). `requirement` (markdown), `title`, `dri`, `engg` are required; `slug` defaults from the title; `work_item_url` (Azure DevOps link), `product`, `design`, `qa`, `prd_refs` are optional. Pins `spec_snapshot` with its hash and writes the assignments. Returns the same body as `GET /api/initiatives/{id}` (`initiative.id` is the new id). 422 lists every missing field in `error_data.errors`; 409 if an explicit `slug` exists.
 
 `POST /api/initiatives` — X-Actor: priya · X-Actor-Kind: human → **201**
 
@@ -1139,13 +1161,14 @@ Response:
 ```json
 {
   "initiative": {
+    "id": 8,
     "slug": "payment-webhooks",
     "title": "Payment webhooks",
     "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
     "created_by": "priya",
-    "created_at": "2026-10-28T21:04:59Z",
+    "created_at": "2026-10-28T21:19:10Z",
     "closed_at": null,
-    "snapshot_hash": "4819a51d18b1885e7069af337413116f0b43c40c2e62aa11f9be548b464a1d0f",
+    "snapshot_hash": "be1d01084e6fb5414d65cd8e0372894c7771aca83a6f05d83f09a1e5b8aead79",
     "phase": "DRAFT",
     "pill": "amber",
     "summary": "",
@@ -1153,7 +1176,7 @@ Response:
       "requirement": "# Payment webhooks\nMerchants want a webhook when a payment settles.",
       "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
       "created_by": "priya",
-      "at": "2026-10-28T21:04:59Z"
+      "at": "2026-10-28T21:19:10Z"
     }
   },
   "phase": "DRAFT",
@@ -1327,24 +1350,25 @@ Response:
 }
 ```
 
-### GET /api/initiatives/order-events
+### GET /api/initiatives/5
 
 **Initiative state**: the initiative with its `spec_snapshot`, `phase`, assignments, initiative-scope gates (rule by rule), tasks with their GATE_PR status and drift summary, counts by type and status, open refs, the current baseline, drift summary, stale narratives, and every catalog (phase → items with `disposition`: `addressed` · `not_applicable` · `UNASSESSED`).
 
-`GET /api/initiatives/order-events` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/initiatives/5` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
 ```json
 {
   "initiative": {
+    "id": 5,
     "slug": "order-events",
     "title": "Order events for downstream consumers",
     "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4821",
     "created_by": "priya",
-    "created_at": "2026-10-22T21:04:00Z",
+    "created_at": "2026-10-22T21:19:00Z",
     "closed_at": null,
-    "snapshot_hash": "c6c6167c468f9e6860e0a12e3247939ad3f6e3b0e28e0d4c0c535a024407415f",
+    "snapshot_hash": "0355c0d9fa3eb15d3dc0ca6ef3280344ad207b42337acbba3777045c2c6f7725",
     "phase": "BUILD",
     "pill": "amber",
     "summary": "",
@@ -1352,7 +1376,7 @@ Response:
       "requirement": "# Order events for downstream consumers\n\nNotifications-svc polls the orders database every minute to find new and cancelled orders.\nEmails go out late, and the polling query is the orders DB's top loa…",
       "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4821",
       "created_by": "priya",
-      "at": "2026-10-22T21:04:00Z"
+      "at": "2026-10-22T21:19:00Z"
     }
   },
   "phase": "BUILD",
@@ -1494,9 +1518,9 @@ Response:
         "rollback": "Revert the PR; the change is behind a flag."
       },
       "created_by": "runner-sdk/plan-to-tasks",
-      "created_at": "2026-10-24T01:04:00Z",
+      "created_at": "2026-10-24T01:19:00Z",
       "updated_by": "runner-sdk/plan-to-tasks",
-      "updated_at": "2026-10-24T01:04:00Z",
+      "updated_at": "2026-10-24T01:19:00Z",
       "gate_pr": {
         "status": "BLOCKED",
         "failing_rules": [
@@ -1540,9 +1564,9 @@ Response:
         "rollback": "Revert the PR; the change is behind a flag."
       },
       "created_by": "runner-sdk/plan-to-tasks",
-      "created_at": "2026-10-24T01:04:00Z",
+      "created_at": "2026-10-24T01:19:00Z",
       "updated_by": "runner-sdk/plan-to-tasks",
-      "updated_at": "2026-10-24T01:04:00Z",
+      "updated_at": "2026-10-24T01:19:00Z",
       "gate_pr": {
         "status": "BLOCKED",
         "failing_rules": [
@@ -1587,9 +1611,9 @@ Response:
         "review_rounds": "1"
       },
       "created_by": "runner-sdk/plan-to-tasks",
-      "created_at": "2026-10-24T01:04:00Z",
+      "created_at": "2026-10-24T01:19:00Z",
       "updated_by": "runner-sdk/implement-task",
-      "updated_at": "2026-10-26T21:04:00Z",
+      "updated_at": "2026-10-26T21:19:00Z",
       "gate_pr": {
         "status": "PASSED",
         "failing_rules": []
@@ -1664,7 +1688,7 @@ Response:
       "D-2",
       "… (+8 more)"
     ],
-    "created_at": "2026-10-23T23:04:00Z"
+    "created_at": "2026-10-23T23:19:00Z"
   },
   "drift": {
     "changes": 0,
@@ -1762,24 +1786,25 @@ Response:
 }
 ```
 
-### GET /api/initiatives/menu-sync-retries/draft
+### GET /api/initiatives/6/draft
 
 **Draft review page** (touchpoint 1). `can_approve`, `approval_blockers[{rule, failing, detail}]` and `approver` drive the Approve button.
 
-`GET /api/initiatives/menu-sync-retries/draft` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/initiatives/6/draft` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
 ```json
 {
   "initiative": {
+    "id": 6,
     "slug": "menu-sync-retries",
     "title": "Menu sync retries",
     "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4833",
     "created_by": "priya",
-    "created_at": "2026-10-27T19:04:00Z",
+    "created_at": "2026-10-27T19:19:00Z",
     "closed_at": null,
-    "snapshot_hash": "983736abb1d556c54f443d0981e7f949ee35c12ade6549f074e46a54e65b9a17",
+    "snapshot_hash": "40981636ec304794750262f99880e767936b311941a60be5f41356a31a823426",
     "phase": "DRAFT",
     "pill": "amber",
     "summary": "",
@@ -1787,7 +1812,7 @@ Response:
       "requirement": "# Menu sync retries\nMenu pushes to partners fail on timeouts and are never retried, so stores show stale menus until someone pushes again by hand.\n\n**Done:** failed pushes retry on their own and no st…",
       "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4833",
       "created_by": "priya",
-      "at": "2026-10-27T19:04:00Z"
+      "at": "2026-10-27T19:19:00Z"
     }
   },
   "draft": {
@@ -1823,9 +1848,9 @@ Response:
       ]
     },
     "created_by": "runner-sdk/draft-from-ticket",
-    "created_at": "2026-10-27T21:04:00Z",
+    "created_at": "2026-10-27T21:19:00Z",
     "updated_by": "runner-sdk/draft-from-ticket",
-    "updated_at": "2026-10-28T17:04:00Z",
+    "updated_at": "2026-10-28T17:19:00Z",
     "links": {
       "out": [
         {
@@ -1849,42 +1874,42 @@ Response:
       "problem": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-27T21:04:00"
+        "at": "2026-10-27T21:19:00"
       },
       "hld": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-28T17:04:00"
+        "at": "2026-10-28T17:19:00"
       },
       "lld": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-27T21:04:00"
+        "at": "2026-10-27T21:19:00"
       },
       "scope_in": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-27T21:04:00"
+        "at": "2026-10-27T21:19:00"
       },
       "scope_out": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-27T21:04:00"
+        "at": "2026-10-27T21:19:00"
       },
       "test_strategy": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-27T21:04:00"
+        "at": "2026-10-27T21:19:00"
       },
       "decisions": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-27T21:04:00"
+        "at": "2026-10-27T21:19:00"
       },
       "criteria": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-27T21:04:00"
+        "at": "2026-10-27T21:19:00"
       }
     },
     "stale": [],
@@ -1922,9 +1947,9 @@ Response:
         "decided_on": "2026-10-27"
       },
       "created_by": "runner-sdk/draft-from-ticket",
-      "created_at": "2026-10-27T21:04:00Z",
+      "created_at": "2026-10-27T21:19:00Z",
       "updated_by": "runner-sdk/draft-from-ticket",
-      "updated_at": "2026-10-27T21:04:00Z",
+      "updated_at": "2026-10-27T21:19:00Z",
       "links": {
         "out": [
           {
@@ -1948,42 +1973,42 @@ Response:
         "question": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T21:04:00"
+          "at": "2026-10-27T21:19:00"
         },
         "domain": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T21:04:00"
+          "at": "2026-10-27T21:19:00"
         },
         "level": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T21:04:00"
+          "at": "2026-10-27T21:19:00"
         },
         "options": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T21:04:00"
+          "at": "2026-10-27T21:19:00"
         },
         "verdict": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T21:04:00"
+          "at": "2026-10-27T21:19:00"
         },
         "rationale": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T21:04:00"
+          "at": "2026-10-27T21:19:00"
         },
         "decided_by": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T21:04:00"
+          "at": "2026-10-27T21:19:00"
         },
         "decided_on": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T21:04:00"
+          "at": "2026-10-27T21:19:00"
         }
       },
       "stale": [],
@@ -2020,9 +2045,9 @@ Response:
         ]
       },
       "created_by": "runner-sdk/draft-from-ticket",
-      "created_at": "2026-10-27T21:04:00Z",
+      "created_at": "2026-10-27T21:19:00Z",
       "updated_by": "runner-sdk/draft-from-ticket",
-      "updated_at": "2026-10-27T21:04:00Z",
+      "updated_at": "2026-10-27T21:19:00Z",
       "links": {
         "out": [],
         "in": [
@@ -2041,22 +2066,22 @@ Response:
         "question": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T21:04:00"
+          "at": "2026-10-27T21:19:00"
         },
         "domain": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T21:04:00"
+          "at": "2026-10-27T21:19:00"
         },
         "level": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T21:04:00"
+          "at": "2026-10-27T21:19:00"
         },
         "options": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T21:04:00"
+          "at": "2026-10-27T21:19:00"
         }
       },
       "stale": [],
@@ -2084,9 +2109,9 @@ Response:
         ]
       },
       "created_by": "runner-sdk/draft-from-ticket",
-      "created_at": "2026-10-27T21:04:00Z",
+      "created_at": "2026-10-27T21:19:00Z",
       "updated_by": "runner-sdk/draft-from-ticket",
-      "updated_at": "2026-10-27T21:04:00Z",
+      "updated_at": "2026-10-27T21:19:00Z",
       "links": {
         "out": [
           {
@@ -2105,17 +2130,17 @@ Response:
         "text": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T21:04:00"
+          "at": "2026-10-27T21:19:00"
         },
         "level": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T21:04:00"
+          "at": "2026-10-27T21:19:00"
         },
         "source": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T21:04:00"
+          "at": "2026-10-27T21:19:00"
         }
       },
       "stale": [],
@@ -2137,9 +2162,9 @@ Response:
         ]
       },
       "created_by": "runner-sdk/draft-from-ticket",
-      "created_at": "2026-10-27T21:04:00Z",
+      "created_at": "2026-10-27T21:19:00Z",
       "updated_by": "runner-sdk/draft-from-ticket",
-      "updated_at": "2026-10-27T21:04:00Z",
+      "updated_at": "2026-10-27T21:19:00Z",
       "links": {
         "out": [
           {
@@ -2162,17 +2187,17 @@ Response:
         "text": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T21:04:00"
+          "at": "2026-10-27T21:19:00"
         },
         "level": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T21:04:00"
+          "at": "2026-10-27T21:19:00"
         },
         "source": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T21:04:00"
+          "at": "2026-10-27T21:19:00"
         }
       },
       "stale": [],
@@ -2217,9 +2242,9 @@ Response:
         ]
       },
       "created_by": "runner-sdk/draft-from-ticket",
-      "created_at": "2026-10-28T17:04:00Z",
+      "created_at": "2026-10-28T17:19:00Z",
       "updated_by": "runner-sdk/draft-from-ticket",
-      "updated_at": "2026-10-28T17:04:00Z",
+      "updated_at": "2026-10-28T17:19:00Z",
       "links": {
         "out": [
           {
@@ -2243,57 +2268,57 @@ Response:
         "question": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T17:04:00"
+          "at": "2026-10-28T17:19:00"
         },
         "kind": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T17:04:00"
+          "at": "2026-10-28T17:19:00"
         },
         "domain": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T17:04:00"
+          "at": "2026-10-28T17:19:00"
         },
         "level": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T17:04:00"
+          "at": "2026-10-28T17:19:00"
         },
         "asked_by": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T17:04:00"
+          "at": "2026-10-28T17:19:00"
         },
         "why_now": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T17:04:00"
+          "at": "2026-10-28T17:19:00"
         },
         "context": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T17:04:00"
+          "at": "2026-10-28T17:19:00"
         },
         "options": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T17:04:00"
+          "at": "2026-10-28T17:19:00"
         },
         "recommendation": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T17:04:00"
+          "at": "2026-10-28T17:19:00"
         },
         "recommendation_why": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T17:04:00"
+          "at": "2026-10-28T17:19:00"
         },
         "blocks": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T17:04:00"
+          "at": "2026-10-28T17:19:00"
         }
       },
       "stale": [],
@@ -2380,24 +2405,25 @@ Response:
 }
 ```
 
-### GET /api/initiatives/order-events/draft (approved)
+### GET /api/initiatives/5/draft (approved)
 
 The same page once approved: `gate.status` PASSED, `baselines[]`, `approvals[]`; D-1 shows `superseded_by: ["D-4"]`.
 
-`GET /api/initiatives/order-events/draft` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/initiatives/5/draft` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
 ```json
 {
   "initiative": {
+    "id": 5,
     "slug": "order-events",
     "title": "Order events for downstream consumers",
     "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4821",
     "created_by": "priya",
-    "created_at": "2026-10-22T21:04:00Z",
+    "created_at": "2026-10-22T21:19:00Z",
     "closed_at": null,
-    "snapshot_hash": "c6c6167c468f9e6860e0a12e3247939ad3f6e3b0e28e0d4c0c535a024407415f",
+    "snapshot_hash": "0355c0d9fa3eb15d3dc0ca6ef3280344ad207b42337acbba3777045c2c6f7725",
     "phase": "BUILD",
     "pill": "amber",
     "summary": "",
@@ -2405,7 +2431,7 @@ Response:
       "requirement": "# Order events for downstream consumers\n\nNotifications-svc polls the orders database every minute to find new and cancelled orders.\nEmails go out late, and the polling query is the orders DB's top loa…",
       "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4821",
       "created_by": "priya",
-      "at": "2026-10-22T21:04:00Z"
+      "at": "2026-10-22T21:19:00Z"
     }
   },
   "draft": {
@@ -2444,9 +2470,9 @@ Response:
       "submitted_rev": "3"
     },
     "created_by": "runner-sdk/draft-from-ticket",
-    "created_at": "2026-10-22T23:04:00Z",
+    "created_at": "2026-10-22T23:19:00Z",
     "updated_by": "runner-sdk/draft-from-ticket",
-    "updated_at": "2026-10-23T16:04:00Z",
+    "updated_at": "2026-10-23T16:19:00Z",
     "links": {
       "out": [
         {
@@ -2474,52 +2500,52 @@ Response:
       "summary": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-22T23:04:00"
+        "at": "2026-10-22T23:19:00"
       },
       "problem": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-22T23:04:00"
+        "at": "2026-10-22T23:19:00"
       },
       "hld": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-22T23:04:00"
+        "at": "2026-10-22T23:19:00"
       },
       "lld": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-22T23:04:00"
+        "at": "2026-10-22T23:19:00"
       },
       "scope_in": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-22T23:04:00"
+        "at": "2026-10-22T23:19:00"
       },
       "scope_out": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-22T23:04:00"
+        "at": "2026-10-22T23:19:00"
       },
       "test_strategy": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-23T02:04:00"
+        "at": "2026-10-23T02:19:00"
       },
       "decisions": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-22T23:04:00"
+        "at": "2026-10-22T23:19:00"
       },
       "criteria": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-23T16:04:00"
+        "at": "2026-10-23T16:19:00"
       },
       "submitted_rev": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-23T16:04:00"
+        "at": "2026-10-23T16:19:00"
       }
     },
     "stale": [
@@ -2560,9 +2586,9 @@ Response:
         "decided_on": "2026-10-23"
       },
       "created_by": "runner-sdk/draft-from-ticket",
-      "created_at": "2026-10-22T23:04:00Z",
+      "created_at": "2026-10-22T23:19:00Z",
       "updated_by": "priya",
-      "updated_at": "2026-10-23T06:04:00Z",
+      "updated_at": "2026-10-23T06:19:00Z",
       "links": {
         "out": [
           {
@@ -2586,47 +2612,47 @@ Response:
         "question": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "domain": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "level": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "options": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "verdict": {
           "by": "priya",
           "kind": "human",
-          "at": "2026-10-23T06:04:00"
+          "at": "2026-10-23T06:19:00"
         },
         "rationale": {
           "by": "priya",
           "kind": "human",
-          "at": "2026-10-23T06:04:00"
+          "at": "2026-10-23T06:19:00"
         },
         "provisional": {
           "by": "priya",
           "kind": "human",
-          "at": "2026-10-23T06:04:00"
+          "at": "2026-10-23T06:19:00"
         },
         "decided_by": {
           "by": "priya",
           "kind": "human",
-          "at": "2026-10-23T06:04:00"
+          "at": "2026-10-23T06:19:00"
         },
         "decided_on": {
           "by": "priya",
           "kind": "human",
-          "at": "2026-10-23T06:04:00"
+          "at": "2026-10-23T06:19:00"
         }
       },
       "stale": [],
@@ -2657,9 +2683,9 @@ Response:
         "decided_on": "2026-10-22"
       },
       "created_by": "runner-sdk/draft-from-ticket",
-      "created_at": "2026-10-22T23:04:00Z",
+      "created_at": "2026-10-22T23:19:00Z",
       "updated_by": "runner-sdk/draft-from-ticket",
-      "updated_at": "2026-10-22T23:04:00Z",
+      "updated_at": "2026-10-22T23:19:00Z",
       "links": {
         "out": [],
         "in": [
@@ -2678,42 +2704,42 @@ Response:
         "question": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "domain": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "level": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "verdict": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "rationale": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "provisional": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "decided_by": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "decided_on": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         }
       },
       "stale": [],
@@ -2741,9 +2767,9 @@ Response:
         ]
       },
       "created_by": "runner-sdk/draft-from-ticket",
-      "created_at": "2026-10-22T23:04:00Z",
+      "created_at": "2026-10-22T23:19:00Z",
       "updated_by": "runner-sdk/draft-from-ticket",
-      "updated_at": "2026-10-22T23:04:00Z",
+      "updated_at": "2026-10-22T23:19:00Z",
       "links": {
         "out": [
           {
@@ -2766,17 +2792,17 @@ Response:
         "text": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "level": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "source": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         }
       },
       "stale": [],
@@ -2798,9 +2824,9 @@ Response:
         ]
       },
       "created_by": "runner-sdk/draft-from-ticket",
-      "created_at": "2026-10-22T23:04:00Z",
+      "created_at": "2026-10-22T23:19:00Z",
       "updated_by": "runner-sdk/draft-from-ticket",
-      "updated_at": "2026-10-22T23:04:00Z",
+      "updated_at": "2026-10-22T23:19:00Z",
       "links": {
         "out": [
           {
@@ -2823,17 +2849,17 @@ Response:
         "text": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "level": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "source": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         }
       },
       "stale": [],
@@ -2878,13 +2904,15 @@ Response:
         "answer": "Yes — cancellations matter for notifications; refunds are out of scope.",
         "choice": "yes",
         "answered_by": "meera",
-        "answered_on": "2026-10-23T15:04:00Z",
+        "answered_on": "2026-10-23T15:19:00Z",
+        "assigned_to": "meera",
+        "assigned_role": "product",
         "resolution": "AC-7 added; order.cancelled is in scope."
       },
       "created_by": "runner-sdk/draft-from-ticket",
-      "created_at": "2026-10-22T23:04:00Z",
+      "created_at": "2026-10-22T23:19:00Z",
       "updated_by": "runner-sdk/draft-from-ticket",
-      "updated_at": "2026-10-23T16:04:00Z",
+      "updated_at": "2026-10-23T16:19:00Z",
       "links": {
         "out": [
           {
@@ -2907,82 +2935,92 @@ Response:
         "question": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "kind": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "domain": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "level": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "asked_by": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "why_now": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "context": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "options": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "recommendation": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "recommendation_why": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "blocks": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-22T23:04:00"
+          "at": "2026-10-22T23:19:00"
         },
         "answer": {
           "by": "meera",
           "kind": "human",
-          "at": "2026-10-23T15:04:00"
+          "at": "2026-10-23T15:19:00"
         },
         "choice": {
           "by": "meera",
           "kind": "human",
-          "at": "2026-10-23T15:04:00"
+          "at": "2026-10-23T15:19:00"
         },
         "answered_by": {
           "by": "meera",
           "kind": "human",
-          "at": "2026-10-23T15:04:00"
+          "at": "2026-10-23T15:19:00"
         },
         "answered_on": {
           "by": "meera",
           "kind": "human",
-          "at": "2026-10-23T15:04:00"
+          "at": "2026-10-23T15:19:00"
+        },
+        "assigned_to": {
+          "by": "meera",
+          "kind": "human",
+          "at": "2026-10-23T15:19:00"
+        },
+        "assigned_role": {
+          "by": "meera",
+          "kind": "human",
+          "at": "2026-10-23T15:19:00"
         },
         "resolution": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T16:04:00"
+          "at": "2026-10-23T16:19:00"
         }
       },
       "stale": [],
@@ -3002,7 +3040,7 @@ Response:
         "domain": "engg",
         "level": "MUST",
         "asked_by": "runner-sdk/implement-task",
-        "why_now": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.",
+        "why_now": "Implementing T-1 hit the orders schema ownership rule: T-1 cannot finish as D-1 is written.",
         "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
         "options": [
           {
@@ -3026,9 +3064,9 @@ Response:
         "proposed_change": "D-1 verdict: outbox → CDC via Debezium on the orders table. Add AC: CDC lag over 5 s for 2 min fires the alert. LLD event delivery section rewritten."
       },
       "created_by": "runner-sdk/implement-task",
-      "created_at": "2026-10-28T19:04:00Z",
+      "created_at": "2026-10-28T19:19:00Z",
       "updated_by": "runner-sdk/implement-task",
-      "updated_at": "2026-10-28T19:04:00Z",
+      "updated_at": "2026-10-28T19:19:00Z",
       "links": {
         "out": [
           {
@@ -3039,7 +3077,7 @@ Response:
             "kind": "blocks",
             "to": "T-1"
           },
-          "… (+2 more)"
+          "… (+3 more)"
         ],
         "in": []
       },
@@ -3047,62 +3085,62 @@ Response:
         "question": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T19:04:00"
+          "at": "2026-10-28T19:19:00"
         },
         "kind": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T19:04:00"
+          "at": "2026-10-28T19:19:00"
         },
         "domain": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T19:04:00"
+          "at": "2026-10-28T19:19:00"
         },
         "level": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T19:04:00"
+          "at": "2026-10-28T19:19:00"
         },
         "asked_by": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T19:04:00"
+          "at": "2026-10-28T19:19:00"
         },
         "why_now": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T19:04:00"
+          "at": "2026-10-28T19:19:00"
         },
         "context": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T19:04:00"
+          "at": "2026-10-28T19:19:00"
         },
         "options": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T19:04:00"
+          "at": "2026-10-28T19:19:00"
         },
         "recommendation": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T19:04:00"
+          "at": "2026-10-28T19:19:00"
         },
         "recommendation_why": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T19:04:00"
+          "at": "2026-10-28T19:19:00"
         },
         "blocks": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T19:04:00"
+          "at": "2026-10-28T19:19:00"
         },
         "proposed_change": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T19:04:00"
+          "at": "2026-10-28T19:19:00"
         }
       },
       "stale": [],
@@ -3190,9 +3228,9 @@ Response:
         "note": "Scope is right. Ship behind the flag."
       },
       "created_by": "priya",
-      "created_at": "2026-10-23T23:04:00Z",
+      "created_at": "2026-10-23T23:19:00Z",
       "updated_by": "priya",
-      "updated_at": "2026-10-23T23:04:00Z"
+      "updated_at": "2026-10-23T23:19:00Z"
     }
   ],
   "baselines": [
@@ -3208,7 +3246,7 @@ Response:
         "D-1",
         "… (+9 more)"
       ],
-      "created_at": "2026-10-23T23:04:00Z"
+      "created_at": "2026-10-23T23:19:00Z"
     }
   ],
   "review_items": []
@@ -3217,11 +3255,11 @@ Response:
 
 ## Records
 
-### GET /api/initiatives/order-events/records?type=decision
+### GET /api/initiatives/5/records?type=decision
 
 Filters: `type`, `status`, `q` (free text over ref, title and fields), `since` (ISO).
 
-`GET /api/initiatives/order-events/records?type=decision` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/initiatives/5/records?type=decision` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -3259,9 +3297,9 @@ Response:
       "decided_on": "2026-10-23"
     },
     "created_by": "runner-sdk/draft-from-ticket",
-    "created_at": "2026-10-22T23:04:00Z",
+    "created_at": "2026-10-22T23:19:00Z",
     "updated_by": "priya",
-    "updated_at": "2026-10-23T06:04:00Z"
+    "updated_at": "2026-10-23T06:19:00Z"
   },
   {
     "ref": "D-2",
@@ -3282,18 +3320,18 @@ Response:
       "decided_on": "2026-10-22"
     },
     "created_by": "runner-sdk/draft-from-ticket",
-    "created_at": "2026-10-22T23:04:00Z",
+    "created_at": "2026-10-22T23:19:00Z",
     "updated_by": "runner-sdk/draft-from-ticket",
-    "updated_at": "2026-10-22T23:04:00Z"
+    "updated_at": "2026-10-22T23:19:00Z"
   }
 ]
 ```
 
-### GET /api/initiatives/order-events/records/G-2
+### GET /api/initiatives/5/records/G-2
 
 Record detail: links both ways, per-field stamps (`by`, `kind`, `at`), stale narratives, open review items.
 
-`GET /api/initiatives/order-events/records/G-2` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/initiatives/5/records/G-2` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -3312,7 +3350,7 @@ Response:
     "domain": "engg",
     "level": "MUST",
     "asked_by": "runner-sdk/implement-task",
-    "why_now": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.",
+    "why_now": "Implementing T-1 hit the orders schema ownership rule: T-1 cannot finish as D-1 is written.",
     "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
     "options": [
       {
@@ -3336,9 +3374,9 @@ Response:
     "proposed_change": "D-1 verdict: outbox → CDC via Debezium on the orders table. Add AC: CDC lag over 5 s for 2 min fires the alert. LLD event delivery section rewritten."
   },
   "created_by": "runner-sdk/implement-task",
-  "created_at": "2026-10-28T19:04:00Z",
+  "created_at": "2026-10-28T19:19:00Z",
   "updated_by": "runner-sdk/implement-task",
-  "updated_at": "2026-10-28T19:04:00Z",
+  "updated_at": "2026-10-28T19:19:00Z",
   "links": {
     "out": [
       {
@@ -3349,7 +3387,7 @@ Response:
         "kind": "blocks",
         "to": "T-1"
       },
-      "… (+2 more)"
+      "… (+3 more)"
     ],
     "in": []
   },
@@ -3357,62 +3395,62 @@ Response:
     "question": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T19:04:00"
+      "at": "2026-10-28T19:19:00"
     },
     "kind": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T19:04:00"
+      "at": "2026-10-28T19:19:00"
     },
     "domain": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T19:04:00"
+      "at": "2026-10-28T19:19:00"
     },
     "level": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T19:04:00"
+      "at": "2026-10-28T19:19:00"
     },
     "asked_by": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T19:04:00"
+      "at": "2026-10-28T19:19:00"
     },
     "why_now": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T19:04:00"
+      "at": "2026-10-28T19:19:00"
     },
     "context": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T19:04:00"
+      "at": "2026-10-28T19:19:00"
     },
     "options": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T19:04:00"
+      "at": "2026-10-28T19:19:00"
     },
     "recommendation": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T19:04:00"
+      "at": "2026-10-28T19:19:00"
     },
     "recommendation_why": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T19:04:00"
+      "at": "2026-10-28T19:19:00"
     },
     "blocks": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T19:04:00"
+      "at": "2026-10-28T19:19:00"
     },
     "proposed_change": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T19:04:00"
+      "at": "2026-10-28T19:19:00"
     }
   },
   "stale": [],
@@ -3420,11 +3458,11 @@ Response:
 }
 ```
 
-### GET /api/initiatives/order-events/records/D-1/history
+### GET /api/initiatives/5/records/D-1/history
 
 Every revision, newest first: `actor`, `actor_kind`, `because`, `note`, the full `fields` at that rev.
 
-`GET /api/initiatives/order-events/records/D-1/history` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/initiatives/5/records/D-1/history` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -3463,10 +3501,10 @@ Response:
     ],
     "actor": "priya",
     "actor_kind": "human",
-    "batch_id": "d38f8bad-ca53-4003-a09c-0e68ca7357ad",
+    "batch_id": "bf73e799-0f77-4691-b132-e3ed607f30e5",
     "note": "ruled in the inbox",
     "because": [],
-    "at": "2026-10-23T06:04:00Z"
+    "at": "2026-10-23T06:19:00Z"
   },
   {
     "rev": 1,
@@ -3496,19 +3534,19 @@ Response:
     ],
     "actor": "runner-sdk/draft-from-ticket",
     "actor_kind": "agent",
-    "batch_id": "66977328-6fa2-4bb0-9e37-6baac5a43316",
+    "batch_id": "55d8c0c0-b530-40f3-b113-726815f784c3",
     "note": "",
     "because": [],
-    "at": "2026-10-22T23:04:00Z"
+    "at": "2026-10-22T23:19:00Z"
   }
 ]
 ```
 
-### POST /api/initiatives/payment-webhooks/records
+### POST /api/initiatives/8/records
 
 **Write a batch** (agents and the UI's generic editor). Atomic: every op or none. An op is `{ref?, type?, title?, fields, link?, unlink?, note?, base_rev?, because?, reviewed?}` — omit `ref` and give `type` to mint; `#n` = the ref op n minted; `null` deletes a field; never send `status`. Reusing a `batch_id` with the same ops returns the stored result (`replayed: true`).
 
-`POST /api/initiatives/payment-webhooks/records` — X-Actor: runner-sdk · X-Actor-Kind: agent → **200**
+`POST /api/initiatives/8/records` — X-Actor: runner-sdk · X-Actor-Kind: agent → **200**
 
 Request:
 
@@ -3645,11 +3683,11 @@ Response:
 }
 ```
 
-### POST /api/initiatives/order-events/records (rejected)
+### POST /api/initiatives/5/records (rejected)
 
 A rejected batch: **422**, nothing saved, each op's errors in `error_data.results[].errors` (ops that were fine say `not saved`). Here: after baseline B-1 an agent may not move the spec without `because` (a human-answered gap, a grounded decision, or a finding).
 
-`POST /api/initiatives/order-events/records` — X-Actor: runner-sdk · X-Actor-Kind: agent → **422**
+`POST /api/initiatives/5/records` — X-Actor: runner-sdk · X-Actor-Kind: agent → **422**
 
 Request:
 
@@ -3683,11 +3721,11 @@ Response:
   "status": 422,
   "title": "Write rejected — nothing was saved",
   "detail": "Write rejected — nothing was saved",
-  "instance": "http://testserver/api/initiatives/order-events/records",
+  "instance": "http://testserver/api/initiatives/5/records",
   "error_code": "VALIDATION_ERROR",
   "error_data": {
     "ok": false,
-    "batch_id": "ac5561b8-aa75-4d9b-9eb5-4bde4aa1bcc6",
+    "batch_id": "120b90f7-3f13-4a69-a4f9-0fa08dab2c03",
     "results": [
       {
         "index": 0,
@@ -3726,11 +3764,11 @@ Response:
 
 ## The human lane (touchpoint 2)
 
-### GET /api/inbox/arjun
+### GET /api/inbox
 
-One person's inbox across initiatives, overdue first. `kind`: `gap` (answer it), `decision` (rule it: MUST or escalated), `approval` (`target`: `draft` or a task; tasks carry `drift` and `digest`), `review_item` (`review_item_id`, `what_moved`), `manual_ac` (sign it). `route` says why it landed here (`role`, `domain`, `fallback` = routed to the DRI because nobody holds the role).
+The caller's inbox (X-Actor) across initiatives, overdue first. `kind`: `gap` (answer it), `decision` (rule it: MUST or escalated), `approval` (`target`: `draft` or a task; tasks carry `drift` and `digest`), `review_item` (`review_item_id`, `what_moved`), `manual_ac` (sign it). `route` says why it landed here (`role`, `domain`, `fallback` = routed to the DRI because nobody holds the role).
 
-`GET /api/inbox/arjun` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/inbox` — X-Actor: arjun · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -3746,8 +3784,9 @@ Response:
   },
   "items": [
     {
-      "key": "gap:order-events:G-2",
+      "key": "gap:5:G-2",
       "kind": "gap",
+      "initiative_id": 5,
       "initiative": "order-events",
       "initiative_title": "Order events for downstream consumers",
       "ref": "G-2",
@@ -3758,10 +3797,10 @@ Response:
         "fallback": false
       },
       "person": "arjun",
-      "since": "2026-10-28T19:04:00Z",
+      "since": "2026-10-28T19:19:00Z",
       "age_hours": 2.0,
       "sla_hours": 24,
-      "due_at": "2026-10-29T19:04:00Z",
+      "due_at": "2026-10-29T19:19:00Z",
       "overdue": false,
       "priority": 10,
       "title": "The outbox table can't be added to the orders schema in time",
@@ -3779,7 +3818,7 @@ Response:
           "domain": "engg",
           "level": "MUST",
           "asked_by": "runner-sdk/implement-task",
-          "why_now": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.",
+          "why_now": "Implementing T-1 hit the orders schema ownership rule: T-1 cannot finish as D-1 is written.",
           "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
           "options": [
             {
@@ -3803,9 +3842,9 @@ Response:
           "proposed_change": "D-1 verdict: outbox → CDC via Debezium on the orders table. Add AC: CDC lag over 5 s for 2 min fires the alert. LLD event delivery section rewritten."
         },
         "created_by": "runner-sdk/implement-task",
-        "created_at": "2026-10-28T19:04:00Z",
+        "created_at": "2026-10-28T19:19:00Z",
         "updated_by": "runner-sdk/implement-task",
-        "updated_at": "2026-10-28T19:04:00Z"
+        "updated_at": "2026-10-28T19:19:00Z"
       },
       "question": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
       "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
@@ -3831,8 +3870,9 @@ Response:
       "level": "MUST"
     },
     {
-      "key": "approval:payouts-v2:T-3",
+      "key": "approval:2:T-3",
       "kind": "approval",
+      "initiative_id": 2,
       "initiative": "payouts-v2",
       "initiative_title": "Payouts v2: refunds ledger",
       "ref": "T-3",
@@ -3843,10 +3883,10 @@ Response:
         "fallback": false
       },
       "person": "arjun",
-      "since": "2026-10-27T18:04:00Z",
+      "since": "2026-10-27T18:19:00Z",
       "age_hours": 27.0,
       "sla_hours": 48,
-      "due_at": "2026-10-29T18:04:00Z",
+      "due_at": "2026-10-29T18:19:00Z",
       "overdue": false,
       "priority": 20,
       "title": "Review the drift of T-3: Refunds ledger API",
@@ -3863,7 +3903,7 @@ Response:
         "pending_decisions": 0,
         "other_changes": 0
       },
-      "digest": "8fe2ace47793d29c3be4cb80d40418f055bc0a01e12b4cd5927e700efe458766",
+      "digest": "c3cae686a243a8aaad6af20d9991576bf4694954cea07b15dcf6f061984b19ed",
       "stale_approvals": []
     },
     "… (+1 more)"
@@ -3873,7 +3913,7 @@ Response:
 
 ### GET /api/people
 
-Everyone with an assignment and their inbox size (the inbox switcher).
+Everyone with an assignment and their inbox size (the “Viewing as” switcher: who the UI sends as X-Actor).
 
 `GET /api/people` — X-Actor: priya · X-Actor-Kind: human → **200**
 
@@ -3915,11 +3955,11 @@ Response:
 ]
 ```
 
-### POST /api/initiatives/menu-sync-retries/gaps/G-1/answer
+### POST /api/initiatives/6/gaps/G-1/answer
 
-**human** — answer a gap: `choice` (an option key) and/or `answer` (text; defaults to the option's label). Returns the write result; `review_items` lists what the answer put up for review and who it went to.
+**human** — answer a gap: `choice` (an option key) and/or `answer` (text; defaults to the option's label). **Any human may answer any open gap**: here priya answers G-1, which is routed to meera (product). The service stores `answered_by` (the caller), `assigned_to` / `assigned_role` (the routing at this moment, frozen) and `answered_for` (the assignee, because they differ) — see the record below. Returns the write result; `review_items` lists what the answer put up for review and who it went to.
 
-`POST /api/initiatives/menu-sync-retries/gaps/G-1/answer` — X-Actor: meera · X-Actor-Kind: human → **200**
+`POST /api/initiatives/6/gaps/G-1/answer` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Request:
 
@@ -3935,7 +3975,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "71dc5719-4410-463b-a2dd-6f384d468418",
+  "batch_id": "b743a8f5-ddde-4e92-a417-2d2298136f02",
   "results": [
     {
       "index": 0,
@@ -3960,11 +4000,186 @@ Response:
 }
 ```
 
-### POST /api/initiatives/menu-sync-retries/decisions/D-2/rule
+### GET /api/initiatives/6/records/G-1 (answered on meera's behalf)
+
+`fields.answered_by`, `assigned_to`, `assigned_role`, `answered_for`.
+
+`GET /api/initiatives/6/records/G-1` — X-Actor: priya · X-Actor-Kind: human → **200**
+
+Response:
+
+```json
+{
+  "ref": "G-1",
+  "type": "gap",
+  "title": "Is the retry budget per partner or global?",
+  "status": "ANSWERED",
+  "pill": "green",
+  "line": "Is the retry budget per partner or global?",
+  "rev": 2,
+  "fields": {
+    "question": "Is the retry budget per partner or global?",
+    "kind": "unknown",
+    "domain": "product",
+    "level": "MUST",
+    "asked_by": "runner-sdk/draft-from-ticket",
+    "why_now": "D-2 cannot be decided without it, and the draft cannot be approved with D-2 open.",
+    "context": "STD-2 requires a retry budget but doesn't say what it covers. Partners differ a lot in how often their APIs time out.",
+    "options": [
+      {
+        "key": "per-partner",
+        "label": "Per partner",
+        "consequence": "One flaky partner can't use up retries for everyone. Needs a budget per partner in config."
+      },
+      {
+        "key": "global",
+        "label": "Global",
+        "consequence": "Simpler to run. One flaky partner can starve the others."
+      }
+    ],
+    "recommendation": "per-partner",
+    "recommendation_why": "Partner timeouts are very uneven; a global budget lets one partner starve the rest.",
+    "blocks": [
+      "D-2",
+      "draft"
+    ],
+    "answer": "Per partner: one flaky partner must not starve the rest.",
+    "choice": "per-partner",
+    "answered_by": "priya",
+    "answered_on": "2026-10-28T21:19:10Z",
+    "assigned_to": "meera",
+    "assigned_role": "product",
+    "answered_for": "meera"
+  },
+  "created_by": "runner-sdk/draft-from-ticket",
+  "created_at": "2026-10-28T17:19:00Z",
+  "updated_by": "priya",
+  "updated_at": "2026-10-28T21:19:10Z",
+  "links": {
+    "out": [
+      {
+        "kind": "blocks",
+        "to": "D-2"
+      },
+      {
+        "kind": "blocks",
+        "to": "draft"
+      },
+      {
+        "kind": "mentions",
+        "to": "D-2"
+      },
+      "… (+1 more)"
+    ],
+    "in": [
+      {
+        "kind": "mentions",
+        "from": "draft"
+      }
+    ]
+  },
+  "stamps": {
+    "question": {
+      "by": "runner-sdk/draft-from-ticket",
+      "kind": "agent",
+      "at": "2026-10-28T17:19:00"
+    },
+    "kind": {
+      "by": "runner-sdk/draft-from-ticket",
+      "kind": "agent",
+      "at": "2026-10-28T17:19:00"
+    },
+    "domain": {
+      "by": "runner-sdk/draft-from-ticket",
+      "kind": "agent",
+      "at": "2026-10-28T17:19:00"
+    },
+    "level": {
+      "by": "runner-sdk/draft-from-ticket",
+      "kind": "agent",
+      "at": "2026-10-28T17:19:00"
+    },
+    "asked_by": {
+      "by": "runner-sdk/draft-from-ticket",
+      "kind": "agent",
+      "at": "2026-10-28T17:19:00"
+    },
+    "why_now": {
+      "by": "runner-sdk/draft-from-ticket",
+      "kind": "agent",
+      "at": "2026-10-28T17:19:00"
+    },
+    "context": {
+      "by": "runner-sdk/draft-from-ticket",
+      "kind": "agent",
+      "at": "2026-10-28T17:19:00"
+    },
+    "options": {
+      "by": "runner-sdk/draft-from-ticket",
+      "kind": "agent",
+      "at": "2026-10-28T17:19:00"
+    },
+    "recommendation": {
+      "by": "runner-sdk/draft-from-ticket",
+      "kind": "agent",
+      "at": "2026-10-28T17:19:00"
+    },
+    "recommendation_why": {
+      "by": "runner-sdk/draft-from-ticket",
+      "kind": "agent",
+      "at": "2026-10-28T17:19:00"
+    },
+    "blocks": {
+      "by": "runner-sdk/draft-from-ticket",
+      "kind": "agent",
+      "at": "2026-10-28T17:19:00"
+    },
+    "answer": {
+      "by": "priya",
+      "kind": "human",
+      "at": "2026-10-28T21:19:10"
+    },
+    "choice": {
+      "by": "priya",
+      "kind": "human",
+      "at": "2026-10-28T21:19:10"
+    },
+    "answered_by": {
+      "by": "priya",
+      "kind": "human",
+      "at": "2026-10-28T21:19:10"
+    },
+    "answered_on": {
+      "by": "priya",
+      "kind": "human",
+      "at": "2026-10-28T21:19:10"
+    },
+    "assigned_to": {
+      "by": "priya",
+      "kind": "human",
+      "at": "2026-10-28T21:19:10"
+    },
+    "assigned_role": {
+      "by": "priya",
+      "kind": "human",
+      "at": "2026-10-28T21:19:10"
+    },
+    "answered_for": {
+      "by": "priya",
+      "kind": "human",
+      "at": "2026-10-28T21:19:10"
+    }
+  },
+  "stale": [],
+  "review_items": []
+}
+```
+
+### POST /api/initiatives/6/decisions/D-2/rule
 
 **human** — rule an OPEN or PROVISIONAL decision (MUST-level or escalated decisions can only be ruled here). A DECIDED decision returns 422: supersede it instead.
 
-`POST /api/initiatives/menu-sync-retries/decisions/D-2/rule` — X-Actor: meera · X-Actor-Kind: human → **200**
+`POST /api/initiatives/6/decisions/D-2/rule` — X-Actor: meera · X-Actor-Kind: human → **200**
 
 Request:
 
@@ -3980,7 +4195,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "cbe0b2f8-89d1-4b1d-b6b8-df524e659f83",
+  "batch_id": "52c82095-6f5a-4a6a-a953-f6168f397051",
   "results": [
     {
       "index": 0,
@@ -4017,11 +4232,11 @@ Response:
 }
 ```
 
-### POST /api/initiatives/payment-webhooks/approvals
+### POST /api/initiatives/8/approvals
 
 **human** — approve. `role` dri → `target: "draft"` (creates baseline B-n: see `baseline` in the result); engg → a task ref, with `at_sha` = the PR head (the service pins the drift `digest`); qa → a manual AC. The caller must hold the role on the initiative, and the gate's other rules must pass — else 422 naming them.
 
-`POST /api/initiatives/payment-webhooks/approvals` — X-Actor: priya · X-Actor-Kind: human → **201**
+`POST /api/initiatives/8/approvals` — X-Actor: priya · X-Actor-Kind: human → **201**
 
 Request:
 
@@ -4038,7 +4253,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "2e807ac8-73d4-4a1a-831c-fd90cf91bf77",
+  "batch_id": "ce98d03d-cbb1-4fbc-b6a7-1cbdebfe96a8",
   "results": [
     {
       "index": 0,
@@ -4069,11 +4284,11 @@ Response:
 }
 ```
 
-### POST /api/initiatives/payment-webhooks/criteria/AC-2/sign
+### POST /api/initiatives/8/criteria/AC-2/sign
 
 **human** (qa) — sign a manual AC at a sha.
 
-`POST /api/initiatives/payment-webhooks/criteria/AC-2/sign` — X-Actor: sam · X-Actor-Kind: human → **200**
+`POST /api/initiatives/8/criteria/AC-2/sign` — X-Actor: sam · X-Actor-Kind: human → **200**
 
 Request:
 
@@ -4088,7 +4303,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "7dcfca95-57ad-4775-ba06-a2bbf6a03949",
+  "batch_id": "c41bc5fd-2443-422f-9858-9a5335baba11",
   "results": [
     {
       "index": 0,
@@ -4110,11 +4325,11 @@ Response:
 }
 ```
 
-### POST /api/initiatives/payment-webhooks/criteria/AC-1/retire
+### POST /api/initiatives/8/criteria/AC-1/retire
 
 **human** — retire an AC (shows as `ac_retired` drift).
 
-`POST /api/initiatives/payment-webhooks/criteria/AC-1/retire` — X-Actor: priya · X-Actor-Kind: human → **200**
+`POST /api/initiatives/8/criteria/AC-1/retire` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Request:
 
@@ -4129,7 +4344,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "49ee160c-17a1-432a-b03c-a413bbb7056a",
+  "batch_id": "3bd8cd82-7887-4f63-b93e-56ddbe4cdb53",
   "results": [
     {
       "index": 0,
@@ -4158,11 +4373,11 @@ Response:
 }
 ```
 
-### POST /api/initiatives/payment-webhooks/snapshot
+### POST /api/initiatives/8/snapshot
 
 **human** — re-pin the requirement (a material change: the draft goes up for review, and the drift report shows `requirement_repinned`). Returns `{state, write}`.
 
-`POST /api/initiatives/payment-webhooks/snapshot` — X-Actor: priya · X-Actor-Kind: human → **200**
+`POST /api/initiatives/8/snapshot` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Request:
 
@@ -4179,13 +4394,14 @@ Response:
 {
   "state": {
     "initiative": {
+      "id": 8,
       "slug": "payment-webhooks",
       "title": "Payment webhooks",
       "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
       "created_by": "priya",
-      "created_at": "2026-10-28T21:04:59Z",
+      "created_at": "2026-10-28T21:19:10Z",
       "closed_at": null,
-      "snapshot_hash": "97f82cc1ad75a5aeb917cbf063d9a2c7cb9880edc90fe82b69eb686ba14e74fa",
+      "snapshot_hash": "3e49453a9dfe51eaa96105d6036654529468a5d77858a3e01ecd378e8da95e5c",
       "phase": "PLAN",
       "pill": "amber",
       "summary": "",
@@ -4193,9 +4409,9 @@ Response:
         "requirement": "# Payment webhooks\nMerchants want a webhook when a payment settles **or is refunded**.",
         "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
         "created_by": "priya",
-        "at": "2026-10-28T21:04:59Z",
-        "previous_hash": "4819a51d18b1885e7069af337413116f0b43c40c2e62aa11f9be548b464a1d0f",
-        "previous_at": "2026-10-28T21:04:59Z"
+        "at": "2026-10-28T21:19:10Z",
+        "previous_hash": "be1d01084e6fb5414d65cd8e0372894c7771aca83a6f05d83f09a1e5b8aead79",
+        "previous_at": "2026-10-28T21:19:10Z"
       }
     },
     "phase": "PLAN",
@@ -4278,7 +4494,7 @@ Response:
         "draft",
         "… (+3 more)"
       ],
-      "created_at": "2026-10-28T21:04:59Z"
+      "created_at": "2026-10-28T21:19:10Z"
     },
     "drift": {
       "changes": 2,
@@ -4331,7 +4547,7 @@ Response:
   },
   "write": {
     "ok": true,
-    "batch_id": "ab2b422e-d789-405a-a93b-3e3b9816fb59",
+    "batch_id": "3f0e26e4-353b-49dc-9182-0d6b44e4c52a",
     "results": [
       {
         "index": 0,
@@ -4346,7 +4562,7 @@ Response:
     ],
     "minted": {},
     "review_items": [
-      "draft ← initiative: snapshot_hash: “4819a51d18b1885e7069af337413116f0b43c40c2e62aa11f9be548b464…” → “97f82cc1ad75a5aeb917cbf063d9a2c7cb9880edc90fe82b69eb686ba14…” (→ priya)"
+      "draft ← initiative: snapshot_hash: “be1d01084e6fb5414d65cd8e0372894c7771aca83a6f05d83f09a1e5b8a…” → “3e49453a9dfe51eaa96105d6036654529468a5d77858a3e01ecd378e8da…” (→ priya)"
     ],
     "stale": [],
     "gates_changed": [],
@@ -4358,11 +4574,11 @@ Response:
 
 ## Review queue
 
-### GET /api/initiatives/payment-webhooks/reviews
+### GET /api/initiatives/8/reviews
 
 Open review items (`?status=open` default; `upheld`, `revised`, `dismissed`, `all`). Each: `cause` moved (`what_moved`), so `target` may no longer hold; `route_to` is who should look.
 
-`GET /api/initiatives/payment-webhooks/reviews` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/initiatives/8/reviews` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -4373,25 +4589,25 @@ Response:
     "target": "draft",
     "cause": "initiative",
     "cause_rev": 3,
-    "what_moved": "snapshot_hash: “4819a51d18b1885e7069af337413116f0b43c40c2e62aa11f9be548b464…” → “97f82cc1ad75a5aeb917cbf063d9a2c7cb9880edc90fe82b69eb686ba14…”",
+    "what_moved": "snapshot_hash: “be1d01084e6fb5414d65cd8e0372894c7771aca83a6f05d83f09a1e5b8a…” → “3e49453a9dfe51eaa96105d6036654529468a5d77858a3e01ecd378e8da…”",
     "path": "scope",
     "status": "open",
     "route_to": "priya",
     "domain": null,
     "note": null,
     "created_by": "priya",
-    "created_at": "2026-10-28T21:04:59Z",
+    "created_at": "2026-10-28T21:19:10Z",
     "resolved_by": null,
     "resolved_at": null
   }
 ]
 ```
 
-### POST /api/initiatives/payment-webhooks/reviews/25/resolve
+### POST /api/initiatives/8/reviews/25/resolve
 
 Resolve: `upheld` (still holds — say why) · `revised` · `dismissed`. `note` required.
 
-`POST /api/initiatives/payment-webhooks/reviews/25/resolve` — X-Actor: priya · X-Actor-Kind: human → **200**
+`POST /api/initiatives/8/reviews/25/resolve` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Request:
 
@@ -4410,26 +4626,26 @@ Response:
   "target": "draft",
   "cause": "initiative",
   "cause_rev": 3,
-  "what_moved": "snapshot_hash: “4819a51d18b1885e7069af337413116f0b43c40c2e62aa11f9be548b464…” → “97f82cc1ad75a5aeb917cbf063d9a2c7cb9880edc90fe82b69eb686ba14…”",
+  "what_moved": "snapshot_hash: “be1d01084e6fb5414d65cd8e0372894c7771aca83a6f05d83f09a1e5b8a…” → “3e49453a9dfe51eaa96105d6036654529468a5d77858a3e01ecd378e8da…”",
   "path": "scope",
   "status": "upheld",
   "route_to": "priya",
   "domain": null,
   "note": "Refunds are a separate initiative; the draft holds.",
   "created_by": "priya",
-  "created_at": "2026-10-28T21:04:59Z",
+  "created_at": "2026-10-28T21:19:10Z",
   "resolved_by": "priya",
-  "resolved_at": "2026-10-28T21:04:59Z"
+  "resolved_at": "2026-10-28T21:19:10Z"
 }
 ```
 
 ## Drift, gates, tasks (touchpoint 3)
 
-### GET /api/initiatives/order-events/tasks/T-3
+### GET /api/initiatives/5/tasks/T-3
 
 **Task page**: the task (detail), its GATE_PR (rule by rule), its task-scoped drift report (full shape below), the approver, test runs, findings, deploys.
 
-`GET /api/initiatives/order-events/tasks/T-3` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/initiatives/5/tasks/T-3` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -4462,9 +4678,9 @@ Response:
       "review_rounds": "1"
     },
     "created_by": "runner-sdk/plan-to-tasks",
-    "created_at": "2026-10-24T01:04:00Z",
+    "created_at": "2026-10-24T01:19:00Z",
     "updated_by": "runner-sdk/implement-task",
-    "updated_at": "2026-10-26T21:04:00Z",
+    "updated_at": "2026-10-26T21:19:00Z",
     "links": {
       "out": [
         {
@@ -4499,57 +4715,57 @@ Response:
       "goal": {
         "by": "runner-sdk/plan-to-tasks",
         "kind": "agent",
-        "at": "2026-10-24T01:04:00"
+        "at": "2026-10-24T01:19:00"
       },
       "repo": {
         "by": "runner-sdk/plan-to-tasks",
         "kind": "agent",
-        "at": "2026-10-24T01:04:00"
+        "at": "2026-10-24T01:19:00"
       },
       "template": {
         "by": "runner-sdk/plan-to-tasks",
         "kind": "agent",
-        "at": "2026-10-24T01:04:00"
+        "at": "2026-10-24T01:19:00"
       },
       "implements": {
         "by": "runner-sdk/plan-to-tasks",
         "kind": "agent",
-        "at": "2026-10-24T01:04:00"
+        "at": "2026-10-24T01:19:00"
       },
       "covers": {
         "by": "runner-sdk/plan-to-tasks",
         "kind": "agent",
-        "at": "2026-10-24T01:04:00"
+        "at": "2026-10-24T01:19:00"
       },
       "rollback": {
         "by": "runner-sdk/plan-to-tasks",
         "kind": "agent",
-        "at": "2026-10-24T01:04:00"
+        "at": "2026-10-24T01:19:00"
       },
       "pr_url": {
         "by": "runner-sdk/implement-task",
         "kind": "agent",
-        "at": "2026-10-26T21:04:00"
+        "at": "2026-10-26T21:19:00"
       },
       "pr_state": {
         "by": "runner-sdk/implement-task",
         "kind": "agent",
-        "at": "2026-10-26T21:04:00"
+        "at": "2026-10-26T21:19:00"
       },
       "pr_sha": {
         "by": "runner-sdk/implement-task",
         "kind": "agent",
-        "at": "2026-10-26T21:04:00"
+        "at": "2026-10-26T21:19:00"
       },
       "ci_attempts": {
         "by": "runner-sdk/implement-task",
         "kind": "agent",
-        "at": "2026-10-26T21:04:00"
+        "at": "2026-10-26T21:19:00"
       },
       "review_rounds": {
         "by": "runner-sdk/implement-task",
         "kind": "agent",
-        "at": "2026-10-26T21:04:00"
+        "at": "2026-10-26T21:19:00"
       }
     },
     "stale": [],
@@ -4605,7 +4821,7 @@ Response:
       "approval": "APR-1",
       "approved_by": "priya",
       "draft_rev": "3",
-      "created_at": "2026-10-23T23:04:00Z",
+      "created_at": "2026-10-23T23:19:00Z",
       "members": 11
     },
     "until": null,
@@ -4637,7 +4853,7 @@ Response:
           "T-1"
         ],
         "asked_by": "runner-sdk/implement-task",
-        "at": "2026-10-28T19:04:00Z"
+        "at": "2026-10-28T19:19:00Z"
       }
     ],
     "pending_decisions": [],
@@ -4771,7 +4987,7 @@ Response:
         "drift_digest": "2e955487883a09bdcd5582737e965530635e0a3b5ce49a656c761298c4ec4f93",
         "matches_digest": true,
         "note": "Topic, role and dashboard as in the HLD.",
-        "at": "2026-10-27T01:04:00Z"
+        "at": "2026-10-27T01:19:00Z"
       }
     ]
   },
@@ -4790,7 +5006,7 @@ Response:
         "level": "integration",
         "result": "GREEN",
         "at_sha": "a41c09e",
-        "run_url": "https://ci.navanta.dev/runs/69663",
+        "run_url": "https://ci.navanta.dev/runs/58044",
         "environment": "ci",
         "task": [
           "T-3"
@@ -4802,12 +5018,12 @@ Response:
             "test_id": "test_AC_4_topic_acl"
           }
         ],
-        "run_on": "2026-10-28T20:04"
+        "run_on": "2026-10-28T20:19"
       },
       "created_by": "runner-sdk/write-tests",
-      "created_at": "2026-10-26T21:04:00Z",
+      "created_at": "2026-10-26T21:19:00Z",
       "updated_by": "runner-sdk/write-tests",
-      "updated_at": "2026-10-26T21:04:00Z"
+      "updated_at": "2026-10-26T21:19:00Z"
     }
   ],
   "findings": [],
@@ -4815,11 +5031,11 @@ Response:
 }
 ```
 
-### GET /api/initiatives/inventory-sync-v3/drift?task=T-1
+### GET /api/initiatives/1/drift?task=T-1
 
 The task-scoped drift report. Without `task`: the whole initiative. `baseline=B-n`: from an older baseline up to the next one.
 
-`GET /api/initiatives/inventory-sync-v3/drift?task=T-1` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/initiatives/1/drift?task=T-1` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -4835,7 +5051,7 @@ Response:
     "approval": "APR-1",
     "approved_by": "priya",
     "draft_rev": "1",
-    "created_at": "2026-10-09T21:04:00Z",
+    "created_at": "2026-10-09T21:19:00Z",
     "members": 7
   },
   "until": null,
@@ -4853,7 +5069,7 @@ Response:
     "pending_decisions": 0,
     "other_changes": 0
   },
-  "digest": "9a35cc31d811058b4f3e01611ea7e1b755bb84c791459cc2dc357ff31862723e",
+  "digest": "a55a57ad1ec6fade35c8f46c64df28ff725c2bd67c0d968f46bec29979598547",
   "entries": [
     {
       "id": "gap_answered:G-1@2",
@@ -4861,7 +5077,7 @@ Response:
       "ref": "G-1",
       "type": "gap",
       "rev": 2,
-      "at": "2026-10-13T01:04:00Z",
+      "at": "2026-10-13T01:19:00Z",
       "actor": "meera",
       "actor_kind": "human",
       "summary": "G-1 answered by meera: “Delta sync — a minute is what partners were promised.”",
@@ -4883,6 +5099,9 @@ Response:
         "answer": "Delta sync — a minute is what partners were promised.",
         "choice": "delta",
         "answered_by": "meera",
+        "assigned_to": "meera",
+        "assigned_role": "product",
+        "answered_for": "",
         "blocks": [
           "D-1"
         ],
@@ -4898,7 +5117,7 @@ Response:
       "ref": "D-3",
       "type": "decision",
       "rev": 1,
-      "at": "2026-10-13T03:04:00Z",
+      "at": "2026-10-13T03:19:00Z",
       "actor": "runner-sdk/implement-task",
       "actor_kind": "agent",
       "summary": "D-3 supersedes D-1: verdict “Full sync every 5 minutes” → “Delta sync every 30 seconds”",
@@ -5037,41 +5256,41 @@ Response:
       "by": "nikhil",
       "status": "CURRENT",
       "at_sha": "8b9c0d1e",
-      "drift_digest": "9a35cc31d811058b4f3e01611ea7e1b755bb84c791459cc2dc357ff31862723e",
+      "drift_digest": "a55a57ad1ec6fade35c8f46c64df28ff725c2bd67c0d968f46bec29979598547",
       "matches_digest": true,
       "note": "",
-      "at": "2026-10-24T21:04:00Z"
+      "at": "2026-10-24T21:19:00Z"
     }
   ]
 }
 ```
 
-### GET /api/initiatives/inventory-sync-v3/drift?task=T-1&format=md
+### GET /api/initiatives/1/drift?task=T-1&format=md
 
 The same report as the PR's sticky comment.
 
-`GET /api/initiatives/inventory-sync-v3/drift?task=T-1&format=md` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/initiatives/1/drift?task=T-1&format=md` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response (`text/markdown; charset=utf-8`):
 
 ````markdown
 ## Drift since baseline B-1 (approved by priya, 2026-10-09, draft rev 1) — scope: T-1
-**2 changes · 2 explained · 0 unexplained** · digest `9a35cc31…`
+**2 changes · 2 explained · 0 unexplained** · digest `a55a57ad…`
 
 | when | who | change | because | |
 |---|---|---|---|---|
-| 10-13 01:04 | meera (human) | G-1 answered by meera: “Delta sync — a minute is what partners were promised.” | — | ✓ |
-| 10-13 03:04 | runner-sdk/implement-task | D-3 supersedes D-1: verdict “Full sync every 5 minutes” → “Delta sync every 30 seconds” | G-1 | ✓ |
+| 10-13 01:19 | meera (human) | G-1 answered by meera: “Delta sync — a minute is what partners were promised.” | — | ✓ |
+| 10-13 03:19 | runner-sdk/implement-task | D-3 supersedes D-1: verdict “Full sync every 5 minutes” → “Delta sync every 30 seconds” | G-1 | ✓ |
 
 ### Spec diff · decisions: 1 superseded
 - D-1 → D-3: “Full sync every 5 minutes” → “Delta sync every 30 seconds”
 ````
 
-### GET /api/initiatives/order-events/drift?task=T-2 (CLEAN)
+### GET /api/initiatives/5/drift?task=T-2 (CLEAN)
 
 A task with nothing changed in its scope: `status: CLEAN`, `other_changes` counts the initiative's changes outside it.
 
-`GET /api/initiatives/order-events/drift?task=T-2` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/initiatives/5/drift?task=T-2` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -5087,7 +5306,7 @@ Response:
     "approval": "APR-1",
     "approved_by": "priya",
     "draft_rev": "3",
-    "created_at": "2026-10-23T23:04:00Z",
+    "created_at": "2026-10-23T23:19:00Z",
     "members": 11
   },
   "until": null,
@@ -5117,7 +5336,7 @@ Response:
         "… (+1 more)"
       ],
       "asked_by": "runner-sdk/implement-task",
-      "at": "2026-10-28T19:04:00Z"
+      "at": "2026-10-28T19:19:00Z"
     }
   ],
   "pending_decisions": [],
@@ -5214,11 +5433,11 @@ Response:
 }
 ```
 
-### GET /api/initiatives/loyalty-expiry/drift (UNEXPLAINED)
+### GET /api/initiatives/3/drift (UNEXPLAINED)
 
 An agent changed AC-4 after approval citing finding F-1; a human then rejected F-1, so the change lost its reason: `status: UNEXPLAINED`, the entry's `explanation` says why, the draft is REOPENED and GATE_PR blocks.
 
-`GET /api/initiatives/loyalty-expiry/drift` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/initiatives/3/drift` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -5234,7 +5453,7 @@ Response:
     "approval": "APR-1",
     "approved_by": "priya",
     "draft_rev": "1",
-    "created_at": "2026-10-20T21:04:00Z",
+    "created_at": "2026-10-20T21:19:00Z",
     "members": 8
   },
   "until": null,
@@ -5247,7 +5466,7 @@ Response:
     "pending_decisions": 0,
     "other_changes": 0
   },
-  "digest": "4db559ae0651f5926bf820c9efa1c34df428c8b669cc114042cbc5dd9fb2320e",
+  "digest": "6ae8b02b73eb1b3af3af63be8db25f73ea1f68c45f5ced74b8b5366019402bd8",
   "entries": [
     {
       "id": "ac_changed:AC-4@2",
@@ -5255,7 +5474,7 @@ Response:
       "ref": "AC-4",
       "type": "acceptance_criterion",
       "rev": 2,
-      "at": "2026-10-28T17:04:00Z",
+      "at": "2026-10-28T17:19:00Z",
       "actor": "runner-sdk/implement-task",
       "actor_kind": "agent",
       "summary": "AC-4 changed: text: “Points expire 365 days after earning” → “Points expire 365 days after the last purchase”",
@@ -5385,11 +5604,11 @@ Response:
 }
 ```
 
-### GET /api/initiatives/payment-webhooks/drift (initiative scope)
+### GET /api/initiatives/8/drift (initiative scope)
 
 Initiative scope after an AC retirement and a requirement re-pin by humans.
 
-`GET /api/initiatives/payment-webhooks/drift` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/initiatives/8/drift` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -5405,7 +5624,7 @@ Response:
     "approval": "APR-1",
     "approved_by": "priya",
     "draft_rev": "1",
-    "created_at": "2026-10-28T21:04:59Z",
+    "created_at": "2026-10-28T21:19:10Z",
     "members": 4
   },
   "until": null,
@@ -5418,7 +5637,7 @@ Response:
     "pending_decisions": 0,
     "other_changes": 0
   },
-  "digest": "a3b9343d78426efbb4287199339cb54a7e21c541ddf57ed1ada9fe4d8f86db19",
+  "digest": "0f3181986efea0a66b25c23dd8efea8f247e0f0c4915300b8dfea99e2bd4fd7e",
   "entries": [
     {
       "id": "requirement_repinned:initiative@3",
@@ -5426,10 +5645,10 @@ Response:
       "ref": "initiative",
       "type": "initiative",
       "rev": 3,
-      "at": "2026-10-28T21:04:59Z",
+      "at": "2026-10-28T21:19:10Z",
       "actor": "priya",
       "actor_kind": "human",
-      "summary": "requirement re-pinned by priya (hash 97f82cc1)",
+      "summary": "requirement re-pinned by priya (hash 3e49453a)",
       "what_moved": [
         "snapshot_hash"
       ],
@@ -5452,7 +5671,7 @@ Response:
       "ref": "AC-1",
       "type": "acceptance_criterion",
       "rev": 2,
-      "at": "2026-10-28T21:04:59Z",
+      "at": "2026-10-28T21:19:10Z",
       "actor": "priya",
       "actor_kind": "human",
       "summary": "AC-1 retired: Signature checks move to the shared webhook library.",
@@ -5567,11 +5786,11 @@ Response:
 }
 ```
 
-### GET /api/initiatives/order-events/gates
+### GET /api/initiatives/5/gates
 
 Every gate: initiative gates once, task gates per task. Each: `{gate, scope, target, status, human_role, text, rules[{name, passed, failing, detail, args}], note, failing_rules}`.
 
-`GET /api/initiatives/order-events/gates` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/initiatives/5/gates` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -5715,9 +5934,9 @@ Response:
 ]
 ```
 
-### GET /api/initiatives/order-events/tasks/T-2/gates
+### GET /api/initiatives/5/tasks/T-2/gates
 
-`GET /api/initiatives/order-events/tasks/T-2/gates` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/initiatives/5/tasks/T-2/gates` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -5764,17 +5983,18 @@ Response:
 ]
 ```
 
-### GET /api/deploy-guard?initiative=order-events&task=T-3&sha=a41c09e&environment=staging
+### GET /api/deploy-guard?initiative_id=5&task=T-3&sha=a41c09e&environment=staging
 
 CI/CD asks before a deploy: `decision` GO | NO-GO, `reasons`, each check.
 
-`GET /api/deploy-guard?initiative=order-events&task=T-3&sha=a41c09e&environment=staging` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/deploy-guard?initiative_id=5&task=T-3&sha=a41c09e&environment=staging` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
 ```json
 {
   "decision": "NO-GO",
+  "initiative_id": 5,
   "initiative": "order-events",
   "task": "T-3",
   "sha": "a41c09e",
@@ -5818,7 +6038,7 @@ Request:
 
 ```json
 {
-  "initiative": "order-events",
+  "initiative_id": 5,
   "task": "T-3",
   "sha": "0000000",
   "environment": "production"
@@ -5830,6 +6050,7 @@ Response:
 ```json
 {
   "decision": "NO-GO",
+  "initiative_id": 5,
   "initiative": "order-events",
   "task": "T-3",
   "sha": "0000000",
@@ -5868,24 +6089,26 @@ Response:
 
 ## Worklist, next work, leases
 
-### GET /api/initiatives/menu-sync-retries/worklist
+### GET /api/initiatives/6/worklist
 
 Every open item of an initiative, both lanes (`agent` / `human`), grouped by kind, with leases.
 
-`GET /api/initiatives/menu-sync-retries/worklist` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/initiatives/6/worklist` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
 ```json
 {
+  "initiative_id": 6,
   "initiative": "menu-sync-retries",
   "count": 2,
   "groups": {
     "review": [
       {
-        "key": "review:menu-sync-retries:24",
+        "key": "review:6:24",
         "kind": "review",
         "lane": "agent",
+        "initiative_id": 6,
         "initiative": "menu-sync-retries",
         "ref": "24",
         "title": "draft ← G-1",
@@ -5900,9 +6123,10 @@ Response:
     ],
     "draft": [
       {
-        "key": "draft:menu-sync-retries",
+        "key": "draft:6",
         "kind": "draft",
         "lane": "agent",
+        "initiative_id": 6,
         "initiative": "menu-sync-retries",
         "ref": null,
         "title": "Draft is DRAFTING",
@@ -5915,9 +6139,10 @@ Response:
   },
   "items": [
     {
-      "key": "review:menu-sync-retries:24",
+      "key": "review:6:24",
       "kind": "review",
       "lane": "agent",
+      "initiative_id": 6,
       "initiative": "menu-sync-retries",
       "ref": "24",
       "title": "draft ← G-1",
@@ -5930,9 +6155,10 @@ Response:
       "lease": null
     },
     {
-      "key": "draft:menu-sync-retries",
+      "key": "draft:6",
       "kind": "draft",
       "lane": "agent",
+      "initiative_id": 6,
       "initiative": "menu-sync-retries",
       "ref": null,
       "title": "Draft is DRAFTING",
@@ -5945,11 +6171,11 @@ Response:
 }
 ```
 
-### GET /api/initiatives/order-events/next-work
+### GET /api/initiatives/5/next-work
 
 What the caller may take now (not leased by someone else), priority order, each with a `context` bundle. `?kind=` and `?person=` filter; `GET /api/next-work` spans all initiatives.
 
-`GET /api/initiatives/order-events/next-work` — X-Actor: runner-sdk · X-Actor-Kind: agent → **200**
+`GET /api/initiatives/5/next-work` — X-Actor: runner-sdk · X-Actor-Kind: agent → **200**
 
 Response:
 
@@ -5958,9 +6184,10 @@ Response:
   "count": 2,
   "items": [
     {
-      "key": "gap:order-events:G-2",
+      "key": "gap:5:G-2",
       "kind": "gap",
       "lane": "human",
+      "initiative_id": 5,
       "initiative": "order-events",
       "ref": "G-2",
       "title": "The outbox table can't be added to the orders schema in time",
@@ -5985,7 +6212,7 @@ Response:
             "domain": "engg",
             "level": "MUST",
             "asked_by": "runner-sdk/implement-task",
-            "why_now": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.",
+            "why_now": "Implementing T-1 hit the orders schema ownership rule: T-1 cannot finish as D-1 is written.",
             "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
             "options": [
               {
@@ -6004,16 +6231,16 @@ Response:
             "proposed_change": "D-1 verdict: outbox → CDC via Debezium on the orders table. Add AC: CDC lag over 5 s for 2 min fires the alert. LLD event delivery section rewritten."
           },
           "created_by": "runner-sdk/implement-task",
-          "created_at": "2026-10-28T19:04:00Z",
+          "created_at": "2026-10-28T19:19:00Z",
           "updated_by": "runner-sdk/implement-task",
-          "updated_at": "2026-10-28T19:04:00Z",
+          "updated_at": "2026-10-28T19:19:00Z",
           "links": {
             "out": [
               {
                 "kind": "blocks",
                 "to": "D-1"
               },
-              "… (+3 more)"
+              "… (+4 more)"
             ],
             "in": []
           },
@@ -6021,62 +6248,62 @@ Response:
             "question": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T19:04:00"
+              "at": "2026-10-28T19:19:00"
             },
             "kind": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T19:04:00"
+              "at": "2026-10-28T19:19:00"
             },
             "domain": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T19:04:00"
+              "at": "2026-10-28T19:19:00"
             },
             "level": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T19:04:00"
+              "at": "2026-10-28T19:19:00"
             },
             "asked_by": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T19:04:00"
+              "at": "2026-10-28T19:19:00"
             },
             "why_now": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T19:04:00"
+              "at": "2026-10-28T19:19:00"
             },
             "context": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T19:04:00"
+              "at": "2026-10-28T19:19:00"
             },
             "options": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T19:04:00"
+              "at": "2026-10-28T19:19:00"
             },
             "recommendation": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T19:04:00"
+              "at": "2026-10-28T19:19:00"
             },
             "recommendation_why": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T19:04:00"
+              "at": "2026-10-28T19:19:00"
             },
             "blocks": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T19:04:00"
+              "at": "2026-10-28T19:19:00"
             },
             "proposed_change": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T19:04:00"
+              "at": "2026-10-28T19:19:00"
             }
           },
           "stale": [],
@@ -6114,7 +6341,7 @@ Request:
 
 ```json
 {
-  "item_key": "task:order-events:T-2",
+  "item_key": "task:5:T-2",
   "ttl_min": 15
 }
 ```
@@ -6123,17 +6350,17 @@ Response:
 
 ```json
 {
-  "item_key": "task:order-events:T-2",
+  "item_key": "task:5:T-2",
   "holder": "runner-sdk",
-  "acquired_at": "2026-10-28T21:04:59Z",
-  "heartbeat_at": "2026-10-28T21:04:59Z",
-  "expires_at": "2026-10-28T21:19:59Z"
+  "acquired_at": "2026-10-28T21:19:10Z",
+  "heartbeat_at": "2026-10-28T21:19:10Z",
+  "expires_at": "2026-10-28T21:34:10Z"
 }
 ```
 
-### POST /api/leases/task:order-events:T-2/heartbeat
+### POST /api/leases/task:5:T-2/heartbeat
 
-`POST /api/leases/task:order-events:T-2/heartbeat` — X-Actor: runner-sdk · X-Actor-Kind: agent → **200**
+`POST /api/leases/task:5:T-2/heartbeat` — X-Actor: runner-sdk · X-Actor-Kind: agent → **200**
 
 Request:
 
@@ -6147,34 +6374,34 @@ Response:
 
 ```json
 {
-  "item_key": "task:order-events:T-2",
+  "item_key": "task:5:T-2",
   "holder": "runner-sdk",
-  "acquired_at": "2026-10-28T21:04:59Z",
-  "heartbeat_at": "2026-10-28T21:04:59Z",
-  "expires_at": "2026-10-28T21:34:59Z"
+  "acquired_at": "2026-10-28T21:19:10Z",
+  "heartbeat_at": "2026-10-28T21:19:10Z",
+  "expires_at": "2026-10-28T21:49:10Z"
 }
 ```
 
-### DELETE /api/leases/task:order-events:T-2
+### DELETE /api/leases/task:5:T-2
 
-`DELETE /api/leases/task:order-events:T-2` — X-Actor: runner-sdk · X-Actor-Kind: agent → **200**
+`DELETE /api/leases/task:5:T-2` — X-Actor: runner-sdk · X-Actor-Kind: agent → **200**
 
 Response:
 
 ```json
 {
-  "item_key": "task:order-events:T-2",
+  "item_key": "task:5:T-2",
   "released": true
 }
 ```
 
 ## Activity and events
 
-### GET /api/initiatives/order-events/activity?limit=4
+### GET /api/initiatives/5/activity?limit=4
 
 Revisions and review-queue moves, newest first. Filters: `since` (ISO), `ref`, `actor` (prefix), `limit`.
 
-`GET /api/initiatives/order-events/activity?limit=4` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/initiatives/5/activity?limit=4` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -6182,7 +6409,7 @@ Response:
 [
   {
     "kind": "revision",
-    "at": "2026-10-28T21:04:59Z",
+    "at": "2026-10-28T21:19:10Z",
     "ref": "DEP-1",
     "type": "deploy",
     "rev": 1,
@@ -6193,11 +6420,11 @@ Response:
     "actor_kind": "system",
     "note": "deploy_guard NO-GO",
     "because": [],
-    "batch_id": "570b841d-6dd2-4169-86ee-907be2ef8e45"
+    "batch_id": "bdaaa59f-d6d3-417e-8a3d-b25ec60398a6"
   },
   {
     "kind": "revision",
-    "at": "2026-10-28T19:04:00Z",
+    "at": "2026-10-28T19:19:00Z",
     "ref": "G-2",
     "type": "gap",
     "rev": 1,
@@ -6208,11 +6435,11 @@ Response:
     "actor_kind": "agent",
     "note": "",
     "because": [],
-    "batch_id": "df4322ef-ce8c-472f-b061-53b2a68afd3a"
+    "batch_id": "da1aa153-9693-4417-a6f3-55ee346851ee"
   },
   {
     "kind": "revision",
-    "at": "2026-10-27T01:04:00Z",
+    "at": "2026-10-27T01:19:00Z",
     "ref": "APR-2",
     "type": "approval",
     "rev": 1,
@@ -6223,11 +6450,11 @@ Response:
     "actor_kind": "human",
     "note": "completed by the service",
     "because": [],
-    "batch_id": "ad16778a-d642-42ef-ae5e-550582930646"
+    "batch_id": "f096dc0d-05dc-40fa-b632-5c4726b3fccd"
   },
   {
     "kind": "revision",
-    "at": "2026-10-26T21:04:00Z",
+    "at": "2026-10-26T21:19:00Z",
     "ref": "R-1",
     "type": "test_run",
     "rev": 1,
@@ -6238,16 +6465,16 @@ Response:
     "actor_kind": "agent",
     "note": "",
     "because": [],
-    "batch_id": "e0fab9ff-964d-480b-bf9b-d27ace60a11c"
+    "batch_id": "e32d2097-44c7-4d5d-9a34-2e743f380f86"
   }
 ]
 ```
 
-### GET /api/initiatives/order-events/events?since=0&limit=3
+### GET /api/initiatives/5/events?since=0&limit=3
 
 The event log (`record_written`, `baseline_created`, `review_item_queued`, `review_item_resolved`, `gate_changed`, `initiative_created`, `lease_claimed`, `lease_released`). Poll with `since=<last id>`; `GET /api/events` spans all initiatives.
 
-`GET /api/initiatives/order-events/events?since=0&limit=3` — X-Actor: priya · X-Actor-Kind: human → **200**
+`GET /api/initiatives/5/events?since=0&limit=3` — X-Actor: priya · X-Actor-Kind: human → **200**
 
 Response:
 
@@ -6255,7 +6482,7 @@ Response:
 [
   {
     "id": 194,
-    "ts": "2026-10-22T21:04:00Z",
+    "ts": "2026-10-22T21:19:00Z",
     "kind": "initiative_created",
     "subject": "order-events",
     "actor": "priya",
@@ -6266,11 +6493,11 @@ Response:
   },
   {
     "id": 195,
-    "ts": "2026-10-22T21:04:00Z",
+    "ts": "2026-10-22T21:19:00Z",
     "kind": "record_written",
     "subject": "initiative",
     "actor": "priya",
-    "batch_id": "57e90c0a-6906-466d-8226-fb15d1e67e94",
+    "batch_id": "73b3985f-03f4-4be6-a9c4-396367e2f959",
     "payload": {
       "type": "initiative",
       "rev": 1,
@@ -6280,11 +6507,11 @@ Response:
   },
   {
     "id": 196,
-    "ts": "2026-10-22T21:04:00Z",
+    "ts": "2026-10-22T21:19:00Z",
     "kind": "record_written",
     "subject": "A-1",
     "actor": "priya",
-    "batch_id": "57e90c0a-6906-466d-8226-fb15d1e67e94",
+    "batch_id": "73b3985f-03f4-4be6-a9c4-396367e2f959",
     "payload": {
       "type": "assignment",
       "rev": 1,
@@ -6321,9 +6548,9 @@ Response:
       "state": "enforced"
     },
     "created_by": "priya",
-    "created_at": "2026-09-28T21:04:00Z",
+    "created_at": "2026-09-28T21:19:00Z",
     "updated_by": "priya",
-    "updated_at": "2026-09-28T21:04:00Z"
+    "updated_at": "2026-09-28T21:19:00Z"
   },
   {
     "ref": "STD-2",
@@ -6341,9 +6568,9 @@ Response:
       "state": "active"
     },
     "created_by": "priya",
-    "created_at": "2026-09-28T21:04:00Z",
+    "created_at": "2026-09-28T21:19:00Z",
     "updated_by": "priya",
-    "updated_at": "2026-09-28T21:04:00Z"
+    "updated_at": "2026-09-28T21:19:00Z"
   },
   "… (+1 more)"
 ]
@@ -6372,9 +6599,9 @@ Response:
       "provenance": "inventory-sync-v3 delta sync deviation, answered by meera"
     },
     "created_by": "runner-sdk/retro-skill",
-    "created_at": "2026-09-28T21:04:00Z",
+    "created_at": "2026-09-28T21:19:00Z",
     "updated_by": "runner-sdk/retro-skill",
-    "updated_at": "2026-09-28T21:04:00Z"
+    "updated_at": "2026-09-28T21:19:00Z"
   }
 ]
 ```
@@ -6390,7 +6617,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "21111afb-25a2-4772-b3a2-ca2048ca9fe5",
+  "batch_id": "761bd9e7-3a6a-4805-9444-e97d8ca25635",
   "results": [
     {
       "index": 0,
@@ -6441,7 +6668,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "c4b4087e-4563-47b8-adc3-284156380da3",
+  "batch_id": "3096ddc8-1c57-4a68-81a2-550bbb824912",
   "results": [
     {
       "index": 0,

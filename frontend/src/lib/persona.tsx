@@ -4,7 +4,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Person } from '../api';
-import { setActor, useJson } from './api';
+import { setActor, useJson, useRefresh } from './api';
 
 const KEY = 'srs.viewing_as';
 
@@ -32,17 +32,20 @@ export function PersonaProvider({ children }: { children: React.ReactNode }) {
     return p;
   });
   const people = useJson<Person[]>('/api/people');
+  const { bump } = useRefresh();
   const list = useMemo(() => (people.kind === 'ready' ? people.data : []), [people]);
 
   const setPersona = useCallback((p: string) => {
     setActor(p);
     setPersonaState(p);
+    // Who is calling changed: every caller-relative read (/api/inbox, /api/overview) re-runs.
+    bump();
     try {
       localStorage.setItem(KEY, p);
     } catch {
       /* private window: the choice lasts this tab */
     }
-  }, []);
+  }, [bump]);
 
   // Nobody picked yet (or the saved person is gone after a re-seed): whoever has the most
   // waiting on them, else the first DRI.

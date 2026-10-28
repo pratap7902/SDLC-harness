@@ -4,7 +4,7 @@ from tests.fixtures.slice import SLUG, pr_open, to_task
 
 
 def guard(api, sha="abc123", env="staging"):
-    return api.get("/api/deploy-guard", initiative=SLUG, task="T-1", sha=sha, environment=env)
+    return api.get("/api/deploy-guard", initiative_id=api.id(SLUG), task="T-1", sha=sha, environment=env)
 
 
 def test_go_needs_an_approval_at_this_sha(api):
@@ -34,8 +34,8 @@ def test_post_records_a_deploy_row(api):
     to_task(api)
     pr_open(api)
     api.approve(SLUG, "T-1", "engg", "priya")
-    out = api.ok(api.as_("ci", "system").post("/api/deploy-guard", json={"initiative": SLUG, "task": "T-1", "sha": "abc123", "environment": "production"}))
+    out = api.ok(api.as_("ci", "system").post("/api/deploy-guard", json={"initiative_id": api.id(SLUG), "task": "T-1", "sha": "abc123", "environment": "production"}))
     assert out["decision"] == "GO" and out["deploy"] == "DEP-1"
     dep = api.record(SLUG, "DEP-1")
     assert dep["status"] == "PENDING" and dep["fields"]["guard_result"] == "GO"
-    assert api.as_("ci").get("/api/deploy-guard", params={"initiative": SLUG, "task": "T-1", "sha": "x", "environment": "moon"}).status_code == 422
+    assert api.as_("ci").get("/api/deploy-guard", params={"initiative_id": api.id(SLUG), "task": "T-1", "sha": "x", "environment": "moon"}).status_code == 422
