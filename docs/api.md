@@ -422,7 +422,7 @@ Response:
     },
     "task": {
       "rule": "task_status",
-      "text": "DONE if pr_state=merged and every covered AC has a green test run at pr_sha · STUCK if ci_attempts≥3 or review_rounds≥3 · BLOCKED if a depends_on task is not DONE or an implemented MUST decision is OP…"
+      "text": "DONE if pr_state=merged and every covered AC has a green test run at pr_sha · STUCK if ci_attempts≥3 or review_rounds≥3 · BLOCKED if a depends_on task is not DONE, an implemented MUST decision is OPEN…"
     },
     "finding": {
       "rule": "finding_status",
@@ -718,9 +718,9 @@ Response:
     "title": "Payment webhooks",
     "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
     "created_by": "chandra",
-    "created_at": "2026-10-28T20:22:20Z",
+    "created_at": "2026-10-28T20:24:54Z",
     "closed_at": null,
-    "snapshot_hash": "b1ed29dab1975f335bc0e6d16d4ea871a009e6e13d2622775a6a9c948a1a233b",
+    "snapshot_hash": "227eecc5f22d1d8d3084e791a2810a43aad601a7590a243713b259b00b62e40a",
     "phase": "DRAFT",
     "pill": "amber",
     "summary": "",
@@ -728,7 +728,7 @@ Response:
       "requirement": "# Payment webhooks\nMerchants want a webhook when a payment settles.",
       "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
       "created_by": "chandra",
-      "at": "2026-10-28T20:22:20Z"
+      "at": "2026-10-28T20:24:54Z"
     }
   },
   "phase": "DRAFT",
@@ -2932,7 +2932,7 @@ Response:
     "links": [],
     "actor": "runner-sdk/draft-skill",
     "actor_kind": "agent",
-    "batch_id": "1d5bef3a-f880-4f9b-88b9-f624fc067942",
+    "batch_id": "a11fd34e-c282-4354-bb5a-241c3be29c6b",
     "note": "",
     "because": [],
     "at": "2026-10-22T11:30:00Z"
@@ -3123,7 +3123,7 @@ Response:
   "error_code": "VALIDATION_ERROR",
   "error_data": {
     "ok": false,
-    "batch_id": "6acba9fb-f379-4dbf-a4b3-911c48309286",
+    "batch_id": "996c88e5-5dc5-4026-b825-d554ce5af042",
     "results": [
       {
         "index": 0,
@@ -3389,7 +3389,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "78b61318-ee17-4ad3-85d3-7fbd343ca01a",
+  "batch_id": "98c6a4ea-34da-4be3-a311-a7d6ecda99fe",
   "results": [
     {
       "index": 0,
@@ -3433,7 +3433,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "21f08953-33bf-46f7-987b-3ecd30c83663",
+  "batch_id": "0c1604d7-b4f6-45f3-ac78-0159bca5c263",
   "results": [
     {
       "index": 0,
@@ -3491,7 +3491,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "820a265d-ccb6-4c54-900e-3c9f97758598",
+  "batch_id": "b840bf97-5de6-464b-828c-af7d909ad30c",
   "results": [
     {
       "index": 0,
@@ -3541,7 +3541,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "d6480ee7-f36d-4d13-9044-d46f0eed898f",
+  "batch_id": "4f2c69fd-a1dd-4e55-a25a-3090e2d2176c",
   "results": [
     {
       "index": 0,
@@ -3582,7 +3582,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "28f42c41-bf1c-43ac-aae1-022c626bcc1c",
+  "batch_id": "9f35746e-d54b-40d7-be41-a7079e4703ec",
   "results": [
     {
       "index": 0,
@@ -3636,9 +3636,9 @@ Response:
       "title": "Payment webhooks",
       "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
       "created_by": "chandra",
-      "created_at": "2026-10-28T20:22:20Z",
+      "created_at": "2026-10-28T20:24:54Z",
       "closed_at": null,
-      "snapshot_hash": "252ab9fbe206849ac011ed14e952f95a3025afa063c3b6820d8e5f463bcfd724",
+      "snapshot_hash": "2cf6cfa39153a71e70900b7358bdbdfcb9fb22fcd648bf52590136e64866da48",
       "phase": "PLAN",
       "pill": "amber",
       "summary": "",
@@ -3646,9 +3646,9 @@ Response:
         "requirement": "# Payment webhooks\nMerchants want a webhook when a payment settles **or is refunded**.",
         "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
         "created_by": "chandra",
-        "at": "2026-10-28T20:22:20Z",
-        "previous_hash": "b1ed29dab1975f335bc0e6d16d4ea871a009e6e13d2622775a6a9c948a1a233b",
-        "previous_at": "2026-10-28T20:22:20Z"
+        "at": "2026-10-28T20:24:54Z",
+        "previous_hash": "227eecc5f22d1d8d3084e791a2810a43aad601a7590a243713b259b00b62e40a",
+        "previous_at": "2026-10-28T20:24:54Z"
       }
     },
     "phase": "PLAN",
@@ -3731,7 +3731,7 @@ Response:
         "draft",
         "… (+3 more)"
       ],
-      "created_at": "2026-10-28T20:22:20Z"
+      "created_at": "2026-10-28T20:24:54Z"
     },
     "drift": {
       "changes": 2,
@@ -3784,7 +3784,7 @@ Response:
   },
   "write": {
     "ok": true,
-    "batch_id": "aa8a760c-1b2f-4aa6-b13a-8739d7996b34",
+    "batch_id": "e1386971-04bc-4a54-a227-1430e74b9b9a",
     "results": [
       {
         "index": 0,
@@ -3799,7 +3799,7 @@ Response:
     ],
     "minted": {},
     "review_items": [
-      "draft ← initiative: snapshot_hash: “b1ed29dab1975f335bc0e6d16d4ea871a009e6e13d2622775a6a9c948a1…” → “252ab9fbe206849ac011ed14e952f95a3025afa063c3b6820d8e5f463bc…” (→ chandra)"
+      "draft ← initiative: snapshot_hash: “227eecc5f22d1d8d3084e791a2810a43aad601a7590a243713b259b00b6…” → “2cf6cfa39153a71e70900b7358bdbdfcb9fb22fcd648bf52590136e6486…” (→ chandra)"
     ],
     "stale": [],
     "gates_changed": [],
@@ -3826,14 +3826,14 @@ Response:
     "target": "draft",
     "cause": "initiative",
     "cause_rev": 3,
-    "what_moved": "snapshot_hash: “b1ed29dab1975f335bc0e6d16d4ea871a009e6e13d2622775a6a9c948a1…” → “252ab9fbe206849ac011ed14e952f95a3025afa063c3b6820d8e5f463bc…”",
+    "what_moved": "snapshot_hash: “227eecc5f22d1d8d3084e791a2810a43aad601a7590a243713b259b00b6…” → “2cf6cfa39153a71e70900b7358bdbdfcb9fb22fcd648bf52590136e6486…”",
     "path": "scope",
     "status": "open",
     "route_to": "chandra",
     "domain": null,
     "note": null,
     "created_by": "chandra",
-    "created_at": "2026-10-28T20:22:20Z",
+    "created_at": "2026-10-28T20:24:54Z",
     "resolved_by": null,
     "resolved_at": null
   }
@@ -3863,16 +3863,16 @@ Response:
   "target": "draft",
   "cause": "initiative",
   "cause_rev": 3,
-  "what_moved": "snapshot_hash: “b1ed29dab1975f335bc0e6d16d4ea871a009e6e13d2622775a6a9c948a1…” → “252ab9fbe206849ac011ed14e952f95a3025afa063c3b6820d8e5f463bc…”",
+  "what_moved": "snapshot_hash: “227eecc5f22d1d8d3084e791a2810a43aad601a7590a243713b259b00b6…” → “2cf6cfa39153a71e70900b7358bdbdfcb9fb22fcd648bf52590136e6486…”",
   "path": "scope",
   "status": "upheld",
   "route_to": "chandra",
   "domain": null,
   "note": "Refunds are a separate initiative; the draft holds.",
   "created_by": "chandra",
-  "created_at": "2026-10-28T20:22:20Z",
+  "created_at": "2026-10-28T20:24:54Z",
   "resolved_by": "chandra",
-  "resolved_at": "2026-10-28T20:22:20Z"
+  "resolved_at": "2026-10-28T20:24:54Z"
 }
 ```
 
@@ -4941,7 +4941,7 @@ Response:
     "approval": "APR-1",
     "approved_by": "chandra",
     "draft_rev": "1",
-    "created_at": "2026-10-28T20:22:20Z",
+    "created_at": "2026-10-28T20:24:54Z",
     "members": 4
   },
   "until": null,
@@ -4954,7 +4954,7 @@ Response:
     "pending_decisions": 0,
     "other_changes": 0
   },
-  "digest": "ad92e12cebd1578bbe3060cb43699839363132afbcc570d9afdb3f429f287fcd",
+  "digest": "9666c93ca8491946bd5916e0c424a4b963b39ffbecf49129d7434e642b426c4a",
   "entries": [
     {
       "id": "requirement_repinned:initiative@3",
@@ -4962,10 +4962,10 @@ Response:
       "ref": "initiative",
       "type": "initiative",
       "rev": 3,
-      "at": "2026-10-28T20:22:20Z",
+      "at": "2026-10-28T20:24:54Z",
       "actor": "chandra",
       "actor_kind": "human",
-      "summary": "requirement re-pinned by chandra (hash 252ab9fb)",
+      "summary": "requirement re-pinned by chandra (hash 2cf6cfa3)",
       "what_moved": [
         "snapshot_hash"
       ],
@@ -4988,7 +4988,7 @@ Response:
       "ref": "AC-1",
       "type": "acceptance_criterion",
       "rev": 2,
-      "at": "2026-10-28T20:22:20Z",
+      "at": "2026-10-28T20:24:54Z",
       "actor": "chandra",
       "actor_kind": "human",
       "summary": "AC-1 retired: Signature checks move to the shared webhook library.",
@@ -5609,9 +5609,9 @@ Response:
 {
   "item_key": "task:order-events:T-2",
   "holder": "runner-sdk",
-  "acquired_at": "2026-10-28T20:22:21Z",
-  "heartbeat_at": "2026-10-28T20:22:21Z",
-  "expires_at": "2026-10-28T20:37:21Z"
+  "acquired_at": "2026-10-28T20:24:54Z",
+  "heartbeat_at": "2026-10-28T20:24:54Z",
+  "expires_at": "2026-10-28T20:39:54Z"
 }
 ```
 
@@ -5633,9 +5633,9 @@ Response:
 {
   "item_key": "task:order-events:T-2",
   "holder": "runner-sdk",
-  "acquired_at": "2026-10-28T20:22:21Z",
-  "heartbeat_at": "2026-10-28T20:22:21Z",
-  "expires_at": "2026-10-28T20:52:21Z"
+  "acquired_at": "2026-10-28T20:24:54Z",
+  "heartbeat_at": "2026-10-28T20:24:54Z",
+  "expires_at": "2026-10-28T20:54:54Z"
 }
 ```
 
@@ -5666,7 +5666,7 @@ Response:
 [
   {
     "kind": "revision",
-    "at": "2026-10-28T20:22:21Z",
+    "at": "2026-10-28T20:24:54Z",
     "ref": "DEP-2",
     "type": "deploy",
     "rev": 1,
@@ -5677,7 +5677,7 @@ Response:
     "actor_kind": "system",
     "note": "deploy_guard NO-GO",
     "because": [],
-    "batch_id": "3bd983df-6466-4863-aaee-0b1ff7b42696"
+    "batch_id": "71f98ea7-5153-4d00-a7a6-b489bf281162"
   },
   {
     "kind": "revision",
@@ -5692,7 +5692,7 @@ Response:
     "actor_kind": "agent",
     "note": "",
     "because": [],
-    "batch_id": "4510286a-5857-49ea-ab70-d2c147128a5a"
+    "batch_id": "fb7097a5-615f-444b-8340-811874c71acf"
   },
   {
     "kind": "revision",
@@ -5707,7 +5707,7 @@ Response:
     "actor_kind": "system",
     "note": "deploy_guard GO",
     "because": [],
-    "batch_id": "19982852-aa24-4846-9c38-ffd8efcecb23"
+    "batch_id": "79bcfc8d-3167-4ef0-8b1e-63ba11592f2f"
   },
   {
     "kind": "revision",
@@ -5722,7 +5722,7 @@ Response:
     "actor_kind": "human",
     "note": "completed by the service",
     "because": [],
-    "batch_id": "3dcadabf-58c4-42a1-baf9-4f7f041b8f58"
+    "batch_id": "441887b6-45c2-4ec8-a9fd-310eddc9e364"
   }
 ]
 ```
@@ -5754,7 +5754,7 @@ Response:
     "kind": "record_written",
     "subject": "initiative",
     "actor": "chandra",
-    "batch_id": "b607a2ff-78f0-470a-8ada-34a22c6059b6",
+    "batch_id": "4915d890-29ef-4fc9-b5f2-d57e18c3643a",
     "payload": {
       "type": "initiative",
       "rev": 1,
@@ -5768,7 +5768,7 @@ Response:
     "kind": "record_written",
     "subject": "A-1",
     "actor": "chandra",
-    "batch_id": "b607a2ff-78f0-470a-8ada-34a22c6059b6",
+    "batch_id": "4915d890-29ef-4fc9-b5f2-d57e18c3643a",
     "payload": {
       "type": "assignment",
       "rev": 1,
@@ -5853,7 +5853,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "8cb8aa11-c4e1-4723-8712-26f03b9d32d7",
+  "batch_id": "361d0a07-33e3-4b6a-9b0c-1268163ae78e",
   "results": [
     {
       "index": 0,
@@ -5904,7 +5904,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "c71cc0b0-395c-44f8-b056-c3d9187a55fb",
+  "batch_id": "08629bdf-39a5-4a4e-8eb2-5844fe1c3e20",
   "results": [
     {
       "index": 0,

@@ -196,7 +196,7 @@ def task_status(r: Record, g, args, _seen=None) -> str:
             return "BLOCKED"
     if pr_state in ("open", "approved"):
         return "IN_REVIEW"
-    if pr_state == "draft" or any(key.endswith(f":{r.ref}") and key.startswith("task:") for key in g.leases):
+    if pr_state == "draft" or f"task:{g.initiative.slug}:{r.ref}" in g.leases:
         return "IN_PROGRESS"
     return "READY"
 
