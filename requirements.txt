@@ -1,0 +1,26 @@
+# Core
+fastapi==0.115.12
+uvicorn==0.34.3
+
+# Database (SQLite works out of the box; MySQL via mysql-connector)
+sqlalchemy==2.0.41
+alembic==1.16.1
+mysql-connector-python==9.3.0
+
+# Settings
+pydantic==2.11.7
+pydantic-settings==2.9.1
+python-dotenv==1.1.0
+
+# Blueprint
+pyyaml==6.0.2
+markdown==3.8
+
+# Agent interface
+mcp==1.12.4
+
+# HTTP client
+httpx==0.28.1
+
+# Optional error tracking (enabled only when SENTRY_DSN is set)
+sentry-sdk[fastapi]==2.29.1

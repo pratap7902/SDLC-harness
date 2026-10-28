@@ -1,0 +1,324 @@
+"""REST under /api — mirrors the MCP tools for CI/CD and serves the web UI. Human-only
+endpoints (answer, rule, approve, sign, retire, promote, re-pin) return 403 to agents."""
+
+from typing import Annotated, Optional
+
+from fastapi import APIRouter, Depends, Query, Request
+from fastapi.responses import PlainTextResponse
+
+from app.core.utils.actor import Actor, actor_from_request, require_human
+from app.exceptions import NotFoundException, ValidationException
+from app.initiatives.controllers.record_controller import RecordController
+from app.initiatives.requests.requests import (
+    AnswerGapRequest,
+    ApprovalRequest,
+    ClaimRequest,
+    DeployGuardRequest,
+    HeartbeatRequest,
+    RepinRequest,
+    ResolveReviewRequest,
+    RetireRequest,
+    RuleDecisionRequest,
+    SignRequest,
+    StartFeatureRequest,
+    WriteRequest,
+)
+from app.initiatives.services import drift_render
+from app.initiatives.services.activity_service import ActivityService
+from app.initiatives.services.deploy_guard import DeployGuard
+from app.initiatives.services.inbox_service import InboxService
+from app.initiatives.services.initiative_service import InitiativeService, StartFeature
+from app.initiatives.services.record_service import GLOBAL_SLUG, RecordService, parse_op
+from app.initiatives.services.review_service import ReviewService
+from app.initiatives.services.views import record_json, review_item_json
+from app.initiatives.services.worklist_service import WorklistService
+
+router = APIRouter(tags=["initiatives"])
+
+Records = Annotated[RecordService, Depends()]
+RecordsCtl = Annotated[RecordController, Depends()]
+Initiatives = Annotated[InitiativeService, Depends()]
+Inbox = Annotated[InboxService, Depends()]
+Worklist = Annotated[WorklistService, Depends()]
+Activity = Annotated[ActivityService, Depends()]
+Guard = Annotated[DeployGuard, Depends()]
+
+
+def get_actor(request: Request) -> Actor:
+    return actor_from_request(request)
+
+
+Caller = Annotated[Actor, Depends(get_actor)]
+
+
+def human(actor: Caller) -> Actor:
+    return require_human(actor)
+
+
+Human = Annotated[Actor, Depends(human)]
+
+
+# ── initiatives ─────────────────────────────────────────────────────────────
+
+
+@router.get("/initiatives")
+def list_initiatives(service: Initiatives):
+    return service.list()
+
+
+@router.post("/initiatives", status_code=201)
+def start_initiative(body: StartFeatureRequest, service: Initiatives, actor: Caller):
+    """The intake: start a feature from a requirement (UI form, MCP create_initiative, and
+    later the Azure DevOps importer all call the same IntakeService.start)."""
+    return service.start(StartFeature(**body.model_dump()), actor)
+
+
+@router.get("/initiatives/{slug}")
+def get_state(slug: str, service: Initiatives):
+    return service.state(slug)
+
+
+@router.post("/initiatives/{slug}/snapshot")
+def repin_snapshot(slug: str, body: RepinRequest, service: Initiatives, actor: Human):
+    return service.repin(slug, body.requirement, body.work_item_url, actor)
+
+
+@router.get("/initiatives/{slug}/draft")
+def draft_page(slug: str, service: Initiatives):
+    return service.draft_page(slug)
+
+
+# ── records ─────────────────────────────────────────────────────────────────
+
+
+@router.get("/initiatives/{slug}/records")
+def list_records(
+    slug: str,
+    controller: RecordsCtl,
+    type: Optional[str] = None,
+    status: Optional[str] = None,
+    q: Optional[str] = None,
+    since: Optional[str] = None,
+):
+    return controller.list_records(slug, type, status, q, since)
+
+
+@router.post("/initiatives/{slug}/records")
+def write_records(slug: str, body: WriteRequest, controller: RecordsCtl, request: Request):
+    return controller.write(slug, body, actor_from_request(request, body.agent))
+
+
+@router.get("/initiatives/{slug}/records/{ref}")
+def get_record(slug: str, ref: str, controller: RecordsCtl):
+    return controller.get_record(slug, ref)
+
+
+@router.get("/initiatives/{slug}/records/{ref}/history")
+def record_history(slug: str, ref: str, controller: RecordsCtl):
+    return controller.history(slug, ref)
+
+
+@router.get("/initiatives/{slug}/tasks/{ref}")
+def task_page(slug: str, ref: str, records: Records):
+    """The task page (touchpoint 3): the task, its GATE_PR, its scoped drift report."""
+    g = records.graph(records.initiative(slug))
+    task = g.get(ref)
+    if task is None or task.type != "task":
+        raise NotFoundException(message=f"No task '{ref}' in {slug}")
+    report = g.drift(task=ref)
+    return {
+        "task": record_json(task, g, detail=True),
+        "gate": g.gate("GATE_PR", task=ref).to_dict(),
+        "drift": report.to_dict(),
+        "approver": g.person_for("engg", ref),
+        "test_runs": [record_json(r, g) for r in g.of_type("test_run") if ref in (g.f(r, "task") or []) or any(row.get("ac") in (g.f(task, "covers") or []) for row in g.f(r, "covers") or [])],
+        "findings": [record_json(f, g) for f in g.of_type("finding") if ref in (g.f(f, "target") or [])],
+        "deploys": [record_json(d, g) for d in g.of_type("deploy") if ref in (g.f(d, "task") or [])],
+    }
+
+
+# ── worklist, next work, leases ─────────────────────────────────────────────
+
+
+@router.get("/initiatives/{slug}/worklist")
+def worklist(slug: str, service: Worklist):
+    return service.worklist(slug)
+
+
+@router.get("/initiatives/{slug}/next-work")
+def next_work(slug: str, service: Worklist, actor: Caller, kind: Optional[str] = None, person: Optional[str] = None, limit: int = 10):
+    return service.next_work(slug, kind, person, actor.name, limit)
+
+
+@router.get("/next-work")
+def next_work_all(service: Worklist, actor: Caller, kind: Optional[str] = None, person: Optional[str] = None, limit: int = 10):
+    return service.next_work(None, kind, person, actor.name, limit)
+
+
+@router.post("/leases/claim")
+def claim(body: ClaimRequest, service: Worklist, actor: Caller):
+    return service.claim(body.item_key, actor.name, body.ttl_min)
+
+
+@router.post("/leases/{key}/heartbeat")
+def heartbeat(key: str, service: Worklist, actor: Caller, body: Optional[HeartbeatRequest] = None):
+    return service.heartbeat(key, actor.name, body.ttl_min if body else None)
+
+
+@router.delete("/leases/{key}")
+def release(key: str, service: Worklist, actor: Caller):
+    return service.release(key, actor.name)
+
+
+# ── gates, drift ────────────────────────────────────────────────────────────
+
+
+@router.get("/initiatives/{slug}/gates")
+def gates(slug: str, records: Records):
+    g = records.graph(records.initiative(slug))
+    out = []
+    for key, gate in records.bp.lifecycle.gates.items():
+        if gate.scope == "initiative":
+            out.append(g.gate(key).to_dict())
+        else:
+            out += [g.gate(key, task=t.ref).to_dict() for t in g.of_type("task")]
+    return out
+
+
+@router.get("/initiatives/{slug}/tasks/{ref}/gates")
+def task_gates(slug: str, ref: str, records: Records):
+    g = records.graph(records.initiative(slug))
+    if g.get(ref) is None or g.get(ref).type != "task":
+        raise NotFoundException(message=f"No task '{ref}' in {slug}")
+    return [g.gate(key, task=ref).to_dict() for key, gate in records.bp.lifecycle.gates.items() if gate.scope == "task"]
+
+
+@router.get("/initiatives/{slug}/drift")
+def drift(slug: str, records: Records, request: Request, task: Optional[str] = None, baseline: Optional[str] = None, format: str = Query("json", pattern="^(json|md|text)$")):
+    g = records.graph(records.initiative(slug))
+    if task and (g.get(task) is None or g.get(task).type != "task"):
+        raise NotFoundException(message=f"No task '{task}' in {slug}")
+    if baseline and (g.get(baseline) is None or g.get(baseline).type != "baseline"):
+        raise NotFoundException(message=f"No baseline '{baseline}' in {slug}")
+    report = g.drift(task=task, baseline=baseline)
+    if format == "md":
+        return PlainTextResponse(drift_render.markdown(report, str(request.base_url).rstrip("/")), media_type="text/markdown")
+    if format == "text":
+        return PlainTextResponse(drift_render.text(report))
+    return report.to_dict()
+
+
+# ── review queue ────────────────────────────────────────────────────────────
+
+
+@router.get("/initiatives/{slug}/reviews")
+def reviews(slug: str, records: Records, status: Optional[str] = "open"):
+    i = records.initiative(slug)
+    items = records.reviews.all_for(i.id, None if status in (None, "", "all") else status)
+    return [review_item_json(x) for x in items]
+
+
+@router.post("/initiatives/{slug}/reviews/{item_id}/resolve")
+def resolve_review(slug: str, item_id: int, body: ResolveReviewRequest, records: Records, actor: Caller):
+    i = records.initiative(slug)
+    item = ReviewService(records.db, records.bp).resolve(i, item_id, body.resolution, body.note, actor.name)
+    records.events.add("review_item_resolved", i.id, item.target_ref, actor.name, "", {"id": item.id, "resolution": item.status})
+    records.db.commit()
+    return review_item_json(item)
+
+
+# ── the human lane ──────────────────────────────────────────────────────────
+
+
+@router.get("/inbox/{person}")
+def inbox(person: str, service: Inbox):
+    return service.inbox(person)
+
+
+@router.get("/people")
+def people(service: Inbox):
+    return service.people()
+
+
+@router.post("/initiatives/{slug}/gaps/{ref}/answer")
+def answer_gap(slug: str, ref: str, body: AnswerGapRequest, service: Inbox, actor: Human):
+    return service.answer_gap(slug, ref, body.answer or "", body.choice, actor).to_dict()
+
+
+@router.post("/initiatives/{slug}/decisions/{ref}/rule")
+def rule_decision(slug: str, ref: str, body: RuleDecisionRequest, service: Inbox, actor: Human):
+    return service.rule_decision(slug, ref, body.verdict, body.rationale, actor).to_dict()
+
+
+@router.post("/initiatives/{slug}/approvals", status_code=201)
+def approve(slug: str, body: ApprovalRequest, service: Inbox, actor: Human):
+    return service.approve(slug, body.target, body.role, body.at_sha, body.note, actor).to_dict()
+
+
+@router.post("/initiatives/{slug}/criteria/{ref}/sign")
+def sign(slug: str, ref: str, body: SignRequest, service: Inbox, actor: Human):
+    return service.sign_ac(slug, ref, body.at_sha, actor).to_dict()
+
+
+@router.post("/initiatives/{slug}/criteria/{ref}/retire")
+def retire(slug: str, ref: str, body: RetireRequest, service: Inbox, actor: Human):
+    return service.retire_ac(slug, ref, body.because, actor).to_dict()
+
+
+# ── global scope ────────────────────────────────────────────────────────────
+
+
+@router.get("/standards")
+def standards(records: Records):
+    g = records.graph(records.initiative(GLOBAL_SLUG))
+    return [record_json(r, g) for r in g.of_type("standard")]
+
+
+@router.get("/learnings")
+def learnings(records: Records):
+    g = records.graph(records.initiative(GLOBAL_SLUG))
+    return [record_json(r, g) for r in g.of_type("learning")]
+
+
+@router.post("/global/records")
+def write_global(body: WriteRequest, controller: RecordsCtl, request: Request):
+    return controller.write(GLOBAL_SLUG, body, actor_from_request(request, body.agent))
+
+
+@router.post("/learnings/{ref}/promote")
+def promote(ref: str, service: Inbox, actor: Human):
+    return service.promote_learning(ref, actor).to_dict()
+
+
+# ── deploy guard ────────────────────────────────────────────────────────────
+
+
+@router.get("/deploy-guard")
+def deploy_guard(guard: Guard, initiative: str, task: str, sha: str, environment: str):
+    return guard.check(initiative, task, sha, environment)
+
+
+@router.post("/deploy-guard")
+def deploy_guard_record(body: DeployGuardRequest, guard: Guard, actor: Caller):
+    return guard.record(body.initiative, body.task, body.sha, body.environment, actor)
+
+
+# ── activity ────────────────────────────────────────────────────────────────
+
+
+@router.get("/initiatives/{slug}/activity")
+def activity(slug: str, service: Activity, since: Optional[str] = None, ref: Optional[str] = None, actor: Optional[str] = None, limit: int = 200):
+    return service.feed(slug, since, ref, actor, limit)
+
+
+@router.get("/initiatives/{slug}/events")
+def events(slug: str, service: Activity, since: int = 0, limit: int = 200):
+    return service.events(slug, since, limit)
+
+
+@router.get("/events")
+def all_events(service: Activity, since: int = 0, limit: int = 200):
+    return service.events(None, since, limit)
+
+
+__all__ = ["router", "parse_op", "ValidationException"]

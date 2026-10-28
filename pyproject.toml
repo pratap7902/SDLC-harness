@@ -1,0 +1,12 @@
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+exclude = ["migrations", ".venv",".git",".github","__pycache__"]
+fix = true
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+ignore = ["E501"]  # optional: line length warning
+
+[tool.ruff.format]
+quote-style = "double"

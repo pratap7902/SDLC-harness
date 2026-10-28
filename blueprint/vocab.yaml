@@ -1,0 +1,55 @@
+# Vocabularies. Statuses are DERIVED (blueprint/lifecycle.yaml status_rules), never typed;
+# each type's status vocabulary lists every value its rule can produce.
+vocab:
+  # ── derived statuses ─────────────────────────────────────────────────
+  initiative_phase: [UNASSIGNED, DRAFT, PLAN, BUILD, VALIDATE, SHIP, CLOSED]
+  assignment_status: [ACTIVE, REPLACED]
+  draft_status: [DRAFTING, IN_REVIEW, APPROVED, REOPENED]
+  decision_status: [OPEN, PROVISIONAL, DECIDED, SUPERSEDED]
+  gap_status: [OPEN, ANSWERED, WITHDRAWN]
+  ac_status: [PROPOSED, APPROVED, ADDED_AFTER_BASELINE, RETIRED]
+  task_status: [READY, IN_PROGRESS, IN_REVIEW, BLOCKED, STUCK, DONE]
+  finding_status: [OPEN, FIXED, REJECTED, ACKNOWLEDGED]
+  test_run_status: [GREEN, RED, ERROR]
+  deploy_status: [PENDING, DEPLOYED, FAILED, ROLLED_BACK]
+  approval_status: [CURRENT, STALE]
+  baseline_status: [CURRENT, SUPERSEDED]
+  standard_status_derived: [DRAFT, ACTIVE, ENFORCED, RETIRED]
+  learning_status: [DRAFT, PROMOTED]
+
+  # ── field vocabularies ───────────────────────────────────────────────
+  role: [dri, product, design, engg, qa]
+  domain: [product, design, engg]
+  std_level: [MUST, SHOULD]
+  yes_no: ["yes", "no"]
+  gap_kind: [unknown, deviation, conflict, prd_drift, untestable_ac]
+  test_level: [unit, integration, e2e, manual]
+  pr_state: [none, draft, open, approved, merged, closed]
+  severity: [blocker, major, minor, nit]
+  finding_resolution: [fixed, rejected, acknowledged]
+  run_result: [GREEN, RED, ERROR]
+  deploy_result: [PENDING, DEPLOYED, FAILED, ROLLED_BACK]
+  environment: [test, staging, production]
+  catalog_disposition: [addressed, not_applicable]
+  learning_stage: [draft, promoted]
+  standard_status: [draft, active, enforced, retired]
+
+# Statuses that still need someone to act — drives worklist / inbox membership.
+open:
+  decision_status: [OPEN, PROVISIONAL]
+  gap_status: [OPEN]
+  draft_status: [DRAFTING, IN_REVIEW, REOPENED]
+  ac_status: [PROPOSED]
+  task_status: [READY, IN_PROGRESS, IN_REVIEW, BLOCKED, STUCK]
+  finding_status: [OPEN]
+  approval_status: [STALE]
+
+# Statuses that answer something: a record linked to one of these may need a revisit.
+answers: [ANSWERED, DECIDED, FIXED]
+
+# UI pill colours by status (the frontend reads these from /api/blueprint).
+pills:
+  green: [APPROVED, DECIDED, ANSWERED, DONE, GREEN, DEPLOYED, CURRENT, ACTIVE, FIXED, PROMOTED, ENFORCED, SHIP]
+  amber: [IN_REVIEW, PROVISIONAL, IN_PROGRESS, ADDED_AFTER_BASELINE, PENDING, STALE, DRAFTING, PROPOSED, PLAN, BUILD, VALIDATE, DRAFT]
+  red: [OPEN, REOPENED, BLOCKED, STUCK, RED, ERROR, FAILED, ROLLED_BACK, UNASSIGNED]
+  grey: [SUPERSEDED, WITHDRAWN, RETIRED, REPLACED, REJECTED, ACKNOWLEDGED, CLOSED, READY]

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "srs": {
+      "type": "http",
+      "url": "http://localhost:8791/mcp",
+      "headers": { "X-Actor": "${USER}", "X-Actor-Kind": "agent" }
+    }
+  }
+}

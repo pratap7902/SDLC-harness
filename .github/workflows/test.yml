@@ -1,0 +1,30 @@
+name: "Lint and Tests"
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: srs
+          MYSQL_DATABASE: srs_test
+        ports:
+          - 3311:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: make install PYTHON=python
+      - run: make lint
+      - run: make check
+      - run: make test
+      - name: tests on MySQL (FOR UPDATE on ref_counters, unique pairs)
+        run: make test-mysql

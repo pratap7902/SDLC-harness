@@ -1,0 +1,294 @@
+# Record types. Conventions:
+#   ref: {prefix: X} minted per scope · {singleton: name} one per initiative
+#   status: the type's status vocabulary; the value is DERIVED (lifecycle.yaml status_rules)
+#   line: the field shown beside the title · material: true → a change propagates
+#   actor: human → only a human may write the field · type: refs + targets → typed links
+#   (link_kind defaults to the field name) · post_baseline_cause: true → after a baseline,
+#   a material edit needs `because` · scope: global → standards / learnings (initiative 0)
+types:
+  initiative:
+    title: Initiative
+    plural: Initiatives
+    ref: {singleton: initiative}
+    status: initiative_phase
+    narrated: true
+    propagates_to: [draft]
+    fields:
+      summary:       {type: narrative, expect: true, max: 800}
+      work_item_url: {type: string, max: 512, help: "Azure DevOps work item (optional; ADO ingestion is deferred)"}
+      prd_refs:      {type: bullets, max: 300, help: "PRD / doc URLs pinned at intake"}
+      snapshot_hash: {type: string, max: 64, material: true, help: "sha256 of initiatives.spec_snapshot; a re-pin is a material change"}
+      catalog:
+        type: rows
+        row_key: item
+        columns: [item, phase, disposition, note, refs]
+        column_vocab: {disposition: catalog_disposition}
+        help: "Per-phase checklist answers (lifecycle.yaml catalogs)"
+      closed_because: {type: string, max: 300}
+
+  assignment:
+    title: Assignment
+    plural: Assignments
+    ref: {prefix: A}
+    status: assignment_status
+    line: person
+    fields:
+      person: {type: string, max: 80, required: true, help: "directory handle"}
+      role:   {type: enum, vocab: role, required: true}
+      scope:  {type: refs, targets: [initiative, task], required: true, link_kind: scope}
+      until:  {type: date}
+
+  draft:
+    title: Draft
+    plural: Drafts
+    ref: {singleton: draft}
+    status: draft_status
+    narrated: true
+    post_baseline_cause: true
+    propagates_to: [task, acceptance_criterion]
+    fields:
+      summary:       {type: narrative, expect: true, max: 1200, help: "What is being built and the decisions it rests on"}
+      problem:       {type: markdown, required: true, help: "Restated from the requirement snapshot; what 'done' means"}
+      hld:           {type: markdown, required: true, material: true, help: "High-level design. Cite D-* bare"}
+      lld:           {type: markdown, material: true, help: "Low-level design: modules, interfaces, data, migrations"}
+      scope_in:      {type: bullets, max: 300, material: true}
+      scope_out:     {type: bullets, max: 300, material: true}
+      test_strategy: {type: markdown, required: true, material: true, help: "Levels, environments, what is manual and why"}
+      decisions:     {type: refs, targets: [decision], link_kind: contains}
+      criteria:      {type: refs, targets: [acceptance_criterion], link_kind: contains_ac}
+      submitted_rev: {type: string, max: 10, help: "Set by the draft skill when it submits for review"}
+    rules:
+      - when: {status: [IN_REVIEW, APPROVED]}
+        require: [hld, lld, test_strategy]
+
+  decision:
+    title: Decision
+    plural: Decisions
+    ref: {prefix: D}
+    status: decision_status
+    narrated: true
+    line: verdict
+    post_baseline_cause: true
+    propagates_to: [decision, task, finding, acceptance_criterion, draft]
+    propagates_on_create: [DECIDED]
+    fields:
+      question:    {type: string, max: 400, required: true}
+      domain:      {type: enum, vocab: domain, required: true}
+      level:       {type: enum, vocab: std_level, required: true, help: "MUST = blocks until a human rules; SHOULD = provisional allowed"}
+      options:     {type: rows, row_key: name, columns: [name, consequences, cost_risk]}
+      verdict:     {type: string, max: 450, material: true, help: "Empty = OPEN. On an escalated or MUST decision only a human may write it"}
+      rationale:   {type: markdown}
+      provisional: {type: enum, vocab: yes_no, help: "yes = work continues on this default (SHOULD only); the human answer supersedes"}
+      escalated:   {type: enum, vocab: yes_no, help: "yes = routed to a human; verdict becomes actor:human"}
+      decided_by:  {type: string, max: 120}
+      decided_on:  {type: date}
+      cites:       {type: refs, targets: [standard, decision, external], link_kind: cites}
+      supersedes:  {type: refs, targets: [decision], link_kind: supersedes}
+      because:     {type: refs, targets: [gap, finding, decision], link_kind: because, help: "Post-baseline: what made this decision necessary"}
+    rules:
+      - when: {status: [DECIDED]}
+        require: [decided_by, decided_on, rationale]
+      - when: {provisional: ["yes"]}
+        require: [verdict]
+    actor_rules:
+      - when: {escalated: ["yes"]}
+        human: [verdict, rationale, decided_by]
+      - when: {level: [MUST]}
+        human: [verdict]
+
+  gap:
+    title: Gap
+    plural: Gaps
+    ref: {prefix: G}
+    status: gap_status
+    narrated: true
+    line: question
+    propagates_to: [decision, draft, task, acceptance_criterion]
+    material_statuses: [ANSWERED, WITHDRAWN]
+    index: {facets: [domain, kind], columns: [domain, kind, blocks], newest_first: true}
+    fields:
+      question:    {type: string, max: 600, required: true}
+      kind:        {type: enum, vocab: gap_kind, required: true, help: "unknown · deviation · conflict · prd_drift · untestable_ac"}
+      domain:      {type: enum, vocab: domain, required: true}
+      level:       {type: enum, vocab: std_level, help: "MUST (default) blocks what it names; SHOULD lets work continue on the recommendation"}
+      asked_by:    {type: string, max: 120, required: true}
+      why_now:     {type: string, max: 400, required: true}
+      context:     {type: markdown, required: true, help: "Readable cold, concrete example"}
+      options:     {type: rows, row_key: key, columns: [key, label, consequence]}
+      recommendation: {type: string, max: 80}
+      recommendation_why: {type: string, max: 600}
+      blocks:      {type: refs, targets: [decision, draft, task, acceptance_criterion], link_kind: blocks}
+      proposed_change: {type: markdown, help: "kind=deviation: the exact spec change wanted (old → new)"}
+      answer:      {type: markdown, material: true, actor: human}
+      choice:      {type: string, max: 80, actor: human, help: "the option key the human picked, if any"}
+      answered_by: {type: string, max: 80, actor: human}
+      answered_on: {type: string, max: 30, actor: human}
+      withdrawn_because: {type: string, max: 300}
+      conversation: {type: rows, verbatim: true, columns: ["on", by, text]}
+      resolution:  {type: string, max: 600, help: "What the agent did with the answer: D-n superseded, AC-n added"}
+    rules:
+      - when: {status: [ANSWERED]}
+        require: [answer, answered_by]
+
+  acceptance_criterion:
+    title: Acceptance criterion
+    plural: Acceptance criteria
+    ref: {prefix: AC}
+    status: ac_status
+    line: text
+    post_baseline_cause: true
+    propagates_to: [test_run, task]
+    fields:
+      text:     {type: string, max: 700, required: true, material: true, help: "given / when / then; atomic"}
+      level:    {type: enum, vocab: test_level, required: true}
+      manual:   {type: enum, vocab: yes_no, help: "yes = QA signs it at GATE_VALIDATED"}
+      source:   {type: refs, targets: [decision, initiative], required: true, link_kind: source}
+      because:  {type: refs, targets: [gap, decision, finding], link_kind: because, help: "Required when added after the baseline"}
+      retired_because: {type: string, max: 300, actor: human, material: true}
+      signed_by: {type: string, max: 80, actor: human, help: "manual ACs only"}
+      signed_at_sha: {type: string, max: 64, actor: human}
+
+  task:
+    title: Task
+    plural: Tasks
+    ref: {prefix: T}
+    status: task_status
+    line: goal
+    propagates_to: [task, test_run]
+    index: {facets: [pr_state], columns: [repo, pr_state, pr_url]}
+    fields:
+      goal:        {type: string, max: 400, required: true}
+      repo:        {type: string, max: 200, required: true}
+      template:    {type: string, max: 120, required: true, help: "paved-road template / IaC module id"}
+      implements:  {type: refs, targets: [decision], required: true, link_kind: implements}
+      covers:      {type: refs, targets: [acceptance_criterion], required: true, link_kind: covers}
+      depends_on:  {type: refs, targets: [task], link_kind: depends_on}
+      rollback:    {type: markdown, expect: true}
+      pr_url:      {type: string, max: 300}
+      pr_state:    {type: enum, vocab: pr_state, material: true}
+      pr_sha:      {type: string, max: 64, material: true, help: "head sha the pr_state refers to"}
+      ci_attempts: {type: string, max: 4}
+      review_rounds: {type: string, max: 4}
+      tracker_id:  {type: string, max: 60}
+      tracker_url: {type: string, max: 300}
+    rules:
+      - when: {pr_state: [open, approved, merged]}
+        require: [pr_url, pr_sha]
+
+  finding:
+    title: Finding
+    plural: Findings
+    ref: {prefix: F}
+    status: finding_status
+    line: summary
+    propagates_to: [task]
+    fields:
+      summary:    {type: string, max: 400, required: true}
+      severity:   {type: enum, vocab: severity, required: true}
+      target:     {type: refs, targets: [draft, decision, acceptance_criterion, task], required: true, link_kind: targets}
+      cites:      {type: refs, targets: [standard, learning, decision], link_kind: cites}
+      at_rev:     {type: string, max: 10}
+      at_sha:     {type: string, max: 64}
+      where:      {type: string, max: 400}
+      details:    {type: markdown}
+      resolution: {type: enum, vocab: finding_resolution, material: true}
+      resolution_note: {type: string, max: 600}
+      comment_url: {type: string, max: 300}
+    rules:
+      - when: {status: [REJECTED]}
+        require: [resolution_note]
+
+  test_run:
+    title: Test run
+    plural: Test runs
+    ref: {prefix: R}
+    status: test_run_status
+    line: summary
+    propagates_to: [task]
+    index: {newest_first: true}
+    fields:
+      summary:  {type: string, max: 300, required: true}
+      level:    {type: enum, vocab: test_level, required: true}
+      result:   {type: enum, vocab: run_result, required: true, material: true}
+      at_sha:   {type: string, max: 64, required: true}
+      run_url:  {type: string, max: 300, required: true}
+      environment: {type: string, max: 120}
+      task:     {type: refs, targets: [task], link_kind: runs_for}
+      covers:   {type: rows, row_key: ac, columns: [ac, result, test_id, evidence], column_vocab: {result: run_result}, help: "one row per AC this run proves"}
+      run_on:   {type: string, max: 30, required: true}
+
+  deploy:
+    title: Deploy
+    plural: Deploys
+    ref: {prefix: DEP}
+    status: deploy_status
+    line: environment
+    fields:
+      environment: {type: enum, vocab: environment, required: true}
+      at_sha:      {type: string, max: 64, required: true}
+      task:        {type: refs, targets: [task], required: true, link_kind: deploys}
+      guard_result: {type: markdown, help: "what deploy_guard answered, verbatim"}
+      result:      {type: enum, vocab: deploy_result, required: true, material: true}
+      deploy_url:  {type: string, max: 300}
+      rolled_back_because: {type: string, max: 300}
+
+  approval:
+    title: Approval
+    plural: Approvals
+    ref: {prefix: APR}
+    status: approval_status
+    line: role
+    fields:
+      target:       {type: refs, targets: [draft, task, acceptance_criterion], required: true, link_kind: approves, actor: human}
+      role:         {type: enum, vocab: role, required: true, actor: human}
+      approved_rev: {type: string, max: 10, actor: human, help: "draft: the draft rev approved (service fills it)"}
+      at_sha:       {type: string, max: 64, actor: human, help: "task: the PR head approved"}
+      drift_digest: {type: string, max: 64, actor: human, help: "task: digest of drift_report(task) at approval (service fills it)"}
+      note:         {type: string, max: 600, actor: human}
+
+  baseline:
+    title: Baseline
+    plural: Baselines
+    ref: {prefix: B}
+    status: baseline_status
+    line: label
+    fields:
+      label:       {type: string, max: 120, required: true}
+      approval:    {type: refs, targets: [approval], required: true, link_kind: from}
+      draft_rev:   {type: string, max: 10, required: true}
+      approved_by: {type: string, max: 120}
+      members:     {type: rows, row_key: ref, columns: [ref, type, rev], help: "every spec-bearing record in scope and its rev at approval"}
+      snapshot:    {type: json, help: "{ref: {type, title, status, fields}} for every member — the frozen spec"}
+      at_sha:      {type: string, max: 64}
+
+  # ── global scope (initiative 0) ────────────────────────────────────────
+  standard:
+    title: Standard
+    plural: Standards
+    scope: global
+    ref: {prefix: STD}
+    status: standard_status_derived
+    line: rule
+    propagates_to: [decision, finding]
+    fields:
+      rule:   {type: string, max: 600, required: true, material: true}
+      level:  {type: enum, vocab: std_level, required: true, material: true}
+      applies_to: {type: string, max: 300, help: "glob of repos/paths it applies to"}
+      owner:  {type: string, max: 80, required: true}
+      state:  {type: enum, vocab: standard_status, required: true, material: true, actor: human}
+      examples: {type: markdown}
+
+  learning:
+    title: Learning
+    plural: Learnings
+    scope: global
+    ref: {prefix: L}
+    status: learning_status
+    line: text
+    propagates_to: [finding]
+    fields:
+      text:       {type: string, max: 400, required: true}
+      applies_to: {type: string, max: 300}
+      source:     {type: string, max: 300, required: true, help: "initiative:ref the learning came from, e.g. order-events:F-3"}
+      provenance: {type: string, max: 400, required: true}
+      stage:      {type: enum, vocab: learning_stage, material: true, actor: human, help: "draft (default) → promoted; promotion is human-only"}

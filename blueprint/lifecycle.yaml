@@ -1,0 +1,94 @@
+# The lifecycle: phases, derived statuses, per-phase catalogs, gates, routing.
+# Rules are NAMED here with their plain-English text; the code for each name lives in
+# app/initiatives/services/{status_rules,gate_rules}.py. `make check` refuses a YAML rule
+# with no implementation and an implementation with no YAML entry.
+phases: [intake, draft, plan, build, validate, ship]
+
+roles: [dri, product, design, engg, qa]
+
+# Derived, never typed.
+status_rules:
+  initiative: {rule: initiative_phase, text: "UNASSIGNED until a dri and an engg are assigned · DRAFT until GATE_DRAFT passes · PLAN until every AC is covered by a task · BUILD until every task is DONE · VALIDATE until GATE_VALIDATED passes · SHIP · CLOSED once closed_because is set"}
+  assignment: {rule: assignment_status, text: "ACTIVE; REPLACED when a newer assignment for the same role and scope exists"}
+  draft:      {rule: draft_status, text: "DRAFTING → IN_REVIEW (submitted_rev set) → APPROVED (a dri approval created a baseline) → REOPENED (the initiative has unexplained drift since the baseline)"}
+  decision:   {rule: decision_status, text: "SUPERSEDED if another decision supersedes it · OPEN if verdict empty · PROVISIONAL if provisional=yes · DECIDED"}
+  gap:        {rule: gap_status, text: "WITHDRAWN if withdrawn_because · ANSWERED if answer · OPEN"}
+  acceptance_criterion: {rule: ac_status, text: "RETIRED if retired_because · APPROVED if in the current baseline · ADDED_AFTER_BASELINE if a baseline exists and this AC is not in it · PROPOSED"}
+  task:       {rule: task_status, text: "DONE if pr_state=merged and every covered AC has a green test run at pr_sha · STUCK if ci_attempts≥3 or review_rounds≥3 · BLOCKED if a depends_on task is not DONE or an implemented MUST decision is OPEN · IN_REVIEW if pr_state is open/approved · IN_PROGRESS if leased or pr_state=draft · READY"}
+  finding:    {rule: finding_status, text: "OPEN if resolution empty, else FIXED | REJECTED | ACKNOWLEDGED"}
+  test_run:   {rule: test_run_status, text: "= result (GREEN | RED | ERROR)"}
+  deploy:     {rule: deploy_status, text: "= result (PENDING | DEPLOYED | FAILED | ROLLED_BACK)"}
+  approval:   {rule: approval_status, text: "draft: CURRENT while its baseline is the newest and the draft is not REOPENED · task: CURRENT while at_sha = pr_sha and drift_digest = drift_report(task).digest · AC: CURRENT while the AC is at approved_rev · else STALE"}
+  baseline:   {rule: baseline_status, text: "CURRENT for the newest baseline of an initiative, SUPERSEDED for older"}
+  standard:   {rule: field_status, field: state, text: "= state, upper-cased"}
+  learning:   {rule: field_status, field: stage, text: "= stage, upper-cased (DRAFT when empty)"}
+
+# Per phase: what every initiative must address before leaving it. `derived: true` items
+# are answered by the service itself; the rest are rows in initiative.catalog.
+catalogs:
+  intake:
+    - {item: dri_assigned, derived: true, text: "an ACTIVE dri assignment"}
+    - {item: engg_assigned, derived: true, text: "an ACTIVE engg assignment"}
+    - {item: requirement_snapshotted, derived: true, text: "spec_snapshot pinned with its hash"}
+  draft:
+    - {item: security_review, text: "threats, data classification, authn/z touched"}
+    - {item: rollback_plan, text: "how a bad deploy is undone"}
+    - {item: observability, text: "metrics, logs, alerts that show it works"}
+    - {item: data_migration_assessed, text: "schema / backfill impact"}
+    - {item: test_strategy, text: "levels and environments; what is manual"}
+  plan:
+    - {item: every_ac_covered_by_a_task, derived: true, text: "each live AC is in some task's covers"}
+    - {item: every_task_has_template, derived: true, text: "each task names its paved-road template"}
+  build: []
+
+# Evaluated on read, never stored. `human:` is the role whose approval the gate needs.
+gates:
+  GATE_DRAFT:
+    scope: initiative
+    human: dri
+    text: "Touchpoint 1 — the DRI approves the draft; approval creates baseline B-n"
+    all_of:
+      - no_open_decision_in_draft_scope
+      - no_open_gap_blocking_draft
+      - no_open_review_items_on_spec
+      - catalog_addressed: {phase: draft}
+      - every_ac_has_source
+      - every_decision_covered_by_an_ac
+      - approval_by_role: {role: dri, target: draft}
+    on_pass: create_baseline
+
+  GATE_PR:
+    scope: task
+    human: engg
+    text: "Touchpoint 3 — the engineer approves the task's drift report at the PR head"
+    all_of:
+      - pr_state_in: {states: [open, approved]}
+      - no_blocker_finding_open_at_sha
+      - every_covered_ac_has_a_test
+      - drift_explained_for_task
+      - no_provisional_decision_implemented_at_must_level
+      - approval_by_role: {role: engg, target: task}
+
+  GATE_VALIDATED:
+    scope: initiative
+    text: "Derived — every live AC green (scoped to the task's ACs when deploy_guard asks), manual ACs signed by QA, no open blocker"
+    all_of:
+      - every_ac_green
+      - manual_acs_signed_by: {role: qa}
+      - no_blocker_finding_open
+
+deploy_guard:
+  text: "GATE_PR passed for the task at this sha AND GATE_VALIDATED for the task's ACs AND no OPEN or PROVISIONAL decision among the task's implements"
+  args: [initiative, task, sha, environment]
+
+# Touchpoint 2 is not a gate: a queue with routing and an SLA.
+routing:
+  by_domain: {product: product, design: design, engg: engg}
+  gates: {GATE_DRAFT: dri, GATE_PR: engg, manual_ac: qa}
+  fallback: dri
+  sla_hours: {gap: 24, decision: 24, approval: 48, review_item: 48, manual_ac: 48}
+  escalate_to: dri
+
+handoff:
+  ci_attempts: 3
+  review_rounds: 3
