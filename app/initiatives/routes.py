@@ -28,6 +28,7 @@ from app.initiatives.services.activity_service import ActivityService
 from app.initiatives.services.deploy_guard import DeployGuard
 from app.initiatives.services.inbox_service import InboxService
 from app.initiatives.services.initiative_service import InitiativeService, StartFeature
+from app.initiatives.services.overview_service import OverviewService
 from app.initiatives.services.record_service import GLOBAL_SLUG, RecordService, parse_op
 from app.initiatives.services.review_service import ReviewService
 from app.initiatives.services.views import record_json, review_item_json
@@ -42,6 +43,7 @@ Inbox = Annotated[InboxService, Depends()]
 Worklist = Annotated[WorklistService, Depends()]
 Activity = Annotated[ActivityService, Depends()]
 Guard = Annotated[DeployGuard, Depends()]
+Overview = Annotated[OverviewService, Depends()]
 
 
 def get_actor(request: Request) -> Actor:
@@ -64,6 +66,14 @@ Human = Annotated[Actor, Depends(human)]
 @router.get("/initiatives")
 def list_initiatives(service: Initiatives):
     return service.list()
+
+
+@router.get("/overview")
+def overview(service: Overview, person: Optional[str] = None):
+    """The Features list in one read: per initiative its phase, people, next open human item,
+    PR approvals, drift, GATE_DRAFT state, latest activity and agent lane; across initiatives
+    the decisions waiting (yours first when `person` is given) and your PR approvals."""
+    return service.overview(person)
 
 
 @router.post("/initiatives", status_code=201)

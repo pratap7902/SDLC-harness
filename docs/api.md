@@ -37,7 +37,7 @@ running service against the demo data (`make seed`). Regenerate with
 
 | Page | Reads | Writes |
 |---|---|---|
-| `/` home | `GET /api/initiatives`, `GET /api/people` | — |
+| `/` home (Features) | `GET /api/overview?person=` (one read: every initiative, decisions waiting, your PR approvals) | — |
 | `/new` start a feature | — | `POST /api/initiatives` |
 | `/inbox/:person` (touchpoint 2) | `GET /api/inbox/{person}` | `POST …/gaps/{ref}/answer`, `POST …/decisions/{ref}/rule`, `POST …/approvals`, `POST …/criteria/{ref}/sign`, `POST …/reviews/{id}/resolve` |
 | `/i/:slug` initiative | `GET /api/initiatives/{slug}`, `GET …/worklist` | `POST …/snapshot` (re-pin requirement) |
@@ -625,7 +625,7 @@ Response:
 
 ### GET /api/initiatives
 
-Home page: every initiative with phase, people, counts, baseline and drift summary.
+Every initiative with phase, people, counts, baseline and drift summary.
 
 `GET /api/initiatives` — X-Actor: chandra · X-Actor-Kind: human → **200**
 
@@ -689,6 +689,467 @@ Response:
 ]
 ```
 
+### GET /api/overview?person=maya
+
+**The Features list in one read.** Per initiative: phase, `people` (role → person), `involved` (the `person` holds a role or has an item), `next` (the next open human item — yours first, then what blocks work — with `person` and a short `label`), `prs` (`approved`/`total`, `stale` task refs), `gate_draft.state` (`drafting` · `waiting` · `ready` · `approved` · `reopened`), `drift`, `updated_at` (latest revision or review move), `agents` (`queued`, `leased`, lease `holders`). Across initiatives: `waiting` (every routed human item, inbox-shaped, sorted for `person`), `decisions` (the same without task PR approvals) and `my_pr_approvals`.
+
+`GET /api/overview?person=maya` — X-Actor: chandra · X-Actor-Kind: human → **200**
+
+Response:
+
+```json
+{
+  "person": "maya",
+  "summary": {
+    "features": 2,
+    "decisions_waiting": 2,
+    "agents_working": 2,
+    "agents_leased": 0
+  },
+  "initiatives": [
+    {
+      "slug": "refund-events",
+      "title": "Refund events",
+      "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4307",
+      "created_by": "chandra",
+      "created_at": "2026-10-26T09:00:00Z",
+      "closed_at": null,
+      "snapshot_hash": "5af69c931f5fef779dccc74e7f345e7a5893c914b230e7fe34fe1e9f62084450",
+      "phase": "DRAFT",
+      "pill": "amber",
+      "summary": "",
+      "dri": "chandra",
+      "engg": "omar",
+      "people": {
+        "dri": "chandra",
+        "engg": "omar",
+        "product": "maya"
+      },
+      "involved": true,
+      "counts": {
+        "open_gaps": 1,
+        "open_decisions": 1,
+        "tasks": 0,
+        "tasks_done": 0,
+        "open_review_items": 0,
+        "waiting": 2
+      },
+      "next": {
+        "key": "gap:refund-events:G-1",
+        "kind": "gap",
+        "ref": "G-1",
+        "person": "maya",
+        "label": "G-1 · gap",
+        "title": "Partial refunds: one event or one per line?",
+        "overdue": true,
+        "due_at": "2026-10-27T11:30:00Z"
+      },
+      "prs": {
+        "total": 0,
+        "approved": 0,
+        "approved_refs": [],
+        "stale": [],
+        "with_pr": 0,
+        "done": 0
+      },
+      "gate_draft": {
+        "status": "BLOCKED",
+        "state": "waiting",
+        "failing_rules": [
+          "no_open_decision_in_draft_scope",
+          "no_open_gap_blocking_draft",
+          "… (+2 more)"
+        ],
+        "draft_rev": 1,
+        "draft_status": "DRAFTING"
+      },
+      "baseline": null,
+      "drift": null,
+      "updated_at": "2026-10-26T11:30:00Z",
+      "agents": {
+        "queued": 1,
+        "leased": 0,
+        "holders": [],
+        "working": [
+          {
+            "kind": "draft",
+            "ref": null,
+            "holder": null
+          }
+        ]
+      }
+    },
+    {
+      "slug": "order-events",
+      "title": "Order events via an outbox",
+      "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4211",
+      "created_by": "chandra",
+      "created_at": "2026-10-22T09:00:00Z",
+      "closed_at": null,
+      "snapshot_hash": "2499256f05741306b27d444332efe0bd4a78f9ff702bd7fddc0f101f754f39c3",
+      "phase": "BUILD",
+      "pill": "amber",
+      "summary": "Replace order-table polling with order events (CloudEvents via an outbox).",
+      "dri": "chandra",
+      "engg": "priya",
+      "people": {
+        "dri": "chandra",
+        "engg": "priya",
+        "product": "maya",
+        "design": "leo",
+        "qa": "sam"
+      },
+      "involved": true,
+      "counts": {
+        "open_gaps": 0,
+        "open_decisions": 0,
+        "tasks": 2,
+        "tasks_done": 0,
+        "open_review_items": 0,
+        "waiting": 0
+      },
+      "next": null,
+      "prs": {
+        "total": 2,
+        "approved": 1,
+        "approved_refs": [
+          "T-1"
+        ],
+        "stale": [],
+        "with_pr": 2,
+        "done": 0
+      },
+      "gate_draft": {
+        "status": "PASSED",
+        "state": "approved",
+        "failing_rules": [],
+        "draft_rev": 1,
+        "draft_status": "APPROVED"
+      },
+      "baseline": "B-1",
+      "drift": {
+        "changes": 3,
+        "explained": 3,
+        "unexplained": 0,
+        "pending_gaps": 0,
+        "pending_decisions": 0,
+        "other_changes": 0
+      },
+      "updated_at": "2026-10-27T15:00:00Z",
+      "agents": {
+        "queued": 1,
+        "leased": 0,
+        "holders": [],
+        "working": [
+          {
+            "kind": "tests",
+            "ref": "T-2",
+            "holder": null
+          }
+        ]
+      }
+    }
+  ],
+  "waiting": [
+    {
+      "key": "gap:refund-events:G-1",
+      "kind": "gap",
+      "initiative": "refund-events",
+      "initiative_title": "Refund events",
+      "ref": "G-1",
+      "route": {
+        "person": "maya",
+        "role": "product",
+        "domain": "product",
+        "fallback": false
+      },
+      "person": "maya",
+      "since": "2026-10-26T11:30:00Z",
+      "age_hours": 57.5,
+      "sla_hours": 24,
+      "due_at": "2026-10-27T11:30:00Z",
+      "overdue": true,
+      "priority": 10,
+      "title": "Partial refunds: one event or one per line?",
+      "record": {
+        "ref": "G-1",
+        "type": "gap",
+        "title": "Partial refunds: one event or one per line?",
+        "status": "OPEN",
+        "pill": "red",
+        "line": "When a customer is refunded 2 of 5 items, does finance want one event or one per refunded line?",
+        "rev": 1,
+        "fields": {
+          "question": "When a customer is refunded 2 of 5 items, does finance want one event or one per refunded line?",
+          "kind": "unknown",
+          "domain": "product",
+          "asked_by": "runner-sdk/draft-skill",
+          "why_now": "D-2 (a MUST decision) cannot be ruled without it; the schema depends on it.",
+          "context": "Order 90311: 5 items, items 2 and 4 refunded (€18.40 + €6.10). Per-refund: one event, lines[2]. Per-line: two events. The provider report lists one row per refund, not per line.",
+          "options": [
+            {
+              "key": "per-refund",
+              "label": "One event per refund",
+              "consequence": "matches the provider report row for row"
+            },
+            {
+              "key": "per-line",
+              "label": "One event per line",
+              "consequence": "finance aggregates lines to match the report"
+            }
+          ],
+          "recommendation": "per-refund",
+          "recommendation_why": "Reconciliation is against the provider report, which is per refund.",
+          "blocks": [
+            "D-2"
+          ]
+        },
+        "created_by": "runner-sdk/draft-skill",
+        "created_at": "2026-10-26T11:30:00Z",
+        "updated_by": "runner-sdk/draft-skill",
+        "updated_at": "2026-10-26T11:30:00Z"
+      },
+      "question": "When a customer is refunded 2 of 5 items, does finance want one event or one per refunded line?",
+      "context": "Order 90311: 5 items, items 2 and 4 refunded (€18.40 + €6.10). Per-refund: one event, lines[2]. Per-line: two events. The provider report lists one row per refund, not per line.",
+      "options": [
+        {
+          "key": "per-refund",
+          "label": "One event per refund",
+          "consequence": "matches the provider report row for row"
+        },
+        {
+          "key": "per-line",
+          "label": "One event per line",
+          "consequence": "finance aggregates lines to match the report"
+        }
+      ],
+      "recommendation": "per-refund",
+      "recommendation_why": "Reconciliation is against the provider report, which is per refund.",
+      "blocks": [
+        "D-2"
+      ],
+      "level": "MUST"
+    },
+    {
+      "key": "decision:refund-events:D-2",
+      "kind": "decision",
+      "initiative": "refund-events",
+      "initiative_title": "Refund events",
+      "ref": "D-2",
+      "route": {
+        "person": "maya",
+        "role": "product",
+        "domain": "product",
+        "fallback": false
+      },
+      "person": "maya",
+      "since": "2026-10-26T11:30:00Z",
+      "age_hours": 57.5,
+      "sla_hours": 24,
+      "due_at": "2026-10-27T11:30:00Z",
+      "overdue": true,
+      "priority": 10,
+      "title": "Partial refund granularity",
+      "record": {
+        "ref": "D-2",
+        "type": "decision",
+        "title": "Partial refund granularity",
+        "status": "OPEN",
+        "pill": "red",
+        "line": null,
+        "rev": 1,
+        "fields": {
+          "question": "Is a partial refund one event, or one event per refunded line?",
+          "domain": "product",
+          "level": "MUST",
+          "options": [
+            {
+              "name": "per-refund",
+              "consequences": "one event with a lines[] array",
+              "cost_risk": "finance sums lines"
+            },
+            {
+              "name": "per-line",
+              "consequences": "one event per refunded line",
+              "cost_risk": "more events; simpler sums"
+            }
+          ]
+        },
+        "created_by": "runner-sdk/draft-skill",
+        "created_at": "2026-10-26T11:30:00Z",
+        "updated_by": "runner-sdk/draft-skill",
+        "updated_at": "2026-10-26T11:30:00Z"
+      },
+      "question": "Is a partial refund one event, or one event per refunded line?",
+      "options": [
+        {
+          "name": "per-refund",
+          "consequences": "one event with a lines[] array",
+          "cost_risk": "finance sums lines"
+        },
+        {
+          "name": "per-line",
+          "consequences": "one event per refunded line",
+          "cost_risk": "more events; simpler sums"
+        }
+      ],
+      "provisional_verdict": null,
+      "level": "MUST",
+      "blocks": []
+    }
+  ],
+  "decisions": [
+    {
+      "key": "gap:refund-events:G-1",
+      "kind": "gap",
+      "initiative": "refund-events",
+      "initiative_title": "Refund events",
+      "ref": "G-1",
+      "route": {
+        "person": "maya",
+        "role": "product",
+        "domain": "product",
+        "fallback": false
+      },
+      "person": "maya",
+      "since": "2026-10-26T11:30:00Z",
+      "age_hours": 57.5,
+      "sla_hours": 24,
+      "due_at": "2026-10-27T11:30:00Z",
+      "overdue": true,
+      "priority": 10,
+      "title": "Partial refunds: one event or one per line?",
+      "record": {
+        "ref": "G-1",
+        "type": "gap",
+        "title": "Partial refunds: one event or one per line?",
+        "status": "OPEN",
+        "pill": "red",
+        "line": "When a customer is refunded 2 of 5 items, does finance want one event or one per refunded line?",
+        "rev": 1,
+        "fields": {
+          "question": "When a customer is refunded 2 of 5 items, does finance want one event or one per refunded line?",
+          "kind": "unknown",
+          "domain": "product",
+          "asked_by": "runner-sdk/draft-skill",
+          "why_now": "D-2 (a MUST decision) cannot be ruled without it; the schema depends on it.",
+          "context": "Order 90311: 5 items, items 2 and 4 refunded (€18.40 + €6.10). Per-refund: one event, lines[2]. Per-line: two events. The provider report lists one row per refund, not per line.",
+          "options": [
+            {
+              "key": "per-refund",
+              "label": "One event per refund",
+              "consequence": "matches the provider report row for row"
+            },
+            {
+              "key": "per-line",
+              "label": "One event per line",
+              "consequence": "finance aggregates lines to match the report"
+            }
+          ],
+          "recommendation": "per-refund",
+          "recommendation_why": "Reconciliation is against the provider report, which is per refund.",
+          "blocks": [
+            "D-2"
+          ]
+        },
+        "created_by": "runner-sdk/draft-skill",
+        "created_at": "2026-10-26T11:30:00Z",
+        "updated_by": "runner-sdk/draft-skill",
+        "updated_at": "2026-10-26T11:30:00Z"
+      },
+      "question": "When a customer is refunded 2 of 5 items, does finance want one event or one per refunded line?",
+      "context": "Order 90311: 5 items, items 2 and 4 refunded (€18.40 + €6.10). Per-refund: one event, lines[2]. Per-line: two events. The provider report lists one row per refund, not per line.",
+      "options": [
+        {
+          "key": "per-refund",
+          "label": "One event per refund",
+          "consequence": "matches the provider report row for row"
+        },
+        {
+          "key": "per-line",
+          "label": "One event per line",
+          "consequence": "finance aggregates lines to match the report"
+        }
+      ],
+      "recommendation": "per-refund",
+      "recommendation_why": "Reconciliation is against the provider report, which is per refund.",
+      "blocks": [
+        "D-2"
+      ],
+      "level": "MUST"
+    },
+    {
+      "key": "decision:refund-events:D-2",
+      "kind": "decision",
+      "initiative": "refund-events",
+      "initiative_title": "Refund events",
+      "ref": "D-2",
+      "route": {
+        "person": "maya",
+        "role": "product",
+        "domain": "product",
+        "fallback": false
+      },
+      "person": "maya",
+      "since": "2026-10-26T11:30:00Z",
+      "age_hours": 57.5,
+      "sla_hours": 24,
+      "due_at": "2026-10-27T11:30:00Z",
+      "overdue": true,
+      "priority": 10,
+      "title": "Partial refund granularity",
+      "record": {
+        "ref": "D-2",
+        "type": "decision",
+        "title": "Partial refund granularity",
+        "status": "OPEN",
+        "pill": "red",
+        "line": null,
+        "rev": 1,
+        "fields": {
+          "question": "Is a partial refund one event, or one event per refunded line?",
+          "domain": "product",
+          "level": "MUST",
+          "options": [
+            {
+              "name": "per-refund",
+              "consequences": "one event with a lines[] array",
+              "cost_risk": "finance sums lines"
+            },
+            {
+              "name": "per-line",
+              "consequences": "one event per refunded line",
+              "cost_risk": "more events; simpler sums"
+            }
+          ]
+        },
+        "created_by": "runner-sdk/draft-skill",
+        "created_at": "2026-10-26T11:30:00Z",
+        "updated_by": "runner-sdk/draft-skill",
+        "updated_at": "2026-10-26T11:30:00Z"
+      },
+      "question": "Is a partial refund one event, or one event per refunded line?",
+      "options": [
+        {
+          "name": "per-refund",
+          "consequences": "one event with a lines[] array",
+          "cost_risk": "finance sums lines"
+        },
+        {
+          "name": "per-line",
+          "consequences": "one event per refunded line",
+          "cost_risk": "more events; simpler sums"
+        }
+      ],
+      "provisional_verdict": null,
+      "level": "MUST",
+      "blocks": []
+    }
+  ],
+  "my_pr_approvals": []
+}
+```
+
 ### POST /api/initiatives
 
 **Start a feature** (the intake; `/new`). `requirement` (markdown), `title`, `dri`, `engg` are required; `slug` defaults from the title; `work_item_url` (Azure DevOps link), `product`, `design`, `qa`, `prd_refs` are optional. Pins `spec_snapshot` with its hash and writes the assignments. Returns the same body as `GET /api/initiatives/{slug}`. 422 lists every missing field in `error_data.errors`; 409 if an explicit `slug` exists.
@@ -718,9 +1179,9 @@ Response:
     "title": "Payment webhooks",
     "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
     "created_by": "chandra",
-    "created_at": "2026-10-28T20:24:54Z",
+    "created_at": "2026-10-28T20:57:02Z",
     "closed_at": null,
-    "snapshot_hash": "227eecc5f22d1d8d3084e791a2810a43aad601a7590a243713b259b00b62e40a",
+    "snapshot_hash": "b835450258d62ac782e2582e0efbbe31afd448f3d9e96b7495dfee02c5093bef",
     "phase": "DRAFT",
     "pill": "amber",
     "summary": "",
@@ -728,7 +1189,7 @@ Response:
       "requirement": "# Payment webhooks\nMerchants want a webhook when a payment settles.",
       "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
       "created_by": "chandra",
-      "at": "2026-10-28T20:24:54Z"
+      "at": "2026-10-28T20:57:02Z"
     }
   },
   "phase": "DRAFT",
@@ -2932,7 +3393,7 @@ Response:
     "links": [],
     "actor": "runner-sdk/draft-skill",
     "actor_kind": "agent",
-    "batch_id": "a11fd34e-c282-4354-bb5a-241c3be29c6b",
+    "batch_id": "e5e2face-50fb-4108-bcdb-4f274f5041fb",
     "note": "",
     "because": [],
     "at": "2026-10-22T11:30:00Z"
@@ -3123,7 +3584,7 @@ Response:
   "error_code": "VALIDATION_ERROR",
   "error_data": {
     "ok": false,
-    "batch_id": "996c88e5-5dc5-4026-b825-d554ce5af042",
+    "batch_id": "08c811da-abb1-4b73-aed4-38dbe7321371",
     "results": [
       {
         "index": 0,
@@ -3194,7 +3655,7 @@ Response:
       },
       "person": "maya",
       "since": "2026-10-26T11:30:00Z",
-      "age_hours": 56.9,
+      "age_hours": 57.5,
       "sla_hours": 24,
       "due_at": "2026-10-27T11:30:00Z",
       "overdue": true,
@@ -3273,7 +3734,7 @@ Response:
       },
       "person": "maya",
       "since": "2026-10-26T11:30:00Z",
-      "age_hours": 56.9,
+      "age_hours": 57.5,
       "sla_hours": 24,
       "due_at": "2026-10-27T11:30:00Z",
       "overdue": true,
@@ -3389,7 +3850,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "98c6a4ea-34da-4be3-a311-a7d6ecda99fe",
+  "batch_id": "9cd853c2-54bd-41e4-bcec-6c1660ef7ea8",
   "results": [
     {
       "index": 0,
@@ -3433,7 +3894,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "0c1604d7-b4f6-45f3-ac78-0159bca5c263",
+  "batch_id": "62956336-7e95-411d-a6e7-f584c019fb89",
   "results": [
     {
       "index": 0,
@@ -3491,7 +3952,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "b840bf97-5de6-464b-828c-af7d909ad30c",
+  "batch_id": "13535873-6fd8-4d47-a614-456b4e27c045",
   "results": [
     {
       "index": 0,
@@ -3541,7 +4002,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "4f2c69fd-a1dd-4e55-a25a-3090e2d2176c",
+  "batch_id": "987b74b7-cd25-4d50-a625-2d0c0c4f529f",
   "results": [
     {
       "index": 0,
@@ -3582,7 +4043,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "9f35746e-d54b-40d7-be41-a7079e4703ec",
+  "batch_id": "2d329de0-0228-438f-80eb-0840bbc48d84",
   "results": [
     {
       "index": 0,
@@ -3636,9 +4097,9 @@ Response:
       "title": "Payment webhooks",
       "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
       "created_by": "chandra",
-      "created_at": "2026-10-28T20:24:54Z",
+      "created_at": "2026-10-28T20:57:02Z",
       "closed_at": null,
-      "snapshot_hash": "2cf6cfa39153a71e70900b7358bdbdfcb9fb22fcd648bf52590136e64866da48",
+      "snapshot_hash": "ae28eca7aa1882f2c8391871ede9b65633def08719a04d03998b95e47a635d84",
       "phase": "PLAN",
       "pill": "amber",
       "summary": "",
@@ -3646,9 +4107,9 @@ Response:
         "requirement": "# Payment webhooks\nMerchants want a webhook when a payment settles **or is refunded**.",
         "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
         "created_by": "chandra",
-        "at": "2026-10-28T20:24:54Z",
-        "previous_hash": "227eecc5f22d1d8d3084e791a2810a43aad601a7590a243713b259b00b62e40a",
-        "previous_at": "2026-10-28T20:24:54Z"
+        "at": "2026-10-28T20:57:02Z",
+        "previous_hash": "b835450258d62ac782e2582e0efbbe31afd448f3d9e96b7495dfee02c5093bef",
+        "previous_at": "2026-10-28T20:57:02Z"
       }
     },
     "phase": "PLAN",
@@ -3731,7 +4192,7 @@ Response:
         "draft",
         "… (+3 more)"
       ],
-      "created_at": "2026-10-28T20:24:54Z"
+      "created_at": "2026-10-28T20:57:02Z"
     },
     "drift": {
       "changes": 2,
@@ -3784,7 +4245,7 @@ Response:
   },
   "write": {
     "ok": true,
-    "batch_id": "e1386971-04bc-4a54-a227-1430e74b9b9a",
+    "batch_id": "2b9760ce-7601-4c8e-96f1-15646a966c25",
     "results": [
       {
         "index": 0,
@@ -3799,7 +4260,7 @@ Response:
     ],
     "minted": {},
     "review_items": [
-      "draft ← initiative: snapshot_hash: “227eecc5f22d1d8d3084e791a2810a43aad601a7590a243713b259b00b6…” → “2cf6cfa39153a71e70900b7358bdbdfcb9fb22fcd648bf52590136e6486…” (→ chandra)"
+      "draft ← initiative: snapshot_hash: “b835450258d62ac782e2582e0efbbe31afd448f3d9e96b7495dfee02c50…” → “ae28eca7aa1882f2c8391871ede9b65633def08719a04d03998b95e47a6…” (→ chandra)"
     ],
     "stale": [],
     "gates_changed": [],
@@ -3826,14 +4287,14 @@ Response:
     "target": "draft",
     "cause": "initiative",
     "cause_rev": 3,
-    "what_moved": "snapshot_hash: “227eecc5f22d1d8d3084e791a2810a43aad601a7590a243713b259b00b6…” → “2cf6cfa39153a71e70900b7358bdbdfcb9fb22fcd648bf52590136e6486…”",
+    "what_moved": "snapshot_hash: “b835450258d62ac782e2582e0efbbe31afd448f3d9e96b7495dfee02c50…” → “ae28eca7aa1882f2c8391871ede9b65633def08719a04d03998b95e47a6…”",
     "path": "scope",
     "status": "open",
     "route_to": "chandra",
     "domain": null,
     "note": null,
     "created_by": "chandra",
-    "created_at": "2026-10-28T20:24:54Z",
+    "created_at": "2026-10-28T20:57:02Z",
     "resolved_by": null,
     "resolved_at": null
   }
@@ -3863,16 +4324,16 @@ Response:
   "target": "draft",
   "cause": "initiative",
   "cause_rev": 3,
-  "what_moved": "snapshot_hash: “227eecc5f22d1d8d3084e791a2810a43aad601a7590a243713b259b00b6…” → “2cf6cfa39153a71e70900b7358bdbdfcb9fb22fcd648bf52590136e6486…”",
+  "what_moved": "snapshot_hash: “b835450258d62ac782e2582e0efbbe31afd448f3d9e96b7495dfee02c50…” → “ae28eca7aa1882f2c8391871ede9b65633def08719a04d03998b95e47a6…”",
   "path": "scope",
   "status": "upheld",
   "route_to": "chandra",
   "domain": null,
   "note": "Refunds are a separate initiative; the draft holds.",
   "created_by": "chandra",
-  "created_at": "2026-10-28T20:24:54Z",
+  "created_at": "2026-10-28T20:57:02Z",
   "resolved_by": "chandra",
-  "resolved_at": "2026-10-28T20:24:54Z"
+  "resolved_at": "2026-10-28T20:57:02Z"
 }
 ```
 
@@ -4941,7 +5402,7 @@ Response:
     "approval": "APR-1",
     "approved_by": "chandra",
     "draft_rev": "1",
-    "created_at": "2026-10-28T20:24:54Z",
+    "created_at": "2026-10-28T20:57:02Z",
     "members": 4
   },
   "until": null,
@@ -4954,7 +5415,7 @@ Response:
     "pending_decisions": 0,
     "other_changes": 0
   },
-  "digest": "9666c93ca8491946bd5916e0c424a4b963b39ffbecf49129d7434e642b426c4a",
+  "digest": "affb6a3117c08b0166020638726409590599203ce770f57d12a455aa253fa023",
   "entries": [
     {
       "id": "requirement_repinned:initiative@3",
@@ -4962,10 +5423,10 @@ Response:
       "ref": "initiative",
       "type": "initiative",
       "rev": 3,
-      "at": "2026-10-28T20:24:54Z",
+      "at": "2026-10-28T20:57:02Z",
       "actor": "chandra",
       "actor_kind": "human",
-      "summary": "requirement re-pinned by chandra (hash 2cf6cfa3)",
+      "summary": "requirement re-pinned by chandra (hash ae28eca7)",
       "what_moved": [
         "snapshot_hash"
       ],
@@ -4988,7 +5449,7 @@ Response:
       "ref": "AC-1",
       "type": "acceptance_criterion",
       "rev": 2,
-      "at": "2026-10-28T20:24:54Z",
+      "at": "2026-10-28T20:57:02Z",
       "actor": "chandra",
       "actor_kind": "human",
       "summary": "AC-1 retired: Signature checks move to the shared webhook library.",
@@ -5609,9 +6070,9 @@ Response:
 {
   "item_key": "task:order-events:T-2",
   "holder": "runner-sdk",
-  "acquired_at": "2026-10-28T20:24:54Z",
-  "heartbeat_at": "2026-10-28T20:24:54Z",
-  "expires_at": "2026-10-28T20:39:54Z"
+  "acquired_at": "2026-10-28T20:57:02Z",
+  "heartbeat_at": "2026-10-28T20:57:02Z",
+  "expires_at": "2026-10-28T21:12:02Z"
 }
 ```
 
@@ -5633,9 +6094,9 @@ Response:
 {
   "item_key": "task:order-events:T-2",
   "holder": "runner-sdk",
-  "acquired_at": "2026-10-28T20:24:54Z",
-  "heartbeat_at": "2026-10-28T20:24:54Z",
-  "expires_at": "2026-10-28T20:54:54Z"
+  "acquired_at": "2026-10-28T20:57:02Z",
+  "heartbeat_at": "2026-10-28T20:57:02Z",
+  "expires_at": "2026-10-28T21:27:02Z"
 }
 ```
 
@@ -5666,7 +6127,7 @@ Response:
 [
   {
     "kind": "revision",
-    "at": "2026-10-28T20:24:54Z",
+    "at": "2026-10-28T20:57:02Z",
     "ref": "DEP-2",
     "type": "deploy",
     "rev": 1,
@@ -5677,7 +6138,7 @@ Response:
     "actor_kind": "system",
     "note": "deploy_guard NO-GO",
     "because": [],
-    "batch_id": "71f98ea7-5153-4d00-a7a6-b489bf281162"
+    "batch_id": "2546f409-cada-4174-bcdf-4516911b7421"
   },
   {
     "kind": "revision",
@@ -5692,7 +6153,7 @@ Response:
     "actor_kind": "agent",
     "note": "",
     "because": [],
-    "batch_id": "fb7097a5-615f-444b-8340-811874c71acf"
+    "batch_id": "70e6a4dc-d90b-43ff-8fdc-47ecae1f0192"
   },
   {
     "kind": "revision",
@@ -5707,7 +6168,7 @@ Response:
     "actor_kind": "system",
     "note": "deploy_guard GO",
     "because": [],
-    "batch_id": "79bcfc8d-3167-4ef0-8b1e-63ba11592f2f"
+    "batch_id": "5c2fe6a8-1d3b-4b60-a04c-2ae976a69928"
   },
   {
     "kind": "revision",
@@ -5722,7 +6183,7 @@ Response:
     "actor_kind": "human",
     "note": "completed by the service",
     "because": [],
-    "batch_id": "441887b6-45c2-4ec8-a9fd-310eddc9e364"
+    "batch_id": "aee98612-0ffe-48c0-ac90-5628fec6f335"
   }
 ]
 ```
@@ -5754,7 +6215,7 @@ Response:
     "kind": "record_written",
     "subject": "initiative",
     "actor": "chandra",
-    "batch_id": "4915d890-29ef-4fc9-b5f2-d57e18c3643a",
+    "batch_id": "3fcd0623-1740-49db-b6e3-2b9c63b0fa62",
     "payload": {
       "type": "initiative",
       "rev": 1,
@@ -5768,7 +6229,7 @@ Response:
     "kind": "record_written",
     "subject": "A-1",
     "actor": "chandra",
-    "batch_id": "4915d890-29ef-4fc9-b5f2-d57e18c3643a",
+    "batch_id": "3fcd0623-1740-49db-b6e3-2b9c63b0fa62",
     "payload": {
       "type": "assignment",
       "rev": 1,
@@ -5853,7 +6314,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "361d0a07-33e3-4b6a-9b0c-1268163ae78e",
+  "batch_id": "e3e828fe-4016-44bc-a2bc-6dac6474a3fd",
   "results": [
     {
       "index": 0,
@@ -5904,7 +6365,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "08629bdf-39a5-4a4e-8eb2-5844fe1c3e20",
+  "batch_id": "09b124ab-bdc9-46fa-8f26-82fa93b82cfa",
   "results": [
     {
       "index": 0,

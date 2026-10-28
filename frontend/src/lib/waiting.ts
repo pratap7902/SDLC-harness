@@ -1,19 +1,19 @@
-// "Decisions waiting" across every initiative, composed from existing endpoints: the people
-// list says who has an inbox, and each of those inboxes lists its items (routed, with SLA,
-// what they block). No aggregate endpoint needed.
+// "Decisions waiting" across every initiative: GET /api/overview gathers every routed
+// human item (with SLA, what it blocks) in one read.
 
-import type { Inbox, InboxItem, Person } from '../api';
-import { api, useJsonAll, type Loaded } from './api';
+import type { InboxItem, Overview } from '../api';
+import { useJson, type Loaded } from './api';
 import { usePersona } from './persona';
 
+export function useOverview() {
+  const { persona } = usePersona();
+  return useJson<Overview>(persona ? `/api/overview?${new URLSearchParams({ person: persona })}` : null);
+}
+
 export function useAllWaiting(): Loaded<InboxItem[]> {
-  const { people, peopleError } = usePersona();
-  const urls = people.length ? people.filter((p: Person) => p.inbox > 0).map((p) => api('inbox', p.person)) : null;
-  const inboxes = useJsonAll<Inbox>(peopleError ? null : urls);
-  if (peopleError) return { kind: 'error', message: peopleError };
-  if (!people.length) return { kind: 'loading' };
-  if (inboxes.kind !== 'ready') return inboxes;
-  return { kind: 'ready', data: inboxes.data.flatMap((i) => i.items) };
+  const o = useOverview();
+  if (o.kind !== 'ready') return o;
+  return { kind: 'ready', data: o.data.waiting };
 }
 
 /** A task's PR approval is not a decision: it has its own line on the features page. */

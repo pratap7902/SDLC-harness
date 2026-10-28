@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import type { ActivityEntry, InboxItem, InitiativeRow, Worklist } from '../api';
-import { all, api, useJson, useJsonAll } from '../lib/api';
+import type { InboxItem, OverviewRow } from '../api';
 import { PHASES, ago, due, nm, phaseLabel, phaseTone, plural, workItem } from '../lib/format';
 import { usePersona } from '../lib/persona';
-import { blocksText, isBlocking, isPrApproval, itemHref, itemLabel, itemTitle, sortWaiting, useAllWaiting } from '../lib/waiting';
+import { blocksText, isBlocking, itemHref, itemLabel, itemTitle, useOverview } from '../lib/waiting';
 import { Badge, Empty, Section } from '../components/ui';
 import { LoadError, Loading } from '../components/state';
 
@@ -58,54 +57,62 @@ export function DecisionCard({ it, persona, compact = false }: { it: InboxItem; 
   );
 }
 
-function involves(f: InitiativeRow, persona: string, roles: { initiative: string }[], waiting: InboxItem[]): boolean {
-  return f.dri === persona || f.engg === persona || roles.some((r) => r.initiative === f.slug) || waiting.some((w) => w.initiative === f.slug && w.person === persona);
+function progressOf(f: OverviewRow): { text: string; sub: string; subCls: string } {
+  const open = f.counts.open_gaps + f.counts.open_decisions;
+  let text: string;
+  if (f.phase === 'DRAFT' || f.phase === 'UNASSIGNED') {
+    const rev = f.gate_draft.draft_rev ? `Draft rev ${f.gate_draft.draft_rev}` : 'Draft';
+    text =
+      f.gate_draft.state === 'drafting'
+        ? `Agent writing ${rev.toLowerCase()}`
+        : open
+          ? `${rev} · ${plural(open, 'open question')}`
+          : f.gate_draft.state === 'ready'
+            ? `${rev} · ready for approval`
+            : `${rev} · being revised`;
+  } else if (f.phase === 'PLAN') text = 'Agent planning tasks';
+  else if (f.phase === 'SHIP' || f.phase === 'CLOSED') text = 'Shipped';
+  else if (f.phase === 'VALIDATE') text = `Validating · ${f.prs.done} of ${f.prs.total} tasks merged`;
+  else text = `PRs ${f.prs.approved} of ${f.prs.total} approved`;
+  if (f.gate_draft.state === 'reopened') return { text, sub: 'Gate 1 reopened', subCls: 'text-bad font-semibold' };
+  if (f.prs.stale.length) return { text, sub: `${f.prs.stale.join(', ')} approval stale`, subCls: 'text-warn' };
+  if (f.counts.open_review_items) return { text, sub: `${plural(f.counts.open_review_items, 'review item')} open`, subCls: 'text-warn' };
+  return { text, sub: '', subCls: '' };
 }
 
 export default function FeaturesPage() {
-  const { persona, people } = usePersona();
+  const { persona } = usePersona();
   const navigate = useNavigate();
   const created = (useLocation().state as { created?: string } | null)?.created;
-  const list = useJson<InitiativeRow[]>('/api/initiatives');
-  const slugs = list.kind === 'ready' ? list.data.map((f) => f.slug) : null;
-  const worklists = useJsonAll<Worklist>(slugs ? slugs.map((s) => api('initiatives', s, 'worklist')) : null);
-  const activity = useJsonAll<ActivityEntry[]>(slugs ? slugs.map((s) => api('initiatives', s, 'activity') + '?limit=1') : null);
-  const waiting = useAllWaiting();
+  const overview = useOverview();
   const [search, setSearch] = useState('');
   const [phase, setPhase] = useState('ALL');
   const [mine, setMine] = useState(false);
 
-  const loaded = all(list, worklists, activity, waiting);
-  const myRoles = people.find((p) => p.person === persona)?.roles || [];
-
   const view = useMemo(() => {
-    if (loaded.kind !== 'ready') return null;
-    const [features, wls, acts, items] = loaded.data;
-    const sorted = sortWaiting(items, persona);
-    const decisions = sorted.filter((i) => !isPrApproval(i));
-    const approvals = sorted.filter((i) => isPrApproval(i) && i.person === persona);
-    const agentsOn = new Map(features.map((f, i) => [f.slug, wls[i].items.filter((w) => w.lane === 'agent')]));
-    const updated = new Map(features.map((f, i) => [f.slug, acts[i][0]?.at || f.created_at]));
+    if (overview.kind !== 'ready') return null;
+    const o = overview.data;
+    const features = o.initiatives;
     const counts: Record<string, number> = {};
     features.forEach((f) => (counts[f.phase] = (counts[f.phase] || 0) + 1));
     const q = search.trim().toLowerCase();
     const rows = features
       .filter((f) => phase === 'ALL' || f.phase === phase)
-      .filter((f) => !mine || involves(f, persona, myRoles, items))
-      .filter((f) => !q || [f.title, f.slug, f.work_item_url || '', workItem(f.work_item_url), nm(f.dri), nm(f.engg)].join(' ').toLowerCase().includes(q))
+      .filter((f) => !mine || f.involved)
+      .filter((f) => !q || [f.title, f.slug, f.work_item_url || '', workItem(f.work_item_url), ...Object.values(f.people).map(nm)].join(' ').toLowerCase().includes(q))
       .map((f) => {
-        const next = sorted.find((i) => i.initiative === f.slug);
         const unexplained = f.drift?.unexplained || 0;
-        const score = f.slug === created ? -1 : unexplained ? 0 : next?.person === persona ? 1 : next ? 2 : f.phase === 'SHIP' || f.phase === 'CLOSED' ? 4 : 3;
-        return { f, next, score, agents: agentsOn.get(f.slug) || [], updated: updated.get(f.slug) || null };
+        const score = f.slug === created ? -1 : unexplained ? 0 : f.next?.person === persona ? 1 : f.next ? 2 : f.phase === 'SHIP' || f.phase === 'CLOSED' ? 4 : 3;
+        return { f, score };
       })
-      .sort((a, b) => a.score - b.score || (b.updated || '').localeCompare(a.updated || ''));
+      .sort((a, b) => a.score - b.score || (b.f.updated_at || '').localeCompare(a.f.updated_at || ''));
     const extraPhases = Object.keys(counts).filter((p) => !PHASES.includes(p));
-    return { features, decisions, approvals, rows, counts, agentsWorking: [...agentsOn.values()].filter((a) => a.length).length, phases: [...PHASES, ...extraPhases] };
-  }, [loaded, persona, search, phase, mine, myRoles, created]);
+    return { o, features, rows, counts, phases: [...PHASES, ...extraPhases] };
+  }, [overview, persona, search, phase, mine, created]);
 
-  if (loaded.kind === 'error') return <LoadError what="the features" message={loaded.message} onRetry={list.reload} />;
+  if (overview.kind === 'error') return <LoadError what="the features" message={overview.message} onRetry={overview.reload} />;
   if (!view) return <Loading what="the features" />;
+  const { o } = view;
   const clear = () => {
     setSearch('');
     setPhase('ALL');
@@ -118,7 +125,7 @@ export default function FeaturesPage() {
         <div className="flex flex-col gap-1">
           <h1>Features</h1>
           <p className="m-0 text-ink-muted">
-            {plural(view.features.length, 'feature')} · {plural(view.decisions.length, 'decision')} waiting · agents working on {view.agentsWorking}
+            {plural(o.summary.features, 'feature')} · {plural(o.summary.decisions_waiting, 'decision')} waiting · agents working on {o.summary.agents_working}
           </p>
         </div>
         <Link to="/new" className="btn btn-primary btn-lg no-underline hover:text-white">
@@ -126,20 +133,20 @@ export default function FeaturesPage() {
         </Link>
       </header>
 
-      <Section id="dec-h" title={<>Decisions waiting <span className="small">· {view.decisions.length}</span></>} aside="Yours first, then whatever blocks work">
-        {view.decisions.length === 0 ? (
+      <Section id="dec-h" title={<>Decisions waiting <span className="small">· {o.decisions.length}</span></>} aside="Yours first, then whatever blocks work">
+        {o.decisions.length === 0 ? (
           <Empty boxed>No decisions are waiting. Agents are working.</Empty>
         ) : (
           <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr))]">
-            {view.decisions.map((it) => (
+            {o.decisions.map((it) => (
               <DecisionCard key={it.key} it={it} persona={persona} />
             ))}
           </div>
         )}
-        {view.approvals.length > 0 && (
+        {o.my_pr_approvals.length > 0 && (
           <div className="card flex flex-wrap items-center gap-x-[14px] gap-y-1.5 px-[14px] py-2.5 text-[13px]">
             <strong>PR approvals waiting on you</strong>
-            {view.approvals.map((a) => (
+            {o.my_pr_approvals.map((a) => (
               <Link key={a.key} to={itemHref(a)} className="font-semibold">
                 {a.title}
               </Link>
@@ -186,23 +193,11 @@ export default function FeaturesPage() {
               </tr>
             </thead>
             <tbody>
-              {view.rows.map(({ f, next, agents, updated }) => {
+              {view.rows.map(({ f }) => {
                 const unexplained = f.drift?.unexplained || 0;
-                const open = f.counts.open_gaps + f.counts.open_decisions;
-                let progress: string;
-                let sub = '';
-                let subCls = 'text-ink-muted';
-                if (f.phase === 'DRAFT' || f.phase === 'UNASSIGNED') progress = open ? `Draft · ${plural(open, 'open question')}` : agents.length ? 'Agent writing the draft' : 'Draft ready for review';
-                else if (f.phase === 'PLAN') progress = 'Agent planning tasks';
-                else if (f.phase === 'SHIP' || f.phase === 'CLOSED') progress = 'Shipped';
-                else progress = `Tasks ${f.counts.tasks_done} of ${f.counts.tasks} done`;
-                if (unexplained) {
-                  sub = 'Gate 1 reopened';
-                  subCls = 'text-bad font-semibold';
-                } else if (f.counts.open_review_items) {
-                  sub = plural(f.counts.open_review_items, 'review item') + ' open';
-                  subCls = 'text-warn';
-                }
+                const next = f.next;
+                const pr = progressOf(f);
+                const working = f.agents.queued + f.agents.leased;
                 return (
                   <tr key={f.slug} className={f.slug === created ? '[&>td]:bg-agent-row' : unexplained ? '[&>td]:bg-bad-row' : ''}>
                     <td>
@@ -227,20 +222,18 @@ export default function FeaturesPage() {
                       {next ? (
                         <>
                           <span className={next.person === persona ? 'text-human font-bold' : ''}>{next.person === persona ? 'You' : nm(next.person)}</span>
-                          <div className="small">
-                            {next.kind === 'review_item' ? next.target : next.ref} · {itemLabel(next).toLowerCase()}
-                          </div>
+                          <div className="small">{next.label}</div>
                         </>
                       ) : (
                         <>
                           <span className="small">Nobody</span>
-                          <div className="small">{agents.length ? 'agents working' : 'nothing waiting'}</div>
+                          <div className="small">{working ? (f.agents.leased ? `${f.agents.holders.map((h) => h.split('/').pop()).join(', ')} working` : 'agents working') : 'nothing waiting'}</div>
                         </>
                       )}
                     </td>
                     <td>
-                      <div>{progress}</div>
-                      {sub && <div className={`text-xs ${subCls}`}>{sub}</div>}
+                      <div>{pr.text}</div>
+                      {pr.sub && <div className={`text-xs ${pr.subCls}`}>{pr.sub}</div>}
                     </td>
                     <td>
                       {!f.baseline ? (
@@ -255,7 +248,7 @@ export default function FeaturesPage() {
                       )}
                     </td>
                     <td>{nm(f.dri)}</td>
-                    <td className="small">{ago(updated)}</td>
+                    <td className="small">{ago(f.updated_at)}</td>
                   </tr>
                 );
               })}

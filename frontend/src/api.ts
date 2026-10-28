@@ -459,3 +459,29 @@ export interface Lifecycle {
   routing: { by_domain: Record<string, string>; gates: Record<string, string>; fallback: string; sla_hours: Record<string, number>; escalate_to: string };
   handoff: Record<string, number>;
 }
+
+// ── the overview (GET /api/overview?person=) — the Features list in one read ───
+
+export interface OverviewRow extends Initiative {
+  dri: string | null;
+  engg: string | null;
+  people: Record<string, string>;
+  involved: boolean;
+  counts: InitiativeRow['counts'] & { waiting: number };
+  next: { key: string; kind: InboxItem['kind']; ref: string; person: string | null; label: string; title: string; overdue: boolean; due_at: string | null } | null;
+  prs: { total: number; approved: number; approved_refs: string[]; stale: string[]; with_pr: number; done: number };
+  gate_draft: { status: string; state: 'approved' | 'reopened' | 'drafting' | 'ready' | 'waiting'; failing_rules: string[]; draft_rev: number | null; draft_status: string | null };
+  baseline: string | null;
+  drift: DriftSummary | null;
+  updated_at: string | null;
+  agents: { queued: number; leased: number; holders: string[]; working: { kind: string; ref: string | null; holder: string | null }[] };
+}
+
+export interface Overview {
+  person: string | null;
+  summary: { features: number; decisions_waiting: number; agents_working: number; agents_leased: number };
+  initiatives: OverviewRow[];
+  waiting: InboxItem[];
+  decisions: InboxItem[];
+  my_pr_approvals: ApprovalItem[];
+}

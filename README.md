@@ -178,10 +178,12 @@ make dev                       # → http://localhost:8791
   `/i/:slug/r/:ref`, `/i/:slug/reviews`, `/i/:slug/activity`, `/standards`, `/learnings`,
   `/blueprint`. `app/web/spa.py` serves `index.html` at exactly these paths (listed, never a
   catch-all) and `/assets/*`: a new page is a route in `src/main.tsx` and a path there.
-- Composed from existing endpoints, no UI-only API: "decisions waiting" = `GET /api/people`
-  then each non-empty `GET /api/inbox/{person}`; "agents working" = the worklist's agent
-  lane; "recently resolved" = each initiative's `activity?actor=<person>`. **Request
-  changes** (draft or PR) writes a `finding` on the target through `POST …/records`
+- The Features list reads one endpoint, `GET /api/overview?person=<p>`: per initiative its
+  phase, people, next open human item, PR approvals (approved / total, stale), drift,
+  GATE_DRAFT state, latest activity and agent lane (queued / leased); across initiatives the
+  decisions waiting (yours first) and your PR approvals. Other pages read the per-initiative
+  endpoints. "Recently resolved" in the inbox = each initiative's `activity?actor=<person>`.
+  **Request changes** (draft or PR) writes a `finding` on the target through `POST …/records`
   (severity `major` on the draft; `blocker` at the PR head, so GATE_PR blocks until fixed).
 - Types for every response: `frontend/src/api.ts`; fetch helpers / `useJson`: `src/lib/api.ts`.
 

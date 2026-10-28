@@ -108,7 +108,7 @@ running service against the demo data (`make seed`). Regenerate with
 
 | Page | Reads | Writes |
 |---|---|---|
-| `/` home | `GET /api/initiatives`, `GET /api/people` | — |
+| `/` home (Features) | `GET /api/overview?person=` (one read: every initiative, decisions waiting, your PR approvals) | — |
 | `/new` start a feature | — | `POST /api/initiatives` |
 | `/inbox/:person` (touchpoint 2) | `GET /api/inbox/{person}` | `POST …/gaps/{ref}/answer`, `POST …/decisions/{ref}/rule`, `POST …/approvals`, `POST …/criteria/{ref}/sign`, `POST …/reviews/{id}/resolve` |
 | `/i/:slug` initiative | `GET /api/initiatives/{slug}`, `GET …/worklist` | `POST …/snapshot` (re-pin requirement) |
@@ -187,7 +187,14 @@ def main() -> None:
     show("GET", "/api/blueprint/lifecycle", keep=3, about="Phases, the derived-status rules (plain English), per-phase catalogs, gates with their rules, routing and SLAs.")
 
     h("## Initiatives\n")
-    show("GET", "/api/initiatives", about="Home page: every initiative with phase, people, counts, baseline and drift summary.")
+    show("GET", "/api/initiatives", about="Every initiative with phase, people, counts, baseline and drift summary.")
+    show(
+        "GET",
+        "/api/overview",
+        params={"person": "maya"},
+        keep=2,
+        about="**The Features list in one read.** Per initiative: phase, `people` (role → person), `involved` (the `person` holds a role or has an item), `next` (the next open human item — yours first, then what blocks work — with `person` and a short `label`), `prs` (`approved`/`total`, `stale` task refs), `gate_draft.state` (`drafting` · `waiting` · `ready` · `approved` · `reopened`), `drift`, `updated_at` (latest revision or review move), `agents` (`queued`, `leased`, lease `holders`). Across initiatives: `waiting` (every routed human item, inbox-shaped, sorted for `person`), `decisions` (the same without task PR approvals) and `my_pr_approvals`.",
+    )
     started = show(
         "POST",
         "/api/initiatives",

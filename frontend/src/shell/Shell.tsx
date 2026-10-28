@@ -67,7 +67,9 @@ export function Shell() {
   const inbox = useJson<Inbox>(persona ? api('inbox', persona) : null);
   const count = inbox.kind === 'ready' ? inbox.data.count : 0;
   const on = section(location.pathname);
-  useEffect(() => window.scrollTo(0, 0), [location.pathname]);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   const roles = (p: string) => {
     const rs = Array.from(new Set(people.find((x) => x.person === p)?.roles.map((r) => ROLE_LABEL[r.role] || r.role) || []));
