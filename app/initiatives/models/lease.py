@@ -1,6 +1,6 @@
-from sqlalchemy import Column, DateTime, String
+from sqlalchemy import Column, String
 
-from app.base.models.mysql_base import MySQLBaseModel
+from app.base.models.mysql_base import MySQLBaseModel, Timestamp
 from app.core.utils.time import utcnow
 
 
@@ -12,6 +12,6 @@ class Lease(MySQLBaseModel):
 
     item_key = Column(String(128), primary_key=True)
     holder = Column(String(128), nullable=False)
-    acquired_at = Column(DateTime, default=utcnow, nullable=False)
-    heartbeat_at = Column(DateTime, default=utcnow, nullable=False)
-    expires_at = Column(DateTime, nullable=False)
+    acquired_at = Column(Timestamp, default=utcnow, nullable=False)
+    heartbeat_at = Column(Timestamp, default=utcnow, nullable=False)
+    expires_at = Column(Timestamp, nullable=False)

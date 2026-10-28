@@ -9,6 +9,7 @@ catalogs are YAML (blueprint/) — migrations are for these generic tables only.
 """
 
 import sqlalchemy as sa
+import sqlalchemy.dialects.mysql  # noqa: F401
 from alembic import op
 
 revision = "0001_initial"
@@ -17,6 +18,8 @@ branch_labels = None
 depends_on = None
 
 BigId = sa.BigInteger().with_variant(sa.Integer(), "sqlite")
+# microsecond precision on MySQL (plain DATETIME drops fractions)
+Ts = sa.DateTime().with_variant(sa.dialects.mysql.DATETIME(fsp=6), "mysql")
 
 
 def upgrade() -> None:
@@ -29,8 +32,8 @@ def upgrade() -> None:
         sa.Column("spec_snapshot", sa.JSON(), nullable=False),
         sa.Column("snapshot_hash", sa.String(64), nullable=False),
         sa.Column("created_by", sa.String(128), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("closed_at", sa.DateTime(), nullable=True),
+        sa.Column("created_at", Ts, nullable=False),
+        sa.Column("closed_at", Ts, nullable=True),
     )
     op.create_table(
         "records",
@@ -46,8 +49,8 @@ def upgrade() -> None:
         sa.Column("head_rev", sa.Integer(), nullable=False),
         sa.Column("created_by", sa.String(128), nullable=False),
         sa.Column("updated_by", sa.String(128), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), nullable=False),
+        sa.Column("created_at", Ts, nullable=False),
+        sa.Column("updated_at", Ts, nullable=False),
         sa.UniqueConstraint("initiative_id", "ref", name="uq_records_initiative_ref"),
     )
     op.create_index("ix_records_initiative_type", "records", ["initiative_id", "type"])
@@ -67,7 +70,7 @@ def upgrade() -> None:
         sa.Column("batch_id", sa.String(64), nullable=False),
         sa.Column("note", sa.String(300), nullable=False),
         sa.Column("cause_refs", sa.JSON(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column("created_at", Ts, nullable=False),
         sa.UniqueConstraint("record_id", "rev", name="uq_record_revisions_rev"),
     )
     op.create_index("ix_record_revisions_record_id", "record_revisions", ["record_id"])
@@ -80,7 +83,7 @@ def upgrade() -> None:
         sa.Column("to_ref", sa.String(300), nullable=False),
         sa.Column("kind", sa.String(20), nullable=False),
         sa.Column("created_by", sa.String(128), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column("created_at", Ts, nullable=False),
         sa.UniqueConstraint("initiative_id", "from_ref", "to_ref", "kind", name="uq_record_links"),
     )
     op.create_index("ix_record_links_to", "record_links", ["initiative_id", "to_ref"])
@@ -99,9 +102,9 @@ def upgrade() -> None:
         sa.Column("judged_by", sa.String(20), nullable=False),
         sa.Column("note", sa.Text(), nullable=True),
         sa.Column("created_by", sa.String(128), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column("created_at", Ts, nullable=False),
         sa.Column("resolved_by", sa.String(128), nullable=True),
-        sa.Column("resolved_at", sa.DateTime(), nullable=True),
+        sa.Column("resolved_at", Ts, nullable=True),
     )
     op.create_index("ix_review_items_open", "review_items", ["initiative_id", "status", "target_ref"])
     op.create_index("ix_review_items_cause", "review_items", ["initiative_id", "cause_ref"])
@@ -113,15 +116,15 @@ def upgrade() -> None:
         sa.Column("actor_kind", sa.String(16), nullable=False),
         sa.Column("ops_hash", sa.String(64), nullable=False),
         sa.Column("result", sa.JSON(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=False),
+        sa.Column("created_at", Ts, nullable=False),
     )
     op.create_table(
         "leases",
         sa.Column("item_key", sa.String(128), primary_key=True),
         sa.Column("holder", sa.String(128), nullable=False),
-        sa.Column("acquired_at", sa.DateTime(), nullable=False),
-        sa.Column("heartbeat_at", sa.DateTime(), nullable=False),
-        sa.Column("expires_at", sa.DateTime(), nullable=False),
+        sa.Column("acquired_at", Ts, nullable=False),
+        sa.Column("heartbeat_at", Ts, nullable=False),
+        sa.Column("expires_at", Ts, nullable=False),
     )
     op.create_table(
         "ref_counters",
@@ -132,7 +135,7 @@ def upgrade() -> None:
     op.create_table(
         "events",
         sa.Column("id", BigId, primary_key=True, autoincrement=True),
-        sa.Column("ts", sa.DateTime(), nullable=False),
+        sa.Column("ts", Ts, nullable=False),
         sa.Column("kind", sa.String(40), nullable=False),
         sa.Column("initiative_id", sa.BigInteger(), nullable=False),
         sa.Column("subject", sa.String(128), nullable=False),

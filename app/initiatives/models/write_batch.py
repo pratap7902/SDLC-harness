@@ -1,6 +1,6 @@
-from sqlalchemy import JSON, BigInteger, Column, DateTime, String
+from sqlalchemy import JSON, BigInteger, Column, String
 
-from app.base.models.mysql_base import MySQLBaseModel
+from app.base.models.mysql_base import MySQLBaseModel, Timestamp
 from app.core.utils.time import utcnow
 
 
@@ -15,4 +15,4 @@ class WriteBatch(MySQLBaseModel):
     actor_kind = Column(String(16), nullable=False, default="agent")
     ops_hash = Column(String(64), nullable=False)
     result = Column(JSON, nullable=False, default=dict)
-    created_at = Column(DateTime, default=utcnow, nullable=False)
+    created_at = Column(Timestamp, default=utcnow, nullable=False)

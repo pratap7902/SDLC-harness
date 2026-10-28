@@ -2,14 +2,13 @@ from sqlalchemy import (
     JSON,
     BigInteger,
     Column,
-    DateTime,
     ForeignKey,
     Integer,
     String,
     UniqueConstraint,
 )
 
-from app.base.models.mysql_base import BigId, MySQLBaseModel
+from app.base.models.mysql_base import BigId, MySQLBaseModel, Timestamp
 from app.core.utils.time import utcnow
 
 
@@ -34,4 +33,4 @@ class RecordRevision(MySQLBaseModel):
     batch_id = Column(String(64), nullable=False, default="")
     note = Column(String(300), nullable=False, default="")
     cause_refs = Column(JSON, nullable=False, default=list)
-    created_at = Column(DateTime, default=utcnow, nullable=False)
+    created_at = Column(Timestamp, default=utcnow, nullable=False)

@@ -1,6 +1,6 @@
-from sqlalchemy import JSON, Column, DateTime, String
+from sqlalchemy import JSON, Column, String
 
-from app.base.models.mysql_base import BigId, MySQLBaseModel
+from app.base.models.mysql_base import BigId, MySQLBaseModel, Timestamp
 from app.core.utils.time import utcnow
 
 
@@ -18,5 +18,5 @@ class Initiative(MySQLBaseModel):
     spec_snapshot = Column(JSON, nullable=False, default=dict)
     snapshot_hash = Column(String(64), nullable=False, default="")
     created_by = Column(String(128), nullable=False, default="")
-    created_at = Column(DateTime, default=utcnow, nullable=False)
-    closed_at = Column(DateTime, nullable=True)
+    created_at = Column(Timestamp, default=utcnow, nullable=False)
+    closed_at = Column(Timestamp, nullable=True)

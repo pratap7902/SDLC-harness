@@ -1,6 +1,6 @@
-from sqlalchemy import JSON, BigInteger, Column, DateTime, Index, String
+from sqlalchemy import JSON, BigInteger, Column, Index, String
 
-from app.base.models.mysql_base import BigId, MySQLBaseModel
+from app.base.models.mysql_base import BigId, MySQLBaseModel, Timestamp
 from app.core.utils.time import utcnow
 
 
@@ -15,7 +15,7 @@ class Event(MySQLBaseModel):
     )
 
     id = Column(BigId, primary_key=True, autoincrement=True)
-    ts = Column(DateTime, default=utcnow, nullable=False)
+    ts = Column(Timestamp, default=utcnow, nullable=False)
     kind = Column(String(40), nullable=False)
     initiative_id = Column(BigInteger, nullable=False, default=0)
     subject = Column(String(128), nullable=False, default="")

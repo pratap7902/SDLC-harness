@@ -1,6 +1,6 @@
-from sqlalchemy import BigInteger, Column, DateTime, Index, Integer, String, Text
+from sqlalchemy import BigInteger, Column, Index, Integer, String, Text
 
-from app.base.models.mysql_base import BigId, MySQLBaseModel
+from app.base.models.mysql_base import BigId, MySQLBaseModel, Timestamp
 from app.core.utils.time import utcnow
 
 
@@ -28,6 +28,6 @@ class ReviewItem(MySQLBaseModel):
     judged_by = Column(String(20), nullable=False, default="rules")
     note = Column(Text, nullable=True)
     created_by = Column(String(128), nullable=False, default="")
-    created_at = Column(DateTime, default=utcnow, nullable=False)
+    created_at = Column(Timestamp, default=utcnow, nullable=False)
     resolved_by = Column(String(128), nullable=True)
-    resolved_at = Column(DateTime, nullable=True)
+    resolved_at = Column(Timestamp, nullable=True)

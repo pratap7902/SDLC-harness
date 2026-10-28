@@ -1,6 +1,6 @@
-from sqlalchemy import BigInteger, Column, DateTime, Index, String, UniqueConstraint
+from sqlalchemy import BigInteger, Column, Index, String, UniqueConstraint
 
-from app.base.models.mysql_base import BigId, MySQLBaseModel
+from app.base.models.mysql_base import BigId, MySQLBaseModel, Timestamp
 from app.core.utils.time import utcnow
 
 
@@ -21,4 +21,4 @@ class RecordLink(MySQLBaseModel):
     to_ref = Column(String(300), nullable=False)
     kind = Column(String(20), nullable=False)
     created_by = Column(String(128), nullable=False, default="")
-    created_at = Column(DateTime, default=utcnow, nullable=False)
+    created_at = Column(Timestamp, default=utcnow, nullable=False)

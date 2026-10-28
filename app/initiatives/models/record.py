@@ -2,14 +2,13 @@ from sqlalchemy import (
     JSON,
     BigInteger,
     Column,
-    DateTime,
     Index,
     Integer,
     String,
     UniqueConstraint,
 )
 
-from app.base.models.mysql_base import BigId, MySQLBaseModel
+from app.base.models.mysql_base import BigId, MySQLBaseModel, Timestamp
 from app.core.utils.time import utcnow
 
 
@@ -37,5 +36,5 @@ class Record(MySQLBaseModel):
     head_rev = Column(Integer, nullable=False, default=1)
     created_by = Column(String(128), nullable=False, default="")
     updated_by = Column(String(128), nullable=False, default="")
-    created_at = Column(DateTime, default=utcnow, nullable=False)
-    updated_at = Column(DateTime, default=utcnow, nullable=False)
+    created_at = Column(Timestamp, default=utcnow, nullable=False)
+    updated_at = Column(Timestamp, default=utcnow, nullable=False)

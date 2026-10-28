@@ -25,3 +25,10 @@ class MySQLBaseModel(Base):
 from sqlalchemy import BigInteger, Integer  # noqa: E402
 
 BigId = BigInteger().with_variant(Integer, "sqlite")
+
+# Timestamps: microsecond precision on MySQL (plain DATETIME drops fractions, and activity
+# / revision ordering within one second would be arbitrary).
+from sqlalchemy import DateTime  # noqa: E402
+from sqlalchemy.dialects.mysql import DATETIME as MYSQL_DATETIME  # noqa: E402
+
+Timestamp = DateTime().with_variant(MYSQL_DATETIME(fsp=6), "mysql")
