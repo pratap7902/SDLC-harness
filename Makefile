@@ -33,7 +33,16 @@ lint:
 seed: migrate  ## load the demo scenario into the dev DB (wipes it first: SEED_KEEP=1 keeps it)
 	$(BIN)/python scripts/seed_demo.py
 
+frontend:      ## install (only when package-lock.json changed) + build the React app into frontend/dist
+	cd frontend && h=$$(shasum package-lock.json | cut -d' ' -f1); \
+	  if [ "$$(cat node_modules/.lock-hash 2>/dev/null)" != "$$h" ]; then \
+	    npm ci --no-audit --no-fund && echo $$h > node_modules/.lock-hash; fi && \
+	  npm run build
+
+frontend-dev:  ## Vite dev server on :5173 (proxies /api to the backend on :8791; run make dev too)
+	cd frontend && npm run dev
+
 reset:         ## delete the SQLite dev DB
 	rm -f var/dev.db
 
-.PHONY: install db migrate check dev test test-mysql lint seed reset
+.PHONY: install db migrate check dev test test-mysql lint seed reset frontend frontend-dev

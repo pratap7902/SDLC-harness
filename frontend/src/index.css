@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  background: #f4f5f7;
+  color: #14161b;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+a { color: #3b38b8; }
+a:hover { color: #26238a; }
+:focus-visible { outline: 2px solid #3b38b8; outline-offset: 2px; }
+h1, h2, h3 { margin: 0; }
+h1 { font-size: 28px; line-height: 1.2; letter-spacing: -0.015em; font-weight: 700; }
+h2 { font-size: 18px; letter-spacing: -0.01em; font-weight: 700; }
+h3 { font-size: 15px; line-height: 1.4; font-weight: 700; }
+
+@layer components {
+  .card { @apply bg-white border border-line rounded-card min-w-0; }
+  .cardhead { @apply flex flex-wrap gap-2 justify-between items-baseline px-[18px] py-[14px] border-b border-line; }
+  .btn { @apply min-h-[40px] inline-flex items-center justify-center gap-1.5 px-[14px] rounded-ctl border border-line-strong bg-white text-ink font-semibold text-[13px] cursor-pointer hover:bg-[#F1F2F5] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white; }
+  .btn-primary { @apply bg-ink border-ink text-white hover:bg-side-on disabled:hover:bg-ink; }
+  .btn-lg { @apply min-h-[44px] px-5 text-sm; }
+  .btn-link { @apply border-0 bg-transparent text-agent px-1 hover:underline hover:bg-transparent; }
+  .input { @apply min-h-[42px] border border-line-strong rounded-ctl px-3 bg-white w-full; }
+  textarea.input { @apply py-2.5 min-h-[90px] resize-y leading-normal; }
+  .chip { @apply min-h-[38px] px-[14px] border border-line-strong rounded-full bg-white text-[13px] cursor-pointer hover:border-line-hover; }
+  .chip-on { @apply bg-ink border-ink text-white font-semibold hover:border-ink; }
+  .small { @apply text-xs text-ink-muted; }
+  .eyebrow { @apply text-xs text-ink-muted font-semibold uppercase tracking-[.05em]; }
+  .tbl table { @apply w-full border-collapse text-[13px]; }
+  .tbl th { @apply text-left text-ink-muted text-[11px] uppercase tracking-[.05em] font-semibold px-2.5 py-[11px] border-b border-line whitespace-nowrap; }
+  .tbl td { @apply px-2.5 py-[13px] border-t border-line-soft align-top; }
+  .tbl tbody tr:first-child td { @apply border-t-0; }
+  .tbl th:first-child, .tbl td:first-child { @apply pl-[18px]; }
+  .tbl th:last-child, .tbl td:last-child { @apply pr-[18px]; }
+  .tbl { @apply overflow-x-auto; }
+}
+
+/* Markdown the agents write (draft sections, contexts), rendered by components/Markdown. */
+.md > :first-child { margin-top: 0; }
+.md > :last-child { margin-bottom: 0; }
+.md p { margin: 0 0 8px; }
+.md ul, .md ol { margin: 0 0 8px; padding-left: 20px; }
+.md ul { list-style: disc; }
+.md ol { list-style: decimal; }
+.md pre { background: #f4f5f7; border-radius: 8px; padding: 10px 12px; overflow-x: auto; font: 12px/1.6 'IBM Plex Mono', monospace; margin: 0 0 8px; }
+.md h1, .md h2, .md h3, .md h4 { font-size: 15px; margin: 10px 0 6px; }
+code.inline { font-family: 'IBM Plex Mono', monospace; font-size: 12px; background: #eef0f3; border-radius: 4px; padding: 0 4px; }
