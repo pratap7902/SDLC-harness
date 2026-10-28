@@ -1,4 +1,4 @@
-"""The React app (`frontend/dist`, built by the frontend agent's `npm run build`) at the
+"""The React app (`frontend/dist`, built by `make frontend`) at the
 real page paths. Built files are served as they are (`/assets/…`); every page path gets
 `index.html`, so the app's own router resolves it. `/api`, `/static` and `/mcp` are not
 touched: the page paths are listed, never a catch-all."""

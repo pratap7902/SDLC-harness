@@ -18,6 +18,7 @@ make seed      # migrate + load the demo scenario into var/dev.db (SQLite)
 make dev       # http://localhost:8791 · OpenAPI at /docs · MCP at /mcp · /health
 make test      # the suite, on in-memory SQLite
 make check     # lint blueprint/*.yaml (types, vocab, lifecycle, rule ↔ code pairing)
+make frontend  # build the web UI into frontend/dist (see "The web UI" below)
 ```
 
 MySQL instead of SQLite: `make db` (MySQL 8 in docker on port 3311, db `srs`), then set
@@ -150,17 +151,39 @@ maps a work item to the same `StartFeature` — description → `requirement`, t
 link → `work_item_url`, assigned people → roles — and calls it with a `system` actor; no
 other code changes.
 
-## For the frontend
+## The web UI (`frontend/`)
 
-- The React app is built into `frontend/dist`; `app/web/spa.py` serves `index.html` at the
-  page paths (`/`, `/new`, `/inbox`, `/inbox/:person`, `/i/:slug`, `/i/:slug/draft`,
-  `/i/:slug/drift`, `/i/:slug/t/:ref`, `/i/:slug/r/:ref`, `/i/:slug/reviews`,
-  `/i/:slug/activity`, `/standards`, `/learnings`, `/blueprint`) and `/assets/*` — listed,
-  never a catch-all. A new page is a path there and in the frontend router.
-- CORS allows the Vite dev server (`http://localhost:5173`; `CORS_ORIGINS`).
-- Send `X-Actor: <person>` and `X-Actor-Kind: human` on every request.
-- Everything the UI calls, with real request/response JSON: [`docs/api.md`](./docs/api.md)
-  (regenerate with `.venv/bin/python scripts/gen_api_docs.py`).
+React 18 · react-router 6 · Vite 5 · Tailwind 3 · TypeScript, laid out like CIS's frontend
+(`src/{main.tsx,api.ts,index.css,shell/,pages/,components/,lib/}`). No private packages:
+plain Tailwind components in `components/ui.tsx`; the palette (pink = needs a human, indigo
+= agent, green / amber / red) lives in `tailwind.config.cjs`.
+
+```bash
+# dev: hot reload on :5173, /api proxied to the backend on :8791
+make seed && make dev          # terminal 1
+make frontend-dev              # terminal 2 → http://localhost:5173
+
+# built: the backend serves frontend/dist at the page paths
+make frontend                  # npm ci only when package-lock.json changed, then tsc + vite build
+make dev                       # → http://localhost:8791
+```
+
+- **Viewing as** (sidebar): the person the UI acts as. Every request sends
+  `X-Actor: <person>` and `X-Actor-Kind: human` (AUTH_MODE=header, dev only); the choice is
+  kept in localStorage. Answers, rulings, approvals and sign-offs are recorded under it, and
+  buttons for another role are disabled with the reason.
+- Pages: `/` features (decisions waiting across every inbox, PR approvals, all features),
+  `/new`, `/inbox/:person` (touchpoint 2), `/i/:slug`, `/i/:slug/draft` (touchpoint 1),
+  `/i/:slug/t/:ref` (touchpoint 3, the task's drift report), `/i/:slug/drift`,
+  `/i/:slug/r/:ref`, `/i/:slug/reviews`, `/i/:slug/activity`, `/standards`, `/learnings`,
+  `/blueprint`. `app/web/spa.py` serves `index.html` at exactly these paths (listed, never a
+  catch-all) and `/assets/*`: a new page is a route in `src/main.tsx` and a path there.
+- Composed from existing endpoints, no UI-only API: "decisions waiting" = `GET /api/people`
+  then each non-empty `GET /api/inbox/{person}`; "agents working" = the worklist's agent
+  lane; "recently resolved" = each initiative's `activity?actor=<person>`. **Request
+  changes** (draft or PR) writes a `finding` on the target through `POST …/records`
+  (severity `major` on the draft; `blocker` at the PR head, so GATE_PR blocks until fixed).
+- Types for every response: `frontend/src/api.ts`; fetch helpers / `useJson`: `src/lib/api.ts`.
 
 ## Deviations from the plan
 
@@ -198,4 +221,3 @@ other code changes.
 - SLA escalation notifications (the inbox computes `due_at` / `overdue`; nudging is a
   runner's job), WIP limits in `next_work`, the LLM review judge (rules only), evidence
   attachments, docs-as-code `baseline.at_sha`, multi-repo per-task gate evaluation.
-- The frontend (`frontend/`) — built separately against `docs/api.md`.
