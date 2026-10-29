@@ -1,6 +1,7 @@
 """Aggregates every ORM model so `Base.metadata` is fully populated (Alembic env.py and
 the test fixture's create_all import this)."""
 
+from app.auth.models import ActorToken  # noqa: F401
 from app.initiatives.models import (  # noqa: F401
     Event,
     Initiative,
@@ -14,6 +15,7 @@ from app.initiatives.models import (  # noqa: F401
 )
 
 __all__ = [
+    "ActorToken",
     "Event",
     "Initiative",
     "Lease",

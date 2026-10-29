@@ -5,7 +5,9 @@ it: linked to it either way (any link kind) or mentioning its ref, of the types 
 queues ITS dependents; `upheld` ("still holds, because …") stops the ripple.
 
 Items close by a decision, never by time: `revised` (the target was edited, or became
-SUPERSEDED / RETIRED / WITHDRAWN), `upheld`, `dismissed`."""
+SUPERSEDED / RETIRED / WITHDRAWN), `upheld`, `dismissed`. Upholding and dismissing are
+human acts: an agent's "still holds" (`reviewed: true`) is recorded on the item as advice
+(judged_by agent) and the item waits for a human."""
 
 import re
 from dataclasses import dataclass
@@ -14,6 +16,7 @@ from typing import List, Tuple
 from sqlalchemy.orm import Session
 
 from app.blueprint.schemas.blueprint import Blueprint, RecordType
+from app.core.utils.actor import Actor, require_human
 from app.core.utils.time import utcnow
 from app.exceptions import NotFoundException, ValidationException
 from app.initiatives.models.initiative import Initiative
@@ -26,6 +29,7 @@ from config.settings import settings
 DEAD = {"SUPERSEDED", "RETIRED", "WITHDRAWN", "REPLACED", "REJECTED"}
 REF_IN_TEXT = re.compile(r"(?<![\w.-])([A-Z]{1,4}-\d+)(?![\w-])")
 RESOLUTIONS = ("upheld", "revised", "dismissed")
+HUMAN_RESOLUTIONS = ("upheld", "dismissed")
 
 
 def _clip(value, limit: int = 120) -> str:
@@ -140,9 +144,15 @@ class ReviewService:
     def resolve_target(self, initiative: Initiative, target_ref: str, status: str, note: str, by: str) -> List[ReviewItem]:
         return self.repo.resolve_target(initiative.id, target_ref, status, note, by)
 
-    def resolve(self, initiative: Initiative, item_id: int, resolution: str, note: str, by: str) -> ReviewItem:
+    def annotate_target(self, initiative: Initiative, target_ref: str, by: str, note: str) -> List[ReviewItem]:
+        return self.repo.annotate_target(initiative.id, target_ref, by, note)
+
+    def resolve(self, initiative: Initiative, item_id: int, resolution: str, note: str, actor: Actor) -> ReviewItem:
         if resolution not in RESOLUTIONS:
             raise ValidationException(message=f"resolution: one of {' | '.join(RESOLUTIONS)}")
+        if resolution in HUMAN_RESOLUTIONS:
+            require_human(actor)
+        by = actor.name
         if not (note or "").strip():
             raise ValidationException(message="note: required — say why it still holds / what you changed")
         item = self.repo.get_by_id(item_id)

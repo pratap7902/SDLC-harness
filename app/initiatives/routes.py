@@ -6,7 +6,7 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import PlainTextResponse
 
-from app.core.utils.actor import Actor, actor_from_request, require_human
+from app.auth.dependencies import Caller, Human
 from app.exceptions import NotFoundException, ValidationException
 from app.initiatives.controllers.record_controller import RecordController
 from app.initiatives.requests.requests import (
@@ -44,20 +44,6 @@ Worklist = Annotated[WorklistService, Depends()]
 Activity = Annotated[ActivityService, Depends()]
 Guard = Annotated[DeployGuard, Depends()]
 Overview = Annotated[OverviewService, Depends()]
-
-
-def get_actor(request: Request) -> Actor:
-    return actor_from_request(request)
-
-
-Caller = Annotated[Actor, Depends(get_actor)]
-
-
-def human(actor: Caller) -> Actor:
-    return require_human(actor)
-
-
-Human = Annotated[Actor, Depends(human)]
 
 
 # ── initiatives ─────────────────────────────────────────────────────────────
@@ -115,8 +101,8 @@ def list_records(
 
 
 @router.post("/initiatives/{initiative_id}/records")
-def write_records(initiative_id: int, body: WriteRequest, controller: RecordsCtl, request: Request):
-    return controller.write(initiative_id, body, actor_from_request(request, body.agent))
+def write_records(initiative_id: int, body: WriteRequest, controller: RecordsCtl, actor: Caller):
+    return controller.write(initiative_id, body, actor.with_agent(body.agent))
 
 
 @router.get("/initiatives/{initiative_id}/records/{ref}")
@@ -232,7 +218,7 @@ def reviews(initiative_id: int, records: Records, status: Optional[str] = "open"
 @router.post("/initiatives/{initiative_id}/reviews/{item_id}/resolve")
 def resolve_review(initiative_id: int, item_id: int, body: ResolveReviewRequest, records: Records, actor: Caller):
     i = records.initiative(initiative_id)
-    item = ReviewService(records.db, records.bp).resolve(i, item_id, body.resolution, body.note, actor.name)
+    item = ReviewService(records.db, records.bp).resolve(i, item_id, body.resolution, body.note, actor)
     records.events.add("review_item_resolved", i.id, item.target_ref, actor.name, "", {"id": item.id, "resolution": item.status})
     records.db.commit()
     return review_item_json(item)
@@ -293,8 +279,8 @@ def learnings(records: Records):
 
 
 @router.post("/global/records")
-def write_global(body: WriteRequest, controller: RecordsCtl, request: Request):
-    return controller.write(GLOBAL_SLUG, body, actor_from_request(request, body.agent))
+def write_global(body: WriteRequest, controller: RecordsCtl, actor: Caller):
+    return controller.write(GLOBAL_SLUG, body, actor.with_agent(body.agent))
 
 
 @router.post("/learnings/{ref}/promote")

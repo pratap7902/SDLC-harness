@@ -162,12 +162,12 @@ class RecordGraph:
             self._drift_cache[key] = DriftService(self.bp).report(self, task=task, baseline=baseline)
         return self._drift_cache[key]
 
-    def gate(self, gate: str, task: Optional[str] = None, scope_task: Optional[str] = None):
-        key = (gate, task, scope_task)
+    def gate(self, gate: str, task: Optional[str] = None, scope_task: Optional[str] = None, sha: Optional[str] = None):
+        key = (gate, task, scope_task, sha)
         if key not in self._gate_cache:
             from app.initiatives.services.gate_rules import GateRules
 
-            self._gate_cache[key] = GateRules(self.bp).evaluate(self, gate, task=task, scope_task=scope_task)
+            self._gate_cache[key] = GateRules(self.bp).evaluate(self, gate, task=task, scope_task=scope_task, sha=sha)
         return self._gate_cache[key]
 
     def invalidate(self) -> None:

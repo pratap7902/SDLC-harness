@@ -143,7 +143,7 @@ def test_vertical_slice(api):
     assert api.get("/api/deploy-guard", initiative_id=api.id(SLUG), task="T-1", sha="fff999", environment="staging")["decision"] == "NO-GO"
 
     # ── a later spec change moves the digest: the approval goes stale ─────
-    api.write(SLUG, [{"type": "finding", "fields": {"summary": "AC-4 threshold should be 10s", "severity": "minor", "target": ["AC-4"], "at_sha": "abc123"}}])
+    api.write(SLUG, [{"type": "finding", "fields": {"summary": "AC-4 threshold should be 10s", "severity": "minor", "target": ["AC-4"], "at_sha": "abc123"}}], who=api.as_("priya"))
     api.write(SLUG, [{"ref": "AC-4", "fields": {"text": "Given a row update, when CDC lags more than 10s, then the lag alert fires"}, "because": ["F-1"]}])
     assert api.record(SLUG, apr["ref"])["status"] == "STALE"
     nogo = api.get("/api/deploy-guard", initiative_id=api.id(SLUG), task="T-1", sha="abc123", environment="staging")

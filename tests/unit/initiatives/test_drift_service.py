@@ -51,13 +51,13 @@ def test_an_agent_cannot_edit_the_spec_without_because_but_a_human_can(api):
 
 def test_agent_edits_are_explained_by_a_finding_and_unexplained_once_it_is_rejected(api):
     to_baseline(api)
-    api.write(SLUG, [{"type": "finding", "fields": {"summary": "lld misses the index", "severity": "minor", "target": ["draft"]}}])
+    api.write(SLUG, [{"type": "finding", "fields": {"summary": "lld misses the index", "severity": "minor", "target": ["draft"]}}], who=api.as_("priya"))
     api.write(SLUG, [{"ref": "draft", "fields": {"lld": "Table order_outbox with an index on order_id."}, "because": ["F-1"]}])
     report = api.drift(SLUG)
     assert kinds(report) == [("draft_edited", "draft", True)]
     assert report["entries"][0]["because"] == ["F-1"]
     assert api.record(SLUG, "draft")["status"] == "APPROVED"
-    api.write(SLUG, [{"ref": "F-1", "fields": {"resolution": "rejected", "resolution_note": "the index exists"}}])
+    api.write(SLUG, [{"ref": "F-1", "fields": {"resolution": "rejected", "resolution_note": "the index exists"}}], who=api.as_("priya"))
     report = api.drift(SLUG)
     assert report["status"] == "UNEXPLAINED"
     assert report["entries"][0]["explanation"][0]["why"] == "F-1 was rejected"
@@ -119,7 +119,7 @@ def test_task_scope_digest_and_other_changes(api):
     d1, d2 = api.drift(SLUG, task="T-1")["digest"], api.drift(SLUG, task="T-2")["digest"]
     assert api.drift(SLUG, task="T-1")["digest"] == d1  # stable
     # a change in T-1's scope only (AC-1 is covered by T-1, sourced from D-1)
-    api.write(SLUG, [{"type": "finding", "fields": {"summary": "AC-1 too vague", "severity": "minor", "target": ["AC-1"]}}])
+    api.write(SLUG, [{"type": "finding", "fields": {"summary": "AC-1 too vague", "severity": "minor", "target": ["AC-1"]}}], who=api.as_("priya"))
     api.write(SLUG, [{"ref": "AC-1", "fields": {"text": "Given an order update, when it commits, then exactly one outbox row with the new state is written"}, "because": ["F-1"]}])
     r1, r2 = api.drift(SLUG, task="T-1"), api.drift(SLUG, task="T-2")
     assert kinds(r1) == [("ac_changed", "AC-1", True)] and r1["digest"] != d1
@@ -133,7 +133,7 @@ def test_reapproval_starts_a_new_baseline_and_old_reports_stop_at_it(api):
     out = api.write(SLUG, [{"ref": "draft", "fields": {"lld": "v2 lld"}}], who=api.as_("chandra"))
     # the edit queued the ACs that rest on the draft: they are re-read before re-approval
     assert sorted(x.split(" ")[0] for x in out["review_items"]) == ["AC-1", "AC-2", "AC-3"]
-    api.write(SLUG, [{"ref": ac, "reviewed": True, "note": "lld detail only"} for ac in ("AC-1", "AC-2", "AC-3")])
+    api.write(SLUG, [{"ref": ac, "reviewed": True, "note": "lld detail only"} for ac in ("AC-1", "AC-2", "AC-3")], who=api.as_("chandra"))
     api.approve(SLUG, "draft", "dri", "chandra")
     state = api.state(SLUG)
     assert state["baseline"]["ref"] == "B-2"

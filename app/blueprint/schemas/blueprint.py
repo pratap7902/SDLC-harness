@@ -6,6 +6,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 PREFIXED_REF_RE = re.compile(r"^([A-Z]+)-(\d+)$")
 EXTERNAL_PREFIX = "external:"
+# actor_rules may condition on who created the record (`when: {created_by_kind: [human]}`):
+# a pseudo-field the write path fills from the record's first revision.
+AUTHOR_FIELD = "created_by_kind"
 
 
 @dataclass(frozen=True)
@@ -85,6 +88,18 @@ class RecordType:
             if rule.applies(values):
                 out |= set(rule.human)
         return out
+
+    def ratchet_fields(self, before: dict, after: dict) -> set:
+        """Condition fields whose change switches an actor rule OFF (a MUST decision made
+        SHOULD, escalated yes → no, a blocker downgraded): only a human may loosen a guard."""
+        out = set()
+        for rule in self.actor_rules:
+            if rule.applies(before) and not rule.applies(after):
+                out |= {name for name, _ in rule.fields if before.get(name) != after.get(name)}
+        return out
+
+    def author_rules(self) -> bool:
+        return any(name == AUTHOR_FIELD for rule in self.actor_rules for name, _ in rule.fields)
 
     def refs_fields(self) -> List[FieldSpec]:
         return [f for f in self.fields.values() if f.type == "refs"]

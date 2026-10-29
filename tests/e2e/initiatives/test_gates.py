@@ -49,7 +49,7 @@ def test_phases_follow_the_gates(api):
 
 def test_a_manual_ac_needs_qa(api):
     to_task(api)
-    api.write(SLUG, [{"type": "finding", "fields": {"summary": "needs a manual check", "severity": "minor", "target": ["T-1"]}}])
+    api.write(SLUG, [{"type": "finding", "fields": {"summary": "needs a manual check", "severity": "minor", "target": ["T-1"]}}], who=api.as_("sam"))
     api.write(SLUG, [{"type": "acceptance_criterion", "fields": {"text": "Ops can replay a day of events by hand", "level": "manual", "manual": "yes", "source": ["D-1"]}, "because": ["F-1"]}])
     api.write(SLUG, [{"ref": "T-1", "fields": {"covers": ["AC-1", "AC-2", "AC-3", "AC-4"]}}])
     pr_open(api)

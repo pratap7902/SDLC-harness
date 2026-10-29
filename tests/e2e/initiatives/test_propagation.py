@@ -19,8 +19,12 @@ def test_upheld_stops_the_ripple_and_revised_closes_on_edit(api):
     api.answer(SLUG, "G-1", choice="yes", person="maya")
     out = api.write(SLUG, [{"ref": "D-2", "reviewed": True, "note": "already partitioned by order_id"}])
     assert out["results"][0]["action"] == "reviewed" and out["review_items"] == []
+    # an agent's "still holds" is advice: the item stays open for its human
+    (advised,) = api.get(f"{api.base(SLUG)}/reviews")
+    assert advised["judged_by"] == "agent" and advised["note"] == "runner-sdk/draft-skill: already partitioned by order_id"
+    api.write(SLUG, [{"ref": "D-2", "reviewed": True, "note": "agreed, partitioned by order_id"}], who=api.as_("priya"))
     closed = api.get(f"{api.base(SLUG)}/reviews", status="upheld")
-    assert closed[0]["note"] == "already partitioned by order_id"
+    assert closed[0]["note"] == "agreed, partitioned by order_id"
     errors = api.rejected(SLUG, [{"ref": "D-2", "reviewed": True}])
     assert errors == ["note: required with reviewed — say what you checked it against"]
 
@@ -30,7 +34,7 @@ def test_editing_a_material_field_queues_dependents_one_hop(api):
     out = api.write(SLUG, [{"ref": "T-1", "fields": {"pr_state": "open", "pr_url": "u", "pr_sha": "s1"}}])
     out = api.write(SLUG, [{"ref": "T-1", "fields": {"pr_sha": "s2"}}])
     assert out["review_items"] == []  # nothing rests on a task here
-    api.write(SLUG, [{"type": "finding", "fields": {"summary": "AC-1 wording", "severity": "minor", "target": ["AC-1"]}}])
+    api.write(SLUG, [{"type": "finding", "fields": {"summary": "AC-1 wording", "severity": "minor", "target": ["AC-1"]}}], who=api.as_("priya"))
     out = api.write(SLUG, [{"ref": "AC-1", "fields": {"text": "Given an order update, when it commits, then one outbox row is written"}, "because": ["F-1"]}])
     assert len(out["review_items"]) == 1
     assert out["review_items"][0].startswith("T-1 ← AC-1: text: “Given an order update")

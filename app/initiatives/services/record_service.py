@@ -23,6 +23,7 @@ from typing import Annotated, Any, Dict, List, Optional, Tuple, Union
 from uuid import uuid4
 
 from fastapi import Depends
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.blueprint.schemas.blueprint import EXTERNAL_PREFIX
@@ -181,17 +182,10 @@ class RecordService:
             raise ValidationException(message="ops: at least one op")
         batch_id = (batch_id or "").strip() or str(uuid4())
         ops_hash = _hash_ops(ops)
+        initiative = self.initiative(slug)
         prior = self.batches.get(batch_id)
         if prior is not None:
-            if prior.ops_hash != ops_hash:
-                raise ConflictException(
-                    message=f"batch_id {batch_id} was already used with different ops — use a new batch_id",
-                    error_code="BATCH_ID_REUSED",
-                )
-            replay = WriteResult.from_dict(prior.result)
-            replay.replayed = True
-            return replay
-        initiative = self.initiative(slug)
+            return self._replay(prior, initiative, actor, ops_hash, batch_id)
         try:
             result = self._write(initiative, ops, actor, batch_id)
             if not result.ok:
@@ -209,9 +203,35 @@ class RecordService:
             )
             self.db.commit()
             return result
+        except IntegrityError:
+            # A concurrent request stored the same batch_id first: answer as its replay.
+            self.db.rollback()
+            prior = self.batches.get(batch_id)
+            if prior is None:
+                raise
+            return self._replay(prior, initiative, actor, ops_hash, batch_id)
         except Exception:
             self.db.rollback()
             raise
+
+    def _replay(self, prior: WriteBatch, initiative: Initiative, actor: Actor, ops_hash: str, batch_id: str) -> WriteResult:
+        """A batch_id is idempotent per (initiative, actor, ops): the same caller resending the
+        same ops gets the stored result; anything else is a 409, never someone else's result."""
+        if prior.initiative_id != initiative.id or prior.actor != actor.name or prior.ops_hash != ops_hash:
+            what = (
+                "in another initiative"
+                if prior.initiative_id != initiative.id
+                else "by another caller"
+                if prior.actor != actor.name
+                else "with different ops"
+            )
+            raise ConflictException(
+                message=f"batch_id {batch_id} was already used {what} — use a new batch_id",
+                error_code="BATCH_ID_REUSED",
+            )
+        replay = WriteResult.from_dict(prior.result)
+        replay.replayed = True
+        return replay
 
     def _fail(self, batch_id: str, results: List[OpResult]) -> WriteResult:
         for r in results:
@@ -223,6 +243,7 @@ class RecordService:
 
     def _write(self, initiative: Initiative, ops: List[WriteOp], actor: Actor, batch_id: str) -> WriteResult:
         before = self.graph(initiative)
+        self._leases = {lease.item_key: lease for lease in LeaseRepository(self.db).active(utcnow())}
         gates_before = self.gate_summary(before)
         baseline_before = before.current_baseline()
         stale_before = set(before.all_stale())
@@ -310,8 +331,11 @@ class RecordService:
         for plan in plans:
             if plan.action == "updated":
                 review.resolve_target(initiative, plan.ref, "revised", plan.op.note or "edited while up for review", actor.name)
-            elif plan.op.reviewed:
+            elif plan.op.reviewed and actor.kind == "human":
                 review.resolve_target(initiative, plan.ref, "upheld", plan.op.note, actor.name)
+            elif plan.op.reviewed:
+                # "Still holds" from an agent is advice: the item stays open for a human.
+                review.annotate_target(initiative, plan.ref, actor.name, plan.op.note)
         for record in after.records:
             if record.status in DEAD:
                 review.resolve_target(initiative, record.ref, "revised", f"now {record.status}", actor.name)
@@ -442,8 +466,11 @@ class RecordService:
                 f"status: derived, never typed — a {type_key}'s status comes from rule "
                 f"'{rule.rule if rule else '?'}': {rule.text if rule else ''}"
             )
-        if type_key == "baseline" and actor.kind != "system":
+        if type_key == "baseline":
+            # Only _create_baseline (a dri approval's side effect) mints B-n — never an op.
             errors.append("type: baselines are written by the service when the DRI approves the draft")
+        if existing is not None and actor.kind != "human":
+            errors += self._lease_errors(initiative, type_key, ref, actor)
         if type_key == "approval" and existing is not None:
             errors.append("approval: approvals are immutable — approve again to record a new one")
         if existing is not None and op.base_rev is not None and op.base_rev != existing.head_rev:
@@ -511,9 +538,19 @@ class RecordService:
             elif before.get(b) is None and b not in created_refs:
                 errors.append(f"because[{i}]: {b} does not exist in {initiative.slug}")
 
-        # 7 — actor: human
+        # 7 — actor: human. Rules are judged on the stricter of before and after, and a field
+        # whose change would switch a rule off (MUST → SHOULD, escalated yes → no, a blocker
+        # downgraded) is itself human-only: for agents the guard only ratchets up.
         if actor.kind != "human":
-            human = spec.human_fields(fields) | spec.human_fields(before_fields)
+            judged_before, judged_after = before_fields, fields
+            if existing is not None and spec.author_rules():
+                author = {"created_by_kind": self._author_kind(existing)}
+                judged_before, judged_after = {**before_fields, **author}, {**fields, **author}
+            human = (
+                spec.human_fields(judged_after)
+                | spec.human_fields(judged_before)
+                | spec.ratchet_fields(judged_before, judged_after)
+            )
             for name in sorted(set(op.fields or {}) & human):
                 if (op.fields or {}).get(name) != before_fields.get(name):
                     errors.append(f"{name}: human-only (agents ask, humans answer) — raise a gap, or ask in the web UI")
@@ -545,6 +582,24 @@ class RecordService:
         )
         plan.op.because = because
         return plan, errors
+
+    def _author_kind(self, record: Record) -> str:
+        revs = self.revisions.list_for_record(record.id)
+        return revs[0].actor_kind if revs else ""
+
+    def _lease_errors(self, initiative: Initiative, type_key: str, ref: str, actor: Actor) -> List[str]:
+        """A leased work item is written only by its holder (or a human)."""
+        suffix = f":{initiative.id}:{ref}"
+        for key, lease in (getattr(self, "_leases", None) or {}).items():
+            singleton = key == f"{type_key}:{initiative.id}" and self.bp.types[type_key].ref_kind == "singleton"
+            if not (key.endswith(suffix) or singleton):
+                continue
+            if lease.holder.split("/")[0] != actor.principal:
+                return [
+                    f"ref: {ref} is leased by {lease.holder} until {lease.expires_at.isoformat(timespec='seconds')} "
+                    f"({key}) — claim it when it is free, or ask the holder"
+                ]
+        return []
 
     def _approval_errors(self, initiative, g: RecordGraph, fields, actor: Actor) -> List[str]:
         targets = fields.get("target") or []
@@ -764,9 +819,10 @@ class RecordService:
     def _cause_errors(self, after: RecordGraph, plan: _Plan, baseline, before: RecordGraph, actor: Actor) -> List[str]:
         """After a baseline, the spec moves only with a reason: a material edit to a member, a
         new AC, or a decision taken, needs `because` that resolves to a human-answered gap,
-        a grounded decision, or a finding. A human's own edit is its own provenance."""
+        or a decision / finding whose explanation chain ends in a human act. A human's own edit
+        is its own provenance; `system` is not exempt (it never edits the spec)."""
         spec = self.bp.types[plan.type_key]
-        if baseline is None or not spec.post_baseline_cause or actor.kind in ("human", "system"):
+        if baseline is None or not spec.post_baseline_cause or actor.kind == "human":
             return []
         record = after.by_ref.get(plan.ref) or plan.record
         members = before.baseline_members(baseline)

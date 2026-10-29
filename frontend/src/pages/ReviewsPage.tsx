@@ -91,7 +91,12 @@ export default function ReviewsPage() {
               </span>
             </div>
             <span className="text-[13px]">{x.what_moved}</span>
-            {x.note && <span className="small">“{x.note}” · {nm(x.resolved_by)}</span>}
+            {x.note &&
+              (x.status === 'open' && x.judged_by === 'agent' ? (
+                <span className="small">Agent says it still holds: “{x.note}” — uphold it if you agree</span>
+              ) : (
+                <span className="small">“{x.note}” · {nm(x.resolved_by)}</span>
+              ))}
             {x.status === 'open' && <Resolve fid={fid} item={x} />}
           </Card>
         ))}

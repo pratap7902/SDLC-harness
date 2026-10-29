@@ -57,11 +57,15 @@ class WorklistService:
         if phase in ("UNASSIGNED", "CLOSED"):
             return out
         for item in g.open_review_items:
+            advised = item.judged_by == "agent"
             add(
                 "review",
                 str(item.id),
                 f"{item.target_ref} ← {item.cause_ref}",
-                f"{item.cause_ref} moved ({item.what_moved}) — revise {item.target_ref}, or say why it still holds",
+                f"agent says it holds ({item.note}) — waiting on {item.route_to or 'a human'} to uphold"
+                if advised
+                else f"{item.cause_ref} moved ({item.what_moved}) — revise {item.target_ref}, or say why it still holds",
+                lane="human" if advised else "agent",
                 person=item.route_to,
                 target=item.target_ref,
                 cause=item.cause_ref,

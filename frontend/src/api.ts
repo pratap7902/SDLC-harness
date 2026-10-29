@@ -417,6 +417,8 @@ export interface ReviewItem {
   status: string;
   route_to: string | null;
   domain: string | null;
+  /** `agent` once an agent said the target still holds (advice in `note`); a human upholds. */
+  judged_by: string;
   note: string;
   created_by: string;
   created_at: string;

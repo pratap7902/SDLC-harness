@@ -192,10 +192,15 @@ def ship(slug: str, ref: str, number: int, repo: str, sha: str, rows: list, engg
 
 
 def settle_reviews(slug: str, prefix: str, note: str, agent: str = "implement-task") -> None:
-    """The agent works its review queue: items on `prefix…` targets it re-read and upheld."""
-    for item in call("GET", f"{P(slug)}/reviews"):
-        if item["target"].startswith(prefix):
-            call("POST", f"{P(slug)}/reviews/{item['id']}/resolve", (f"runner-sdk/{agent}", "agent"), json={"resolution": "upheld", "note": note})
+    """The agent re-reads the items on `prefix…` targets and says they hold (advice, written
+    with reviewed: true); the person each item is routed to upholds it — upholding is human."""
+    items = [i for i in call("GET", f"{P(slug)}/reviews") if i["target"].startswith(prefix)]
+    targets = sorted({i["target"] for i in items})
+    if targets:
+        write(slug, [{"ref": t, "reviewed": True, "note": note} for t in targets], agent)
+    for item in items:
+        person = item["route_to"] or "priya"
+        call("POST", f"{P(slug)}/reviews/{item['id']}/resolve", person, json={"resolution": "upheld", "note": f"Agreed: {note}"})
 
 
 # ── global scope ────────────────────────────────────────────────────────────
@@ -320,11 +325,12 @@ def order_events() -> None:
         slug,
         [
             {"ref": "AC-3", "fields": {"text": "Given the broker is down for 10 min, when it recovers, then every event arrives with none duplicated"}, "note": "F-1"},
-            {"ref": "F-1", "fields": {"resolution": "fixed", "resolution_note": "AC-3 now says 10 minutes."}},
             {"ref": "draft", "fields": {"test_strategy": "Unit: envelope and dedupe logic. Integration: relay against a real broker, including a 10-minute outage (AC-3). Manual: QA checks the lag dashboard in the test environment. Every criterion maps to at least one test named after it."}, "note": "rev 2 · F-1 fixed: AC-3 outage duration"},
         ],
         "draft-from-ticket",
     )
+    # a major finding is closed by a human: arjun confirms the fix
+    human_write(slug, [{"ref": "F-1", "fields": {"resolution": "fixed", "resolution_note": "AC-3 now says 10 minutes."}}], "arjun")
     # D-1 is a MUST: the DRI rules it (the write path refuses an agent's MUST verdict)
     at(days=5, hours=15)
     rule(slug, "D-1", "priya", "Transactional outbox", "STD-1 needs exactly-once to the broker; dual-write breaks it and CDC is not set up on orders. Menu sync (D-55) chose the same.")
@@ -508,11 +514,12 @@ def loyalty_expiry() -> None:
     ship(slug, "T-1", 91, "loyalty-svc", "b77e2d10", [("AC-1", "test_AC_1_expiry_entry"), ("AC-2", "test_AC_2_idempotent_rerun")], "nikhil", "loyalty-svc suite")
     at(hours=6)
     pr(slug, "T-2", 95, "loyalty-svc", "c09a1f3e")
-    # the PR review agent claims AC-4 contradicts the contract; the implementing agent edits
-    # AC-4 citing that finding (explained) — then nikhil rejects the finding, so the change
-    # loses its reason: unexplained drift, the draft reopens and GATE_PR blocks.
+    # meera (product) reviews the PR and says AC-4 contradicts the contract; the implementing
+    # agent edits AC-4 citing her finding (explained: a human raised it) — then nikhil rejects
+    # the finding, so the change loses its reason: unexplained drift, the draft reopens and
+    # GATE_PR blocks.
     at(hours=5)
-    write(slug, [{"type": "finding", "title": "AC-4 contradicts the partner contract", "fields": {"summary": "The partner contract counts 365 days from the last purchase, not from earning.", "severity": "major", "target": ["AC-4", "T-2"], "at_sha": "c09a1f3e"}}], "review-pr")
+    human_write(slug, [{"type": "finding", "title": "AC-4 contradicts the partner contract", "fields": {"summary": "The partner contract counts 365 days from the last purchase, not from earning.", "severity": "major", "target": ["AC-4", "T-2"], "at_sha": "c09a1f3e"}}], "meera")
     at(hours=4)
     write(slug, [{"ref": "AC-4", "fields": {"text": "Points expire 365 days after the last purchase"}, "because": ["F-1"], "note": "per F-1"}], "implement-task")
     at(minutes=40)
@@ -704,7 +711,7 @@ def inventory_sync_v3() -> None:
     call("POST", f"{P(slug)}/criteria/AC-4/sign", "sam", json={"at_sha": "9c0d1e2f"})
     at(days=1)
     for t, sha in (("T-1", "8b9c0d1e"), ("T-2", "9c0d1e2f")):
-        call("POST", "/api/deploy-guard", ("github-actions", "system"), json={"initiative_id": IDS[slug], "task": t, "sha": sha, "environment": "staging"})
+        call("POST", "/api/deploy-guard", ("github-actions", "agent"), json={"initiative_id": IDS[slug], "task": t, "sha": sha, "environment": "staging"})
 
 
 def main() -> int:

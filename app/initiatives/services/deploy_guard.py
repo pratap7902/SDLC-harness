@@ -31,7 +31,7 @@ class DeployGuard:
         approvals = [a for a in g.of_type("approval") if task in (g.f(a, "target") or []) and a.status == "CURRENT"]
         approved_at = {g.f(a, "at_sha") for a in approvals}
         checks.append({"name": "approved_at_sha", "passed": sha in approved_at, "detail": f"engg approved at {', '.join(sorted(x for x in approved_at if x)) or 'nothing current'}"})
-        gate_v = g.gate("GATE_VALIDATED", scope_task=task)
+        gate_v = g.gate("GATE_VALIDATED", scope_task=task, sha=sha)  # runs at THIS sha only
         checks.append({"name": "GATE_VALIDATED", "passed": gate_v.status == "PASSED", "detail": ", ".join(f"{r.name} ({', '.join(r.failing)})" for r in gate_v.rules if not r.passed) or "passed"})
         open_decisions = [d for d in g.f(t, "implements") or [] if g.get(d) is not None and g.get(d).status in ("OPEN", "PROVISIONAL")]
         checks.append({"name": "no_open_or_provisional_decision", "passed": not open_decisions, "detail": ", ".join(open_decisions) or "none"})

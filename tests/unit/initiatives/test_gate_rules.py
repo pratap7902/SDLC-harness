@@ -81,17 +81,30 @@ def test_gate_validated_with_a_manual_ac():
         rec("AC-2", text="m", level="manual", manual="yes", source=["D-1"]),
     ]
     run = rec("R-1", result="GREEN", at_sha="s", run_on="2026-10-30", covers=[{"ac": "AC-1", "result": "GREEN"}])
-    g = graph([rec("D-1", verdict="v")] + acs + [run])
+    task = rec("T-1", implements=["D-1"], covers=["AC-1", "AC-2"], pr_sha="s")
+    g = graph([rec("D-1", verdict="v")] + acs + [run, task])
     r = rules(g.gate("GATE_VALIDATED"))
     assert r["every_ac_green"] == (True, [])
     assert r["manual_acs_signed_by"] == (False, ["AC-2"])
-    signed = graph([rec("D-1", verdict="v"), acs[0], rec("AC-2", text="m", level="manual", manual="yes", source=["D-1"], signed_by="sam"), run])
+    signed = graph([rec("D-1", verdict="v"), acs[0], rec("AC-2", text="m", level="manual", manual="yes", source=["D-1"], signed_by="sam"), run, task])
     assert signed.gate("GATE_VALIDATED").status == "PASSED"
 
 
 def test_the_latest_run_decides_green():
     acs = [rec("AC-1", text="a", level="unit", source=["D-1"])]
-    old = rec("R-1", result="GREEN", run_on="2026-10-30", covers=[{"ac": "AC-1", "result": "GREEN"}])
-    new = rec("R-2", result="RED", run_on="2026-10-31", covers=[{"ac": "AC-1", "result": "RED"}])
-    g = graph([rec("D-1", verdict="v")] + acs + [old, new])
+    old = rec("R-1", result="GREEN", at_sha="s", run_on="2026-10-30", covers=[{"ac": "AC-1", "result": "GREEN"}])
+    new = rec("R-2", result="RED", at_sha="s", run_on="2026-10-31", covers=[{"ac": "AC-1", "result": "RED"}])
+    task = rec("T-1", implements=["D-1"], covers=["AC-1"], pr_sha="s")
+    g = graph([rec("D-1", verdict="v")] + acs + [old, new, task])
     assert rules(g.gate("GATE_VALIDATED"))["every_ac_green"] == (False, ["AC-1"])
+
+
+def test_only_runs_at_the_pr_head_or_deploying_sha_count():
+    """B5: a GREEN run at an older commit proves nothing about the one being deployed."""
+    acs = [rec("AC-1", text="a", level="unit", source=["D-1"])]
+    run = rec("R-1", result="GREEN", at_sha="old", run_on="2026-10-30", covers=[{"ac": "AC-1", "result": "GREEN"}])
+    task = rec("T-1", implements=["D-1"], covers=["AC-1"], pr_sha="new", pr_state="open")
+    g = graph([rec("D-1", verdict="v")] + acs + [run, task])
+    assert rules(g.gate("GATE_VALIDATED"))["every_ac_green"] == (False, ["AC-1"])
+    assert rules(g.gate("GATE_VALIDATED", scope_task="T-1", sha="old"))["every_ac_green"] == (True, [])
+    assert rules(g.gate("GATE_PR", task="T-1"))["every_covered_ac_has_a_test"] == (False, ["AC-1"])

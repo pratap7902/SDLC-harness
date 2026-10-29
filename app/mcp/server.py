@@ -9,8 +9,9 @@ from typing import Any, Dict, List, Optional, Union
 
 from mcp.server.fastmcp import Context, FastMCP
 
+from app.auth.services.authenticator import authenticate
 from app.core import database
-from app.core.utils.actor import ACTOR_HEADER, ACTOR_KIND_HEADER, Actor
+from app.core.utils.actor import Actor
 from app.exceptions import BaseAppException
 from app.initiatives.services import drift_render
 from app.initiatives.services.activity_service import ActivityService
@@ -50,12 +51,20 @@ session_provider = None
 
 
 def _actor(ctx: Optional[Context], agent: Optional[str]) -> Actor:
+    """The authenticated caller (bearer token, or X-Actor in header mode). MCP is the agent
+    interface: whatever the token or header says, the kind here is `agent` — never human,
+    never system."""
     request = getattr(getattr(ctx, "request_context", None), "request", None) if ctx is not None else None
-    headers = request.headers if request is not None else {}
-    kind = (headers.get(ACTOR_KIND_HEADER) or "").lower()
-    # MCP is the agent interface: a caller is never treated as a human here.
-    kind = "system" if kind == "system" else "agent"
-    return Actor(principal=(headers.get(ACTOR_HEADER) or "").strip(), kind=kind, agent=(agent or "").strip())
+    headers = {k.lower(): v for k, v in dict(request.headers if request is not None else {}).items()}
+    headers.pop("x-actor-kind", None)
+    try:
+        if session_provider is not None:
+            actor = authenticate(headers, session_provider())
+        else:
+            actor = authenticate(headers, db_factory=database.SessionLocalPrimary)
+    except BaseAppException as e:
+        raise ValueError(e.message) from e
+    return Actor(principal=actor.principal, kind="agent", agent=(agent or "").strip(), roles=actor.roles, via="mcp")
 
 
 @contextmanager
@@ -227,10 +236,12 @@ def write(initiative_id: int, ops: Union[List[Dict[str, Any]], str], ctx: Contex
 
 @mcp.tool()
 def resolve_review_item(initiative_id: int, id: int, resolution: str, note: str, ctx: Context, agent: Optional[str] = None) -> str:
-    """Close a review item: upheld (still holds — say why) · revised · dismissed."""
+    """Close a review item as `revised` (you changed the target). Upholding or dismissing is
+    a human act — to say a target still holds, write it with reviewed: true and a note; the
+    item stays open for its human with your note attached."""
     with _services() as records:
         i = records.initiative(initiative_id)
-        item = ReviewService(records.db, records.bp).resolve(i, id, resolution, note, _actor(ctx, agent).name)
+        item = ReviewService(records.db, records.bp).resolve(i, id, resolution, note, _actor(ctx, agent))
         records.db.commit()
         return f"review item {item.id} ({item.target_ref} ← {item.cause_ref}) {item.status}"
 

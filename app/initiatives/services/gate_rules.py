@@ -46,6 +46,7 @@ class Ctx:
     gate: str
     task: Optional[str]  # the task a task-scoped gate is evaluated for
     scope_task: Optional[str]  # narrows an initiative gate to one task's ACs (deploy_guard)
+    sha: Optional[str] = None  # the commit being deployed (deploy_guard): evidence must be at it
 
 
 GATE_RULES: Dict[str, Callable] = {}
@@ -229,9 +230,16 @@ def no_blocker_finding_open_at_sha(g, ctx, **_):
     return RuleResult("", not failing, failing)
 
 
+def runs_at(g, shas) -> list:
+    """Test runs whose at_sha is one of `shas` — evidence counts only for the commit it ran on."""
+    shas = {s for s in shas if s}
+    return [run for run in g.of_type("test_run") if g.f(run, "at_sha") in shas]
+
+
 @gate_rule("every_covered_ac_has_a_test")
 def every_covered_ac_has_a_test(g, ctx, **_):
-    tested = {row.get("ac") for run in g.of_type("test_run") for row in g.f(run, "covers") or []}
+    sha = g.f(ctx.task, "pr_sha")
+    tested = {row.get("ac") for run in runs_at(g, [sha]) for row in g.f(run, "covers") or []}
     covers = [ac for ac in g.f(ctx.task, "covers") or [] if g.get(ac) is not None and g.get(ac).status in LIVE_AC]
     failing = [ac for ac in covers if ac not in tested and g.f(ac, "manual") != "yes"]
     return RuleResult("", not failing, failing, "covered ACs with no test run row" if failing else "")
@@ -262,11 +270,22 @@ def no_provisional_decision_implemented_at_must_level(g, ctx, **_):
 # ── GATE_VALIDATED ──────────────────────────────────────────────────────────
 
 
-def latest_run_result(g, ac_ref: str) -> Optional[str]:
+def evidence_shas(g, ctx: Ctx, ac_ref: str) -> set:
+    """The commits whose runs may prove `ac_ref`: the deploying sha (deploy_guard), else the
+    scoped task's PR head, else the PR head of every task covering the AC."""
+    if ctx.sha:
+        return {ctx.sha}
+    if ctx.scope_task:
+        return {g.f(ctx.scope_task, "pr_sha")} - {None, ""}
+    return {g.f(t, "pr_sha") for t in g.of_type("task") if ac_ref in (g.f(t, "covers") or [])} - {None, ""}
+
+
+def latest_run_result(g, ac_ref: str, shas: Optional[set] = None) -> Optional[str]:
     from app.initiatives.services.record_graph import ref_num
 
     best = None
-    for run in g.of_type("test_run"):
+    runs = g.of_type("test_run") if shas is None else runs_at(g, shas)
+    for run in runs:
         for row in g.f(run, "covers") or []:
             if row.get("ac") == ac_ref:
                 key = (g.f(run, "run_on") or "", ref_num(run.ref))
@@ -281,9 +300,11 @@ def every_ac_green(g, ctx, **_):
     if not _live_acs(g, ctx):
         return RuleResult("", False, [], "no live acceptance criteria yet")
     failing = [
-        a.ref for a in _live_acs(g, ctx) if g.f(a, "manual") != "yes" and latest_run_result(g, a.ref) != "GREEN"
+        a.ref
+        for a in _live_acs(g, ctx)
+        if g.f(a, "manual") != "yes" and latest_run_result(g, a.ref, evidence_shas(g, ctx, a.ref)) != "GREEN"
     ]
-    return RuleResult("", not failing, failing, "ACs whose latest covering run is not GREEN" if failing else "")
+    return RuleResult("", not failing, failing, "ACs whose latest run at the PR head / deploying sha is not GREEN" if failing else "")
 
 
 @gate_rule("manual_acs_signed_by")
@@ -309,9 +330,9 @@ class GateRules:
     def __init__(self, blueprint: Blueprint):
         self.bp = blueprint
 
-    def evaluate(self, g, gate_key: str, task: Optional[str] = None, scope_task: Optional[str] = None) -> GateResult:
+    def evaluate(self, g, gate_key: str, task: Optional[str] = None, scope_task: Optional[str] = None, sha: Optional[str] = None) -> GateResult:
         gate = self.bp.lifecycle.gates[gate_key]
-        ctx = Ctx(gate_key, task, scope_task)
+        ctx = Ctx(gate_key, task, scope_task, sha)
         results = []
         for ref in gate.rules:
             result = GATE_RULES[ref.name](g, ctx, **ref.args)

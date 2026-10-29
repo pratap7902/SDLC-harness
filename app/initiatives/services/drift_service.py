@@ -269,22 +269,34 @@ class DriftService:
     # ── explanation ──────────────────────────────────────────────────────
 
     def cause_ok(self, g, ref: str, seen: Optional[Set[str]] = None) -> Explanation:
-        """Is `ref` an acceptable reason for a spec change? A gap a human answered; a decision
-        DECIDED (or PROVISIONAL at SHOULD) that is itself grounded — ruled by a human,
-        approved in a baseline, or explained by its own `because`; a finding not rejected."""
+        """Is `ref` an acceptable reason for a spec change? Only if its chain ends in a HUMAN
+        act: a gap a human answered; a decision ruled by a human, approved in a baseline (the
+        DRI's act), or whose own `because` is explained; a finding a human raised, or one a
+        human resolved as fixed / acknowledged. An agent's own finding explains nothing."""
         seen = set(seen or ()) | {ref}
         record = g.get(ref)
         if record is None:
             return Explanation(ref, False, f"{ref} does not exist")
         if record.type == "gap":
-            if record.status == "ANSWERED":
+            if record.status == "ANSWERED" and self._set_by_human(g, record, "answer"):
                 who = g.f(record, "answered_by") or "a human"
                 return Explanation(ref, True, f"answered by {who}: “{clip(g.f(record, 'answer'), 120)}”")
+            if record.status == "ANSWERED":
+                return Explanation(ref, False, f"{ref}'s answer was not written by a human")
             return Explanation(ref, False, f"{ref} is {record.status} — only an answered gap explains a change")
         if record.type == "finding":
             if record.status == "REJECTED":
                 return Explanation(ref, False, f"{ref} was rejected")
-            return Explanation(ref, True, f"finding ({g.f(record, 'severity')}): {clip(g.f(record, 'summary'), 120)}")
+            what = f"finding ({g.f(record, 'severity')}): {clip(g.f(record, 'summary'), 120)}"
+            revs = g.revisions(record.ref)
+            if revs and revs[0].actor_kind == "human":
+                return Explanation(ref, True, f"{what} — raised by {revs[0].actor}")
+            resolver = self._setter(g, record, "resolution")
+            if record.status in ("FIXED", "ACKNOWLEDGED") and resolver is not None and resolver.actor_kind == "human":
+                return Explanation(ref, True, f"{what} — {record.status.lower()} by {resolver.actor}")
+            return Explanation(
+                ref, False, f"{ref} is an agent's finding with no human act behind it (a human must raise or resolve it)"
+            )
         if record.type == "decision":
             ok_status = record.status == "DECIDED" or (
                 record.status in ("PROVISIONAL", "SUPERSEDED") and g.f(record, "level") == "SHOULD"
@@ -297,14 +309,24 @@ class DriftService:
             return Explanation(ref, grounded, why)
         return Explanation(ref, False, f"{ref} is a {record.type}; a change is explained by a gap, a decision or a finding")
 
-    def _grounded(self, g, decision: Record, seen: Set[str]) -> Tuple[bool, str]:
-        revs = g.revisions(decision.ref)
-        verdict = g.f(decision, "verdict")
+    @staticmethod
+    def _setter(g, record: Record, name: str) -> Optional[RecordRevision]:
+        """The revision that gave `name` its current value (the earliest of the run)."""
+        value = (record.fields or {}).get(name)
         setter = None
-        for r in revs:
-            if (r.fields or {}).get("verdict") == verdict:
-                setter = r
+        for r in reversed(g.revisions(record.ref)):
+            if (r.fields or {}).get(name) != value:
                 break
+            setter = r
+        return setter
+
+    def _set_by_human(self, g, record: Record, name: str) -> bool:
+        setter = self._setter(g, record, name)
+        return setter is not None and setter.actor_kind == "human"
+
+    def _grounded(self, g, decision: Record, seen: Set[str]) -> Tuple[bool, str]:
+        verdict = g.f(decision, "verdict")
+        setter = self._setter(g, decision, "verdict")
         if setter is not None and setter.actor_kind == "human":
             return True, f"ruled by {setter.actor}: “{clip(verdict, 120)}”"
         for b in g.baselines():
@@ -314,12 +336,12 @@ class DriftService:
         causes = list((setter.cause_refs if setter is not None else []) or []) or list(g.f(decision, "because") or [])
         causes = [c for c in causes if c not in seen]
         if not causes:
-            return False, f"{decision.ref} was decided by an agent with no `because`"
+            return False, f"{decision.ref} was decided by an agent with no `because` (no human in the chain)"
         sub = [self.cause_ok(g, c, seen) for c in causes]
         if all(s.ok for s in sub):
             return True, f"“{clip(verdict, 100)}” because " + "; ".join(f"{s.ref} {s.why}" for s in sub)
         bad = [s for s in sub if not s.ok]
-        return False, f"{decision.ref}'s own because is not explained: " + "; ".join(s.why for s in bad)
+        return False, f"{decision.ref}'s own because is not explained (no human in the chain): " + "; ".join(s.why for s in bad)
 
     def _explain(self, g, rev: RecordRevision, extra: List[str] = ()) -> Tuple[bool, List[str], List[Explanation]]:
         because = sorted(set(rev.cause_refs or []) | set(extra or []))

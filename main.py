@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api import api_router
+from app.auth.asgi import AuthGuard
 from app.core.exception_handlers import register_exception_handlers
 from app.core.logging import LogEvents, logger
 from app.core.middlewares.exception_handling_middleware import (
@@ -19,6 +20,9 @@ from config.settings import settings
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 logging.getLogger("httpx").setLevel(logging.WARNING)
+
+# Fail fast on an auth mode this environment may not use (header outside local/testing).
+AUTH_MODE = settings.auth.mode(settings.app.APP_ENV)
 
 mcp.settings.streamable_http_path = "/mcp"
 mcp_app = mcp.streamable_http_app()
@@ -77,4 +81,4 @@ def health():
 
 # Agent interface at /mcp (streamable HTTP). Mounted last: a root mount would otherwise
 # shadow every route above.
-app.mount("/", mcp_app)
+app.mount("/", AuthGuard(mcp_app))

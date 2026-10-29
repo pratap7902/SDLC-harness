@@ -200,6 +200,12 @@ types:
     rules:
       - when: {status: [REJECTED]}
         require: [resolution_note]
+    actor_rules:
+      # a serious finding, or any finding a human raised, is closed by a human
+      - when: {severity: [blocker, major]}
+        human: [resolution, resolution_note]
+      - when: {created_by_kind: [human]}
+        human: [resolution, resolution_note, severity]
 
   test_run:
     title: Test run

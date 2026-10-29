@@ -54,3 +54,19 @@ class ReviewItemRepository(BaseRepository[ReviewItem]):
         for item in items:
             item.status, item.note, item.resolved_by, item.resolved_at = status, note, by, now
         return items
+
+    def annotate_target(self, initiative_id: int, target_ref: str, by: str, note: str) -> List[ReviewItem]:
+        """An agent's "still holds": recorded on the open items, which stay open."""
+        items = (
+            self.db.query(ReviewItem)
+            .filter(
+                ReviewItem.initiative_id == initiative_id,
+                ReviewItem.target_ref == target_ref,
+                ReviewItem.status == "open",
+            )
+            .all()
+        )
+        for item in items:
+            item.judged_by = "agent"
+            item.note = f"{by}: {note}"
+        return items

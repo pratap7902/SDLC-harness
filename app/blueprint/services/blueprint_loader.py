@@ -10,6 +10,7 @@ from typing import Dict, List, Optional
 import yaml
 
 from app.blueprint.schemas.blueprint import (
+    AUTHOR_FIELD,
     ActorRule,
     Blueprint,
     CatalogItem,
@@ -250,7 +251,7 @@ class BlueprintLoader:
                 when = dict(r.get("when") or {})
                 human = tuple(r.get("human") or ())
                 for n in list(when) + list(human):
-                    if n not in fields:
+                    if n not in fields and not (n == AUTHOR_FIELD and n in when):
                         self.problems.append(f"{where}: actor_rules names unknown field '{n}'")
                 actor_rules.append(ActorRule(tuple((n, tuple(v)) for n, v in when.items()), human))
 

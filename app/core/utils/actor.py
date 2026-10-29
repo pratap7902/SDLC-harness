@@ -1,29 +1,37 @@
 """Who is calling, and as what. Every write names a person or runner (`actor`) and a
 kind (`human` | `agent` | `system`); the kind decides what the write path lets through
-(`actor: human` fields, approvals)."""
+(`actor: human` fields, approvals). Callers authenticate as `human` or `agent` only
+(app/auth); `system` is the service itself (baselines, integrations) and is never taken
+from a request."""
 
-from dataclasses import dataclass
-from typing import Optional
-
-from fastapi import Request
+from dataclasses import dataclass, replace
+from typing import Optional, Tuple
 
 from app.exceptions import ForbiddenException
 
 ACTOR_HEADER = "x-actor"
 ACTOR_KIND_HEADER = "x-actor-kind"
+ACTOR_ROLES_HEADER = "x-actor-roles"
 KINDS = ("human", "agent", "system")
+CALLER_KINDS = ("human", "agent")
 
 
 @dataclass(frozen=True)
 class Actor:
-    principal: str  # the person or runner (X-Actor)
+    principal: str  # the person or runner
     kind: str  # human | agent | system
     agent: str = ""  # which agent / skill, when given
+    roles: Tuple[str, ...] = ()  # service roles from the token (admin, ci); not assignments
+    via: str = "web"  # the channel a human acted through: web | teams | api
 
     @property
     def name(self) -> str:
         """`<who>/<which agent>` — what revisions and events record."""
         return actor_of(self.principal, self.agent)
+
+    def with_agent(self, agent: Optional[str]) -> "Actor":
+        agent = (agent or "").strip()
+        return replace(self, agent=agent) if agent else self
 
 
 def actor_of(principal: Optional[str], agent: Optional[str] = None) -> str:
@@ -35,24 +43,6 @@ def actor_of(principal: Optional[str], agent: Optional[str] = None) -> str:
     return f"{principal}/{agent}" if agent else principal
 
 
-def kind_of(header_kind: Optional[str], agent: Optional[str]) -> str:
-    """AUTH_MODE=header: X-Actor-Kind when sent; else `agent` when an agent label is
-    given; else `human` (the web UI)."""
-    kind = (header_kind or "").strip().lower()
-    if kind in KINDS:
-        return kind
-    return "agent" if (agent or "").strip() else "human"
-
-
-def actor_from_request(request: Request, agent: Optional[str] = None) -> Actor:
-    principal = request.headers.get(ACTOR_HEADER, "")
-    return Actor(
-        principal=principal.strip(),
-        kind=kind_of(request.headers.get(ACTOR_KIND_HEADER), agent),
-        agent=(agent or "").strip(),
-    )
-
-
 def require_human(actor: Actor) -> Actor:
     """Human-only operations (answer a gap, rule a decision, approve, sign, promote)."""
     if actor.kind != "human":
@@ -62,3 +52,15 @@ def require_human(actor: Actor) -> Actor:
             error_code="HUMAN_ONLY",
         )
     return actor
+
+
+def require_role(actor: Actor, role: str) -> Actor:
+    if role not in actor.roles:
+        raise ForbiddenException(
+            message=f"{actor.name or 'this caller'} lacks the service role '{role}' (a token role)",
+            error_code="ROLE_REQUIRED",
+        )
+    return actor
+
+
+SERVICE = Actor(principal="srs", kind="system")

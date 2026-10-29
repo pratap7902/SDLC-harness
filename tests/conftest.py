@@ -4,6 +4,8 @@ import os
 # a test that needs a different shape points BLUEPRINT_DIR elsewhere for itself).
 os.environ["BLUEPRINT_DIR"] = os.path.join(os.path.dirname(__file__), "fixtures", "blueprint")
 os.environ["REVIEW_PROPAGATION"] = "true"
+os.environ["APP_ENV"] = "testing"
+os.environ.pop("AUTH_MODE", None)
 os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite:///:memory:")
 
 import pytest  # noqa: E402
@@ -18,10 +20,10 @@ from tests.fixtures.database import db_session, engine, mysql_engine  # noqa: E4
 
 @pytest.fixture
 def client(db_session):  # noqa: F811
-    """A human caller (the web UI): X-Actor tester."""
+    """A human caller (the web UI): X-Actor tester, X-Actor-Kind human."""
     app.dependency_overrides[get_primary_db] = lambda: db_session
     mcp_server.session_provider = lambda: db_session
-    yield TestClient(app, headers={"X-Actor": "tester"})
+    yield TestClient(app, headers={"X-Actor": "tester", "X-Actor-Kind": "human"})
     app.dependency_overrides.clear()
     mcp_server.session_provider = None
 

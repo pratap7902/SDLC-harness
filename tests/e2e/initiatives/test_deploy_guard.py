@@ -24,7 +24,7 @@ def test_new_drift_turns_go_into_no_go(api):
     pr_open(api)
     api.approve(SLUG, "T-1", "engg", "priya")
     assert guard(api)["decision"] == "GO"
-    api.write(SLUG, [{"type": "finding", "fields": {"summary": "AC-3 wording", "severity": "nit", "target": ["AC-3"]}}])
+    api.write(SLUG, [{"type": "finding", "fields": {"summary": "AC-3 wording", "severity": "nit", "target": ["AC-3"]}}], who=api.as_("priya"))  # a reviewer raised it
     api.write(SLUG, [{"ref": "AC-3", "fields": {"text": "Two updates to one order share partition key order_id"}, "because": ["F-1"]}])
     out = guard(api)
     assert out["decision"] == "NO-GO" and out["drift"]["changes"] == 1
@@ -34,7 +34,7 @@ def test_post_records_a_deploy_row(api):
     to_task(api)
     pr_open(api)
     api.approve(SLUG, "T-1", "engg", "priya")
-    out = api.ok(api.as_("ci", "system").post("/api/deploy-guard", json={"initiative_id": api.id(SLUG), "task": "T-1", "sha": "abc123", "environment": "production"}))
+    out = api.ok(api.as_("ci", "agent").post("/api/deploy-guard", json={"initiative_id": api.id(SLUG), "task": "T-1", "sha": "abc123", "environment": "production"}))
     assert out["decision"] == "GO" and out["deploy"] == "DEP-1"
     dep = api.record(SLUG, "DEP-1")
     assert dep["status"] == "PENDING" and dep["fields"]["guard_result"] == "GO"

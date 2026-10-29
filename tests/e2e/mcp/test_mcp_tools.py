@@ -54,6 +54,8 @@ def test_work_loop_and_reports(started, api):
     server.write(iid, draft_batch(), ctx())
     api.answer(SLUG, "G-1", choice="yes", person="maya")
     server.write(iid, [{"ref": "D-2", "reviewed": True, "note": "holds"}], ctx())
+    (item,) = api.get(f"/api/initiatives/{iid}/reviews")  # advice: a human upholds
+    api.ok(api.as_("priya").post(f"/api/initiatives/{iid}/reviews/{item['id']}/resolve", json={"resolution": "upheld", "note": "holds"}))
     api.approve(SLUG, "draft", "dri", "chandra")
     server.write(iid, [task_op()], ctx())
     work = server.next_work(ctx(), initiative_id=iid, kind="task")

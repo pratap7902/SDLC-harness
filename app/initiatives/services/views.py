@@ -65,6 +65,7 @@ def review_item_json(i: ReviewItem) -> dict:
         "status": i.status,
         "route_to": i.route_to,
         "domain": i.domain,
+        "judged_by": i.judged_by,
         "note": i.note,
         "created_by": i.created_by,
         "created_at": iso(i.created_at),

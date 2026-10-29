@@ -27,6 +27,9 @@ test:          ## the suite on in-memory SQLite
 test-mysql:    ## the suite on MySQL (make db first)
 	TEST_DATABASE_URL=mysql+mysqlconnector://root:srs@127.0.0.1:3311/srs_test $(BIN)/pytest -q
 
+token:         ## mint a bearer token: make token ACTOR=runner-sdk KIND=agent [ROLES=ci] [LABEL=…] [DAYS=90]
+	$(BIN)/python scripts/mint_token.py mint --actor "$(ACTOR)" --kind "$(KIND)" --roles "$(ROLES)" --label "$(LABEL)" --days "$(or $(DAYS),0)"
+
 lint:
 	$(BIN)/ruff check .
 
@@ -45,4 +48,4 @@ frontend-dev:  ## Vite dev server on :5173 (proxies /api to the backend on :8791
 reset:         ## delete the SQLite dev DB
 	rm -f var/dev.db
 
-.PHONY: install db migrate check dev test test-mysql lint seed reset frontend frontend-dev
+.PHONY: install db migrate check dev test test-mysql lint seed reset frontend frontend-dev token
