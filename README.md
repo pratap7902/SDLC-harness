@@ -45,8 +45,8 @@ STD-3 changed, so D-2 is up for review for arjun; T-3's PR waits on him. **store
 
 Initiatives are addressed by numeric **id** everywhere (REST, MCP `initiative_id`, the
 deploy guard, UI routes); `slug` is a display label. Records are addressed by their ref
-within the initiative. **Who is calling comes only from headers** (`X-Actor`,
-`X-Actor-Kind`; a bearer token later) — never a path, query or body.
+within the initiative. **Who is calling comes only from authentication** (a bearer token;
+`X-Actor` headers in local dev) — never a path, query or body. See [Auth](#auth).
 
 | REST | |
 |---|---|
@@ -203,7 +203,7 @@ make dev                       # → http://localhost:8791
 ```
 
 - **Viewing as** (sidebar): the person the UI acts as. Every request sends
-  `X-Actor: <person>` and `X-Actor-Kind: human` (AUTH_MODE=header, dev only); the choice is
+  `X-Actor: <person>` and `X-Actor-Kind: human` (AUTH_MODE=header, local only); the choice is
   kept in localStorage. Answers, rulings, approvals and sign-offs are recorded under it, and
   buttons for another role are disabled with the reason.
 - Pages: `/` features (decisions waiting across every inbox, PR approvals, all features),
@@ -223,6 +223,62 @@ make dev                       # → http://localhost:8791
   (severity `major` on the draft; `blocker` at the PR head, so GATE_PR blocks until fixed).
 - Types for every response: `frontend/src/api.ts`; fetch helpers / `useJson`: `src/lib/api.ts`.
 
+## Auth
+
+Every `/api` and `/mcp` request is authenticated by `app/auth/services/authenticator.py`,
+the one place that decides who a caller is (an `Actor`: principal, kind, service roles).
+
+| `AUTH_MODE` | Who you are | Default |
+|---|---|---|
+| `token` | `Authorization: Bearer <token>` → `actor_tokens` row (principal, kind `human`/`agent`, roles). No / unknown / revoked / expired token → **401** on reads and writes alike (fail closed). `X-Actor*` headers are ignored. | any `APP_ENV` other than `local` / `testing` |
+| `header` | `X-Actor` (who) + `X-Actor-Kind` (`human` \| `agent`). A **missing kind is `agent`**, never `human`. A bearer token, if sent, still wins. **Refused at startup outside `APP_ENV=local/testing`.** | `APP_ENV=local` / `testing` |
+
+- **`system` is never a caller's kind.** It is the service itself (baselines, integrations
+  writing through the write path). `X-Actor-Kind: system` is 403 `KIND_NOT_ALLOWED`; a token
+  cannot be minted as `system`.
+- **MCP callers are always `agent`**, whatever the token or header says. Human-only work
+  has no MCP tool.
+- **Tokens:** `make token ACTOR=runner-sdk KIND=agent ROLES=ci LABEL="sdk runner" [DAYS=90]`
+  prints the token once (only its sha256 is stored). `scripts/mint_token.py list` /
+  `revoke <id>`. Service roles: `admin` (admin endpoints); `ci` (informational).
+  In `.mcp.json`: `"headers": {"Authorization": "Bearer srs_…"}`.
+- **Web UI in dev:** the "Viewing as" switcher sends `X-Actor: <person>` +
+  `X-Actor-Kind: human` (header mode). **In production** (next: it needs the people
+  directory) the UI sits behind Cloudflare Access: a Cloudflare identity provider (`CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD`)
+  verifies the `Cf-Access-Jwt-Assertion` JWT (RS256 against the team's
+  `/cdn-cgi/access/certs`, audience = the Access application's AUD tag) and maps its email
+  to the canonical person in the people directory (kind `human`). The
+  `Cf-Access-Authenticated-User-Email` header alone is never trusted — it is only the
+  display copy of what the verified JWT says. See docs/integrations.md.
+
+### Trust rules the write path enforces
+
+- **Baselines** are minted only by a dri approval's side effect; any `type: baseline` op is
+  refused, whoever sends it.
+- **Every explanation ends in a human act.** After a baseline, an agent's spec change needs
+  `because` that resolves to: a gap a human answered; a decision a human ruled, that a
+  baseline approved, or whose own `because` chain ends in a human act; or a finding a human
+  raised, or that a human resolved `fixed` / `acknowledged`. An agent's own finding explains
+  nothing (refused at write time; reported "no human in the chain"). `system` is not exempt.
+- **Human-only guards only ratchet up for agents.** `actor_rules` are judged on the stricter
+  of before/after, and the field that would switch a rule off (decision `level` MUST →
+  SHOULD, `escalated` yes → no, a finding's `severity` blocker/major → lower) is itself
+  human-only. Agents may still tighten (SHOULD → MUST).
+- **Findings:** `resolution` is human-only on `blocker` / `major` findings and on any finding
+  a human raised (`when: {created_by_kind: [human]}` in objects.yaml).
+- **Review items** are upheld or dismissed by a human (`POST …/reviews/{id}/resolve` returns
+  403 to agents for those). An agent's `reviewed: true` is recorded on the item as advice
+  (`judged_by: agent`, its note) and the item waits for its human.
+- **Test evidence is bound to the commit:** GATE_PR's `every_covered_ac_has_a_test` counts
+  runs at the task's `pr_sha`; GATE_VALIDATED's `every_ac_green` counts runs at the
+  deploying sha (deploy guard), the task's `pr_sha`, or (initiative-wide) the `pr_sha` of
+  a task covering the AC.
+- **`batch_id` idempotency is scoped** to (initiative, actor, ops): a reuse anywhere else
+  is 409 `BATCH_ID_REUSED`, never another batch's result. A concurrent duplicate insert is
+  answered as a replay.
+- **Leases guard writes:** an agent may not write a record whose work item
+  (`<kind>:<initiative>:<ref>`) is leased by another principal; humans may.
+
 ## Deviations from the plan
 
 - **No Linear.** No `/hooks/linear`, no `intake_events`; features start in the service
@@ -239,8 +295,8 @@ make dev                       # → http://localhost:8791
   independently); the initiative-level `GATE_VALIDATED` still needs every live AC green.
 - **The concurrent-write window** (CIS: a field another writer set in the last 15 min is
   only overwritten with `base_rev`) applies to agents; a human edit is deliberate.
-- **The approver must hold the role** (an ACTIVE assignment for dri / engg / qa) — in
-  header mode this stands in for token roles.
+- **The approver must hold the role** (an ACTIVE assignment for dri / engg / qa); token
+  roles are service roles (admin, ci), not initiative roles.
 - **Unexplained drift by agents is refused at write time**; it can still appear later when
   a cause stops explaining (a rejected finding) — that is what the UNEXPLAINED state,
   REOPENED draft and blocked GATE_PR show.
@@ -252,8 +308,6 @@ make dev                       # → http://localhost:8791
 
 - **Azure DevOps ingestion** (importer calling `IntakeService.start`; tracker sync of
   `task.tracker_*`).
-- **Auth tokens** (`AUTH_MODE=token`, `actor_tokens`, `mint_token.py`, Cloudflare Access
-  for humans). Today `AUTH_MODE=header` trusts `X-Actor` / `X-Actor-Kind` — dev only.
 - **GitHub PR sync** (CIS `pr_readiness.py` → `task.pr_state/pr_sha/review_rounds`); CI
   attempt counting; the runner writes these fields for now.
 - SLA escalation notifications (the inbox computes `due_at` / `overdue`; nudging is a

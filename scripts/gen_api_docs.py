@@ -102,12 +102,15 @@ running service against the demo data (`make seed`). Regenerate with
 
 - **Base URL**: `http://localhost:8791` (`make dev`). All JSON routes are under `/api`.
   The Vite dev server (`http://localhost:5173`) is allowed by CORS.
-- **Who is calling** comes only from headers (AUTH_MODE=header today, a bearer token
-  later), never from a path, query or body: every request sends `X-Actor: <person
-  handle>`. The web UI is a human: send `X-Actor-Kind: human` (it is also the default when
-  no `agent` label is given). Agents send `X-Actor-Kind: agent`. Human-only endpoints
-  (marked **human**) return **403** with `error_code: "HUMAN_ONLY"` to anyone else.
-  `GET /api/inbox` and `GET /api/overview` are the caller's.
+- **Who is calling** comes only from authentication, never from a path, query or body.
+  `AUTH_MODE=token` (every environment but local/testing): `Authorization: Bearer <token>`
+  (`make token`); the token decides the person, the kind (`human` | `agent`) and service
+  roles; no valid token → **401** (`AUTH_REQUIRED` / `BAD_TOKEN`) on every route.
+  `AUTH_MODE=header` (local dev, tests — the examples below): `X-Actor: <person handle>` and
+  `X-Actor-Kind: human | agent`; a missing kind is `agent`. `system` is never accepted from
+  a caller (403 `KIND_NOT_ALLOWED`). Human-only endpoints (marked **human**) return
+  **403** with `error_code: "HUMAN_ONLY"` to anyone else. `GET /api/inbox` and
+  `GET /api/overview` are the caller's.
 - **Ids in paths**: an initiative is addressed by its numeric `id`
   (`/api/initiatives/{id}/…`, `initiative_id` in the deploy guard and MCP tools); `slug` is
   a display label. Records are addressed by their ref within the initiative
@@ -299,7 +302,7 @@ def main() -> None:
 
     h("## Review queue\n")
     items = show("GET", "/api/initiatives/payment-webhooks/reviews", about="Open review items (`?status=open` default; `upheld`, `revised`, `dismissed`, `all`). Each: `cause` moved (`what_moved`), so `target` may no longer hold; `route_to` is who should look.")
-    show("POST", f"/api/initiatives/payment-webhooks/reviews/{items[0]['id']}/resolve", who=("priya", "human"), body={"resolution": "upheld", "note": "Refunds are a separate initiative; the draft holds."}, about="Resolve: `upheld` (still holds — say why) · `revised` · `dismissed`. `note` required.")
+    show("POST", f"/api/initiatives/payment-webhooks/reviews/{items[0]['id']}/resolve", who=("priya", "human"), body={"resolution": "upheld", "note": "Refunds are a separate initiative; the draft holds."}, about="Resolve: `upheld` (still holds — say why) · `revised` · `dismissed`. `note` required. `upheld` and `dismissed` are **human** (403 `HUMAN_ONLY` to agents); an agent's `reviewed: true` write leaves the item open with `judged_by: agent` and its note.")
 
     h("## Drift, gates, tasks (touchpoint 3)\n")
     show("GET", "/api/initiatives/order-events/tasks/T-3", keep=3, about="**Task page**: the task (detail), its GATE_PR (rule by rule), its task-scoped drift report (full shape below), the approver, test runs, findings, deploys.")
@@ -311,7 +314,7 @@ def main() -> None:
     show("GET", "/api/initiatives/order-events/gates", keep=3, about="Every gate: initiative gates once, task gates per task. Each: `{gate, scope, target, status, human_role, text, rules[{name, passed, failing, detail, args}], note, failing_rules}`.")
     show("GET", "/api/initiatives/order-events/tasks/T-2/gates")
     show("GET", "/api/deploy-guard", params={"initiative_id": iid("order-events"), "task": "T-3", "sha": "a41c09e", "environment": "staging"}, about="CI/CD asks before a deploy: `decision` GO | NO-GO, `reasons`, each check.")
-    show("POST", "/api/deploy-guard", who=("github-actions", "system"), body={"initiative_id": iid("order-events"), "task": "T-3", "sha": "0000000", "environment": "production"}, about="Same check, recorded as a `deploy` row (`deploy` in the response).")
+    show("POST", "/api/deploy-guard", who=("github-actions", "agent"), body={"initiative_id": iid("order-events"), "task": "T-3", "sha": "0000000", "environment": "production"}, about="Same check, recorded as a `deploy` row (`deploy` in the response).")
 
     h("## Worklist, next work, leases\n")
     show("GET", "/api/initiatives/menu-sync-retries/worklist", about="Every open item of an initiative, both lanes (`agent` / `human`), grouped by kind, with leases.")

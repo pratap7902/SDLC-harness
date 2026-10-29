@@ -23,8 +23,17 @@ Rules specific to this service:
 - Repositories flush; only `RecordService.write` (and the lease / review endpoints for
   their own rows) commit. A batch is atomic: collect every error, roll back everything.
 - Every write path takes an `Actor` (principal + kind) and passes it to `RecordService`;
-  never default it. Fields a human must own get `actor: human` in `objects.yaml`; human
-  REST endpoints depend on `require_human`.
+  never default it. Callers are authenticated only by `app/auth/services/authenticator.py`
+  (bearer token; X-Actor headers in local/testing header mode, missing kind = agent) — never
+  build an Actor from a header elsewhere. `system` is the service's own kind (never a
+  caller's); it gets no exemptions in the write path. Fields a human must own get
+  `actor: human` in `objects.yaml`; conditional ones `actor_rules` (judged before AND after,
+  and loosening a rule is itself human-only). Human REST endpoints depend on `Human`
+  (`app/auth/dependencies.py`). Upholding / dismissing review items is human.
+- An explanation (`because`) must end in a human act: a human answer, a human ruling, a
+  baseline approval, or a finding a human raised or resolved. Do not add a cause type that
+  an agent can produce on its own.
+- Evidence is bound to a commit: a gate rule about test runs filters by `at_sha`.
 - After a baseline, a spec change must carry `because`. Do not add a write path that moves
   a draft section, a decision verdict or an AC without going through `_cause_errors`.
 - The drift report reads only stored data (revisions, links, baselines). If it needs a new
