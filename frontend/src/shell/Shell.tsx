@@ -122,7 +122,7 @@ export function Shell() {
             {!people.length && <option value={persona}>{persona ? nm(persona) : 'Loading…'}</option>}
             {people.map((p) => (
               <option key={p.person} value={p.person}>
-                {nm(p.person)} · {roles(p.person)}
+                {p.name && p.name !== p.person ? p.name : nm(p.person)} · {roles(p.person)}
               </option>
             ))}
           </select>

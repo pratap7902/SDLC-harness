@@ -135,9 +135,8 @@ assignee, and the runner stops; on local-verification failures it records what i
   SHA-256 of the raw body with `GITHUB_WEBHOOK_SECRET`; unset → 503). `pull_request`
   (opened, reopened, synchronize, ready_for_review, converted_to_draft, edited, closed/merged)
   and `push` to a `harness/…` branch update the task's `pr_url` / `pr_state` / `pr_sha` as
-  `github/webhook` (kind **system**: it cannot write human fields and gets no lease bypass —
-  while a runner holds the task's lease the delivery is recorded as `github_sync_deferred`
-  and the runner's own post-push write carries the truth). A new head sha makes the engg
+  `github/webhook` (kind **system**: it cannot write human fields; leases serialise agents
+  only, so GitHub's state lands even while a runner holds the task). A new head sha makes the engg
   approval STALE and the deploy guard NO-GO by itself. PR → task: the head branch, else
   `srs-task: <id>/<T-n>` in the body, else a task whose `pr_url` is the PR.
 - **JUnit ingestion** — `POST /api/initiatives/{id}/test-runs/junit` with
@@ -188,7 +187,7 @@ or the agent's environment. The agent never sees a GitHub credential and is deni
 | `SRS_CI_TOKEN` | target repo CI | an agent token with role `ci` for JUnit uploads |
 | `GITHUB_APP_ID`, `GITHUB_APP_SLUG`, `GITHUB_APP_PRIVATE_KEY` (or `…_PATH`), `GITHUB_INSTALLATION_ID` (optional) | runner | the App (the key is removed from the process environment after it is read) |
 | `GITHUB_WEBHOOK_SECRET` | service | the App's webhook secret |
-| `OUTLINE_URL`, `OUTLINE_API_KEY`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET` | service | the knowledge base behind `kb_search` / `kb_get` (the runner reaches the KB only through the service) |
+| `OUTLINE_URL`, `OUTLINE_API_KEY`, `OUTLINE_CF_ACCESS_CLIENT_ID`, `OUTLINE_CF_ACCESS_CLIENT_SECRET` | service | the knowledge base behind `kb_search` / `kb_get` (the runner reaches the KB only through the service) |
 | `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET` | Actions (optional) | when the service itself sits behind Cloudflare Access |
 
 Runner tuning: `RUNNER_KINDS` (default `draft,review,plan,task,tests,pr_review`; GitHub

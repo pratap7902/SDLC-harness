@@ -103,15 +103,15 @@ def test_marker_and_draft_and_unknown(api, hook):
     assert hook("push", {"ref": "refs/heads/main", "after": "c" * 40}).json()["status"] == "ignored"
 
 
-def test_leased_task_is_deferred_not_forced(api, hook):
+def test_a_leased_task_still_takes_githubs_truth(api, hook):
+    """Leases serialise agents only (the write path checks them for kind agent): the
+    integration actor records GitHub's PR state even while a runner holds the task."""
     to_task(api)
     key = f"task:{api.id(SLUG)}:T-1"
     api.ok(api.agent().post("/api/leases/claim", json={"item_key": key}))
     out = hook("pull_request", pr_payload(api)).json()
-    assert out["status"] == "deferred"
-    assert api.record(SLUG, "T-1")["fields"].get("pr_state") is None
-    events = api.get(f"{api.base(SLUG)}/events")
-    assert any(e["kind"] == "github_sync_deferred" for e in (events if isinstance(events, list) else events.get("events", [])))
+    assert out["status"] == "updated"
+    assert api.record(SLUG, "T-1")["fields"]["pr_state"] == "open"
 
 
 def test_system_actor_cannot_forge_human_fields(api):

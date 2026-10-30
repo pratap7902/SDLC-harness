@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api import api_router
+from app.api import api_router, hooks_router
 from app.auth.asgi import AuthGuard
 from app.core.exception_handlers import register_exception_handlers
 from app.core.logging import LogEvents, logger
@@ -70,6 +70,7 @@ app.add_middleware(
 
 app.include_router(api_router)
 app.include_router(github_hooks_router)  # /hooks/github: HMAC-verified, no bearer token
+app.include_router(hooks_router)
 app.include_router(spa_router)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 

@@ -38,6 +38,12 @@ runner-install: ## the runner's own venv (runner/.venv; its deps differ from the
 test-runner:   ## the runner's tests: a real service (this venv, make install) + fake agent + local repo
 	SRS_PYTHON=$(abspath $(BIN))/python runner/.venv/bin/pytest -q runner/tests
 
+sync-people:   ## pull Teams users (Microsoft Graph) into the people directory, merged by email
+	$(BIN)/python scripts/integrations.py sync-people
+
+notify:        ## send due Teams notifications (idempotent; schedule it every minute)
+	$(BIN)/python scripts/integrations.py notify
+
 lint:
 	$(BIN)/ruff check .
 
@@ -56,4 +62,4 @@ frontend-dev:  ## Vite dev server on :5173 (proxies /api to the backend on :8791
 reset:         ## delete the SQLite dev DB
 	rm -f var/dev.db
 
-.PHONY: install db migrate check dev test test-mysql lint seed reset frontend frontend-dev token runner-install test-runner
+.PHONY: install db migrate check dev test test-mysql lint seed reset frontend frontend-dev token sync-people notify runner-install test-runner

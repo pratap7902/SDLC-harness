@@ -226,7 +226,12 @@ class InboxService:
         # Any human may answer any open gap; the record keeps who it was routed to at this
         # moment (frozen, even if routing changes later) and who actually answered.
         route = Router(g).route(gap)
-        fields = {"answer": text, "answered_by": actor.principal, "answered_on": iso(utcnow())}
+        fields = {
+            "answer": text,
+            "answered_by": actor.principal,
+            "answered_on": iso(utcnow()),
+            "answered_via": "teams" if actor.via == "teams" else "web",
+        }
         if route.person:
             fields["assigned_to"] = route.person
             fields["assigned_role"] = route.role

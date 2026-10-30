@@ -111,6 +111,10 @@ running service against the demo data (`make seed`). Regenerate with
   a caller (403 `KIND_NOT_ALLOWED`). Human-only endpoints (marked **human**) return
   **403** with `error_code: "HUMAN_ONLY"` to anyone else. `GET /api/inbox` and
   `GET /api/overview` are the caller's.
+- **Integrations** (people directory admin, Microsoft Teams, Outline `kb`, Azure DevOps
+  Boards, webhooks under `/api/hooks/…` and `/api/teams/messages`) are documented with
+  their setup in `docs/integrations.md`; they talk to external systems, so they have no
+  live examples here. `GET /api/people` (below) now carries the directory fields.
 - **Ids in paths**: an initiative is addressed by its numeric `id`
   (`/api/initiatives/{id}/…`, `initiative_id` in the deploy guard and MCP tools); `slug` is
   a display label. Records are addressed by their ref within the initiative
@@ -332,6 +336,13 @@ def main() -> None:
     show("GET", "/api/learnings")
     show("POST", "/api/learnings/L-1/promote", who=("priya", "human"), about="**human** — promote a learning.")
     show("POST", "/api/global/records", who=("runner-sdk", "agent"), body={"agent": "retro-skill", "ops": [{"type": "learning", "fields": {"text": "Replay endpoints need idempotency keys.", "source": "payment-webhooks:AC-2", "provenance": "QA sign-off"}}]}, about="Write standards / learnings (global scope, refs `STD-n` / `L-n`). Same op shape as record writes.")
+
+    h("## Repo registry, JUnit ingestion (the runner)\n")
+    show("POST", "/api/global/records", who=("priya", "human"), title="POST /api/global/records (register a repository)", body={"ops": [{"type": "repository", "fields": {"name": "wb-be", "default_branch": "main", "local_path": "/srv/repos/wb-be", "test_command": "make test", "junit_path": "reports/junit.xml", "templates": ["python-service"], "owners": ["arjun"], "state": "active"}}]}, keep=1, about="**human** for `local_path` and `test_command` (the runner executes against them). A `repository` record (`REPO-n`, global scope).")
+    show("GET", "/api/repos", keep=1, about="Registered repositories: `name`, `default_branch` (the base), `local_path` (local mode), `clone_url` (GitHub mode), `test_command`, `junit_path`, `templates`, `owners`. `?include_retired=true` adds retired ones.")
+    show("GET", "/api/repos/wb-be", about="One repository by short name (`/api/repos/{owner}/{name}` for GitHub names). 404 `REPO_NOT_REGISTERED` otherwise.")
+    junit = '<testsuite><testcase classname="t" name="test_AC_1_outbox_row"/><testcase classname="t" name="test_AC_3_key"><failure message="x">boom</failure></testcase></testsuite>'
+    show("POST", "/api/initiatives/order-events/test-runs/junit", who=("ci-bot", "agent"), expect=201, body={"task": "T-3", "sha": "a41c09e", "level": "integration", "run_url": "https://ci.example.com/runs/88", "junit_xml": junit}, about="CI (or the local-mode runner) posts a JUnit report for a task at a sha: one `test_run` bound to `sha`, a `covers` row per AC named in test names (`AC-3`, `AC_3`, `test_AC_3_…`, `testAc3…`; worst outcome per AC). `unknown_acs`, `task_acs_without_tests`. Re-posting the same report is a replay.")
 
     (ROOT / "docs").mkdir(exist_ok=True)
     (ROOT / "docs" / "api.md").write_text("\n".join(OUT))

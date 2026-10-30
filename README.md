@@ -60,6 +60,10 @@ within the initiative. **Who is calling comes only from authentication** (a bear
 | `GET/POST /api/deploy-guard` (`initiative_id`, `task`, `sha`, `environment`) | deploy guard |
 | `POST /api/leases/claim` · `/api/leases/{key}/heartbeat` · `DELETE /api/leases/{key}` | leases; keys `<kind>:<initiative id>[:<ref>]` |
 | `GET /api/standards` · `/api/learnings` · `POST /api/learnings/{ref}/promote` · `POST /api/global/records` | global scope |
+| `GET /api/people` · `POST /api/admin/people` · `GET /api/admin/people/review` · `POST …/review/{id}/resolve` · `POST /api/admin/people/sync` | people directory (admin: token role `admin`) |
+| `POST /api/admin/notifications/run` · `GET /api/admin/deliveries` · `POST /api/teams/messages` (bot; Bot Framework JWT) | Microsoft Teams |
+| `GET /api/kb/search?q=` · `GET /api/kb/doc?citation=` | Outline knowledge base |
+| `GET /api/azure-devops/preview?work_item=` · `POST /api/azure-devops/import` · `POST …/initiatives/{id}/azure-devops/push-tasks` · `POST /api/hooks/azure-devops` (shared secret) | Azure DevOps Boards |
 
 UI: `/`, `/new`, `/inbox` (`?view=all`), `/features/:id`, `/features/:id/draft`,
 `/features/:id/drift`, `/features/:id/tasks/:ref`, `/features/:id/records/:ref`,
@@ -243,8 +247,8 @@ the one place that decides who a caller is (an `Actor`: principal, kind, service
   `revoke <id>`. Service roles: `admin` (admin endpoints); `ci` (informational).
   In `.mcp.json`: `"headers": {"Authorization": "Bearer srs_…"}`.
 - **Web UI in dev:** the "Viewing as" switcher sends `X-Actor: <person>` +
-  `X-Actor-Kind: human` (header mode). **In production** (next: it needs the people
-  directory) the UI sits behind Cloudflare Access: a Cloudflare identity provider (`CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD`)
+  `X-Actor-Kind: human` (header mode). **In production** the UI sits behind Cloudflare
+  Access: the Cloudflare identity provider (`CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD`)
   verifies the `Cf-Access-Jwt-Assertion` JWT (RS256 against the team's
   `/cdn-cgi/access/certs`, audience = the Access application's AUD tag) and maps its email
   to the canonical person in the people directory (kind `human`). The
@@ -279,6 +283,15 @@ the one place that decides who a caller is (an `Actor`: principal, kind, service
 - **Leases guard writes:** an agent may not write a record whose work item
   (`<kind>:<initiative>:<ref>`) is leased by another principal; humans may.
 
+## Integrations
+
+Microsoft Teams (people directory sync, notifications, card actions), the Outline knowledge
+base (MCP `kb_search` / `kb_get`, `kb:outline/<doc>` citations), Azure DevOps Boards
+(import into the intake, a service hook raising `prd_drift` gaps, one-way task push) and
+Cloudflare Access identity. Setup, the env variables, the merge rules and the limits are in
+**[docs/integrations.md](docs/integrations.md)**. They are tested with mocked HTTP only and
+**not verified against live tenants**. Jobs: `make sync-people`, `make notify`.
+
 ## Deviations from the plan
 
 - **No Linear.** No `/hooks/linear`, no `intake_events`; features start in the service
@@ -306,10 +319,8 @@ the one place that decides who a caller is (an `Actor`: principal, kind, service
 
 ## Deferred
 
-- **Azure DevOps ingestion** (importer calling `IntakeService.start`; tracker sync of
-  `task.tracker_*`).
 - **GitHub PR sync** (CIS `pr_readiness.py` → `task.pr_state/pr_sha/review_rounds`); CI
   attempt counting; the runner writes these fields for now.
-- SLA escalation notifications (the inbox computes `due_at` / `overdue`; nudging is a
-  runner's job), WIP limits in `next_work`, the LLM review judge (rules only), evidence
+- Escalation beyond the overdue Teams ping (to the DRI), Teams `Action.Execute` /
+  Universal Actions, two-way tracker sync. WIP limits in `next_work`, the LLM review judge (rules only), evidence
   attachments, docs-as-code `baseline.at_sha`, multi-repo per-task gate evaluation.

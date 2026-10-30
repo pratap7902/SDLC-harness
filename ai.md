@@ -34,6 +34,14 @@ Rules specific to this service:
   baseline approval, or a finding a human raised or resolved. Do not add a cause type that
   an agent can produce on its own.
 - Evidence is bound to a commit: a gate rule about test runs filters by `at_sha`.
+- Integrations (`app/teams`, `app/knowledge`, `app/azure_devops`) are plain services plus
+  settings; secrets and every tenant-specific value (hosts, org, tenant ids) come from env,
+  never the code. HTTP goes through `app.core.utils.http.client()` (tests set
+  `http.TRANSPORT` — no real network in tests). They write only through
+  `RecordService.write`: as the mapped human (`via=teams`), or as the service
+  (`SERVICE.with_agent(...)`). Webhooks live on the public `hooks_router` and verify their
+  own signature / secret first. People are one row each (`app/people`); never create a
+  person from an integration automatically — unmatched accounts go to the review list.
 - After a baseline, a spec change must carry `because`. Do not add a write path that moves
   a draft section, a decision verdict or an AC without going through `_cause_errors`.
 - The drift report reads only stored data (revisions, links, baselines). If it needs a new

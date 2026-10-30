@@ -12,14 +12,14 @@ from typing import Callable, Mapping, Optional
 
 from sqlalchemy.orm import Session
 
+from app.auth.services import cloudflare_access  # noqa: E402
 from app.auth.services.token_service import TokenService
 from app.core.utils.actor import ACTOR_HEADER, ACTOR_KIND_HEADER, ACTOR_ROLES_HEADER, CALLER_KINDS, Actor
 from app.exceptions import ForbiddenException, UnauthorizedException
 from config.settings import settings
 
-# Extra identity sources (Cloudflare Access, …) registered at import time:
-# fn(headers, db) → Actor | None. Kept as a list so tests can add one.
-IDENTITY_PROVIDERS: list = []
+# Identity sources tried after a bearer token: fn(headers, db, db_factory) → Actor | None.
+IDENTITY_PROVIDERS: list = [cloudflare_access.provider]
 
 
 def auth_mode() -> str:

@@ -41,7 +41,7 @@ from main import app  # noqa: E402
 
 NOW = datetime.now(UTC).replace(tzinfo=None, second=0, microsecond=0)
 CLIENTS: dict = {}
-ADO = "https://dev.azure.com/navanta/commerce/_workitems/edit/"
+ADO = "https://dev.azure.com/example/commerce/_workitems/edit/"
 
 
 def at(days: float = 0, hours: float = 0, minutes: float = 0) -> datetime:
@@ -154,7 +154,7 @@ def catalog(**notes) -> dict:
 
 
 def pr(slug: str, ref: str, number: int, repo: str, sha: str, state: str = "open", agent="implement-task", **extra) -> None:
-    write(slug, [{"ref": ref, "fields": {"pr_state": state, "pr_url": f"https://github.com/navanta/{repo}/pull/{number}", "pr_sha": sha, **extra}}], agent)
+    write(slug, [{"ref": ref, "fields": {"pr_state": state, "pr_url": f"https://github.com/example/{repo}/pull/{number}", "pr_sha": sha, **extra}}], agent)
 
 
 def tests(slug: str, ref: str, sha: str, rows: list, summary: str, level="integration") -> None:
@@ -170,7 +170,7 @@ def tests(slug: str, ref: str, sha: str, rows: list, summary: str, level="integr
                     "level": level,
                     "result": "GREEN",
                     "at_sha": sha,
-                    "run_url": f"https://ci.navanta.dev/runs/{abs(hash((slug, ref, sha))) % 100000}",
+                    "run_url": f"https://ci.example.com/runs/{abs(hash((slug, ref, sha))) % 100000}",
                     "environment": "ci",
                     "task": [ref],
                     "run_on": (NOW - timedelta(hours=1)).isoformat(timespec="minutes"),
@@ -214,9 +214,9 @@ def global_scope() -> None:
         "priya",
         json={
             "ops": [
-                {"type": "standard", "title": "Idempotent delivery", "fields": {"rule": "Events reach the broker exactly once per state change: no dual-writes, every consumer dedupes by event_id.", "level": "MUST", "applies_to": "navanta/*", "owner": "platform", "state": "enforced"}},
-                {"type": "standard", "title": "Retries with backoff and jitter", "fields": {"rule": "Outbound calls retry with exponential backoff and jitter, within a retry budget.", "level": "SHOULD", "applies_to": "navanta/*", "owner": "platform", "state": "active"}},
-                {"type": "standard", "title": "Settlement rounding", "fields": {"rule": "Money is rounded per line item, half-even, in minor units.", "level": "SHOULD", "applies_to": "navanta/payouts-*", "owner": "finance", "state": "active"}},
+                {"type": "standard", "title": "Idempotent delivery", "fields": {"rule": "Events reach the broker exactly once per state change: no dual-writes, every consumer dedupes by event_id.", "level": "MUST", "applies_to": "example/*", "owner": "platform", "state": "enforced"}},
+                {"type": "standard", "title": "Retries with backoff and jitter", "fields": {"rule": "Outbound calls retry with exponential backoff and jitter, within a retry budget.", "level": "SHOULD", "applies_to": "example/*", "owner": "platform", "state": "active"}},
+                {"type": "standard", "title": "Settlement rounding", "fields": {"rule": "Money is rounded per line item, half-even, in minor units.", "level": "SHOULD", "applies_to": "example/payouts-*", "owner": "finance", "state": "active"}},
             ]
         },
     )

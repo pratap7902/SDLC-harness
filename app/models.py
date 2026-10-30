@@ -13,12 +13,18 @@ from app.initiatives.models import (  # noqa: F401
     ReviewItem,
     WriteBatch,
 )
+from app.people.models import PeopleReviewItem, Person, PersonIdentity  # noqa: F401
+from app.teams.models import Delivery  # noqa: F401
 
 __all__ = [
     "ActorToken",
+    "Delivery",
     "Event",
     "Initiative",
     "Lease",
+    "PeopleReviewItem",
+    "Person",
+    "PersonIdentity",
     "Record",
     "RecordLink",
     "RecordRevision",

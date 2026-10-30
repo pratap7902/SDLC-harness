@@ -1,8 +1,8 @@
 """GitHub → task PR state. A verified delivery (X-Hub-Signature-256) for `pull_request` or
 `push` updates the matching task's pr_url / pr_state / pr_sha through RecordService.write as
-the integration actor `github` (kind `system`). `system` gets no exemptions: it cannot write
-a human field (an approval, a gap answer), and a task leased by an agent is left to the lease
-holder (the delivery is recorded as deferred; the runner re-syncs the PR before it releases).
+the integration actor `github` (kind `system`). It cannot write a human field (an approval, a
+gap answer). Leases serialise agents only, so GitHub's state lands even while a runner holds
+the task; should a write ever be refused for a lease, the delivery is recorded as deferred.
 
 Because GATE_PR's engg approval pins `at_sha`, a new head sha written here makes that
 approval STALE and the deploy guard NO-GO — nobody flips a bit.

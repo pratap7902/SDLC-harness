@@ -233,11 +233,6 @@ def inbox(service: Inbox, actor: Caller):
     return service.inbox(actor.principal)
 
 
-@router.get("/people")
-def people(service: Inbox):
-    return service.people()
-
-
 @router.post("/initiatives/{initiative_id}/gaps/{ref}/answer")
 def answer_gap(initiative_id: int, ref: str, body: AnswerGapRequest, service: Inbox, actor: Human):
     return service.answer_gap(initiative_id, ref, body.answer or "", body.choice, actor).to_dict()

@@ -5,7 +5,10 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
 PREFIXED_REF_RE = re.compile(r"^([A-Z]+)-(\d+)$")
-EXTERNAL_PREFIX = "external:"
+# Refs that name something outside the record store (allowed where `targets` has
+# `external`): `external:<url>`, or a knowledge-base citation `kb:<source>/<doc-id>[#anchor]`.
+EXTERNAL_PREFIX = ("external:", "kb:")
+KB_CITATION_RE = re.compile(r"^kb:([a-z0-9][a-z0-9_-]*)/([A-Za-z0-9][A-Za-z0-9_-]*)(#[A-Za-z0-9][A-Za-z0-9_.-]*)?$")
 # actor_rules may condition on who created the record (`when: {created_by_kind: [human]}`):
 # a pseudo-field the write path fills from the record's first revision.
 AUTHOR_FIELD = "created_by_kind"
