@@ -1,4 +1,5 @@
-"""The worker loop end to end: real service, fake agent, local bare repo as GitHub."""
+"""The worker loop end to end in GitHub mode (WORKSPACE_MODE=github): real service, fake
+agent, a local bare repository standing in for GitHub, a mocked GitHub REST API."""
 
 from runner.tests.fakes import bare_file, bare_head
 from runner.tests.helpers import (
@@ -13,10 +14,14 @@ from runner.tests.helpers import (
 )
 
 
+def mw(*args, **kwargs):
+    return make_worker(*args, mode="github", **kwargs)
+
+
 def to_draft_approved(srs, tmp_path) -> int:
     """draft (runner) → G-1 answered (human) → review item revised (runner) → DRI approves."""
     iid = srs.start()
-    worker, agent, _ = make_worker(srs, tmp_path, {"draft-from-ticket": draft_skill, "review-draft": review_draft_skill}, kinds=["draft"])
+    worker, agent, _ = mw(srs, tmp_path, {"draft-from-ticket": draft_skill, "review-draft": review_draft_skill}, kinds=["draft"])
     out = run(worker)
     # the second pass sees the submitted draft waiting on humans (G-1) and changes nothing
     assert {o["status"] for o in out} == {"done"} and out[0]["review"] == "done", out
@@ -28,7 +33,7 @@ def to_draft_approved(srs, tmp_path) -> int:
     assert srs.record(iid, "D-1")["created_by"] == "runner-sdk/draft-from-ticket"
 
     srs.ok(srs.as_("maya").post(f"/api/initiatives/{iid}/gaps/G-1/answer", json={"choice": "yes", "answer": "per order"}))
-    worker, agent, _ = make_worker(srs, tmp_path, {"draft-from-ticket": revise_skill, "plan-to-tasks": plan_skill}, kinds=["review"])
+    worker, agent, _ = mw(srs, tmp_path, {"draft-from-ticket": revise_skill, "plan-to-tasks": plan_skill}, kinds=["review"])
     out = run(worker)
     assert out and all(o["status"] == "done" for o in out), out
     srs.ok(srs.as_("chandra").post(f"/api/initiatives/{iid}/approvals", json={"target": "draft", "role": "dri"}), 201)
@@ -39,13 +44,13 @@ def test_draft_to_pr_with_tests(srs, tmp_path, bare_repo):
     iid = to_draft_approved(srs, tmp_path)
     srs.register_repo(f"file://{bare_repo}")
 
-    worker, agent, _ = make_worker(srs, tmp_path, {"plan-to-tasks": plan_skill}, kinds=["plan"])
+    worker, agent, _ = mw(srs, tmp_path, {"plan-to-tasks": plan_skill}, kinds=["plan"])
     out = run(worker)
     assert out[0]["status"] == "done" and out[0]["tasks"] == ["T-1"]
     assert "REPO-1 example/orders [ACTIVE]" in agent.runs[0].notes["repos"]  # the registry over MCP
 
     # implement-task, then write-tests (its own lease), on the same branch
-    worker, agent, gh = make_worker(srs, tmp_path, {"implement-task": implement_skill(), "write-tests": write_tests_skill}, kinds=["task", "tests"])
+    worker, agent, gh = mw(srs, tmp_path, {"implement-task": implement_skill(), "write-tests": write_tests_skill}, kinds=["task", "tests"])
     out = run(worker)
     by_kind = {o["kind"]: o for o in out}
     assert by_kind["task"]["status"] == "done", out
@@ -97,8 +102,8 @@ def test_draft_to_pr_with_tests(srs, tmp_path, bare_repo):
 def _to_open_pr(srs, tmp_path, bare_repo, counter):
     iid = to_draft_approved(srs, tmp_path)
     srs.register_repo(f"file://{bare_repo}")
-    run(make_worker(srs, tmp_path, {"plan-to-tasks": plan_skill}, kinds=["plan"])[0])
-    worker, _, gh = make_worker(srs, tmp_path, {"implement-task": implement_skill(counter)}, kinds=["task"])
+    run(mw(srs, tmp_path, {"plan-to-tasks": plan_skill}, kinds=["plan"])[0])
+    worker, _, gh = mw(srs, tmp_path, {"implement-task": implement_skill(counter)}, kinds=["task"])
     run(worker)
     return iid, gh
 
@@ -113,7 +118,7 @@ def test_red_ci_rework_then_handoff_after_three(srs, tmp_path, bare_repo):
         srs.junit(iid, "T-1", sha, failing=True)
         items = srs.next_work("task")
         assert items and items[0]["rework"] == "ci", items
-        worker, agent, _ = make_worker(srs, tmp_path, {"implement-task": implement_skill(counter)}, kinds=["task"], gh=gh)
+        worker, agent, _ = mw(srs, tmp_path, {"implement-task": implement_skill(counter)}, kinds=["task"], gh=gh)
         out = run(worker)
         task = srs.record(iid, "T-1")
         assert task["fields"]["ci_attempts"] == str(attempt)
@@ -135,7 +140,7 @@ def test_review_findings_count_review_rounds(srs, tmp_path, bare_repo):
     iid, gh = _to_open_pr(srs, tmp_path, bare_repo, counter)
     sha = srs.record(iid, "T-1")["fields"]["pr_sha"]
     srs.write(iid, [{"type": "finding", "fields": {"summary": "relay loses rows on restart", "severity": "blocker", "target": ["T-1"], "at_sha": sha}}], who="priya")
-    worker, agent, _ = make_worker(srs, tmp_path, {"implement-task": implement_skill(counter)}, kinds=["task"], gh=gh)
+    worker, agent, _ = mw(srs, tmp_path, {"implement-task": implement_skill(counter)}, kinds=["task"], gh=gh)
     out = run(worker)
     assert out[0]["status"] == "done"
     task = srs.record(iid, "T-1")
@@ -146,8 +151,8 @@ def test_review_findings_count_review_rounds(srs, tmp_path, bare_repo):
 def test_local_verification_failures_hand_off_as_draft_pr(srs, tmp_path, bare_repo):
     iid = to_draft_approved(srs, tmp_path)
     srs.register_repo(f"file://{bare_repo}", test_command="echo 'AC-2 relay test failed' >&2; exit 1")
-    run(make_worker(srs, tmp_path, {"plan-to-tasks": plan_skill}, kinds=["plan"])[0])
-    worker, agent, gh = make_worker(srs, tmp_path, {"implement-task": implement_skill({})}, kinds=["task"])
+    run(mw(srs, tmp_path, {"plan-to-tasks": plan_skill}, kinds=["plan"])[0])
+    worker, agent, gh = mw(srs, tmp_path, {"implement-task": implement_skill({})}, kinds=["task"])
     out = run(worker)
     assert out[0]["status"] == "handoff", out
     assert len(agent.runs) == 3
@@ -159,8 +164,8 @@ def test_local_verification_failures_hand_off_as_draft_pr(srs, tmp_path, bare_re
 
 def test_unregistered_repo_raises_a_gap(srs, tmp_path):
     iid = to_draft_approved(srs, tmp_path)
-    run(make_worker(srs, tmp_path, {"plan-to-tasks": plan_skill}, kinds=["plan"])[0])  # no repo registered: the fake still names one
-    worker, agent, _ = make_worker(srs, tmp_path, {"implement-task": implement_skill()}, kinds=["task"])
+    run(mw(srs, tmp_path, {"plan-to-tasks": plan_skill}, kinds=["plan"])[0])  # no repo registered: the fake still names one
+    worker, agent, _ = mw(srs, tmp_path, {"implement-task": implement_skill()}, kinds=["task"])
     out = run(worker)
     assert out[0]["status"] == "blocked" and not agent.runs
     gaps = srs.ok(srs.as_("chandra").get(f"/api/initiatives/{iid}/records", params={"type": "gap"}))
@@ -168,7 +173,7 @@ def test_unregistered_repo_raises_a_gap(srs, tmp_path):
     assert gap["fields"]["blocks"] == ["T-1"] and gap["fields"]["domain"] == "engg"
     assert srs.record(iid, "T-1")["status"] == "BLOCKED"
     # retried: the same deterministic batch → no second gap
-    worker, _, _ = make_worker(srs, tmp_path, {"implement-task": implement_skill()}, kinds=["task"])
+    worker, _, _ = mw(srs, tmp_path, {"implement-task": implement_skill()}, kinds=["task"])
     run(worker)
     assert len([g for g in srs.ok(srs.as_("chandra").get(f"/api/initiatives/{iid}/records", params={"type": "gap"})) if "not in the registry" in g["title"]]) == 1
 
@@ -176,12 +181,12 @@ def test_unregistered_repo_raises_a_gap(srs, tmp_path):
 def test_agent_failure_and_crash_release_the_lease(srs, tmp_path, bare_repo):
     iid = to_draft_approved(srs, tmp_path)
     srs.register_repo(f"file://{bare_repo}")
-    run(make_worker(srs, tmp_path, {"plan-to-tasks": plan_skill}, kinds=["plan"])[0])
+    run(mw(srs, tmp_path, {"plan-to-tasks": plan_skill}, kinds=["plan"])[0])
 
     async def crash(ctx):
         raise RuntimeError("model process died")
 
-    worker, agent, gh = make_worker(srs, tmp_path, {"implement-task": crash}, kinds=["task"])
+    worker, agent, gh = mw(srs, tmp_path, {"implement-task": crash}, kinds=["task"])
     out = run(worker)
     assert out[0]["status"] == "agent_failed" and "model process died" in out[0]["error"]
     assert not gh.prs and bare_head(bare_repo, f"harness/{iid}-T-1") is None
@@ -193,7 +198,7 @@ def test_agent_failure_and_crash_release_the_lease(srs, tmp_path, bare_repo):
     async def error_result(ctx):
         return "error"
 
-    worker, _, _ = make_worker(srs, tmp_path, {"implement-task": error_result}, kinds=["task"])
+    worker, _, _ = mw(srs, tmp_path, {"implement-task": error_result}, kinds=["task"])
     out = run(worker)
     assert out[0]["status"] == "agent_failed" and out[0]["error"] == "max turns"
 
@@ -201,7 +206,7 @@ def test_agent_failure_and_crash_release_the_lease(srs, tmp_path, bare_repo):
 def test_a_lease_held_by_another_runner_is_skipped(srs, tmp_path, bare_repo):
     iid = to_draft_approved(srs, tmp_path)
     srs.register_repo(f"file://{bare_repo}")
-    run(make_worker(srs, tmp_path, {"plan-to-tasks": plan_skill}, kinds=["plan"])[0])
+    run(mw(srs, tmp_path, {"plan-to-tasks": plan_skill}, kinds=["plan"])[0])
     srs.ok(srs.as_("ci").post("/api/leases/claim", json={"item_key": f"task:{iid}:T-1", "ttl_min": 5}))
-    worker, agent, _ = make_worker(srs, tmp_path, {"implement-task": implement_skill()}, kinds=["task"])
+    worker, agent, _ = mw(srs, tmp_path, {"implement-task": implement_skill()}, kinds=["task"])
     assert run(worker) == [] and not agent.runs

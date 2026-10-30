@@ -91,6 +91,10 @@ class SrsClient:
 
     # ── writes ───────────────────────────────────────────────────────────
 
+    async def junit(self, initiative_id: int, task: str, sha: str, level: str, run_url: str, xml: str, agent: str) -> dict:
+        body = {"task": task, "sha": sha, "level": level, "run_url": run_url, "junit_xml": xml, "agent": agent}
+        return await self._call("POST", f"/api/initiatives/{initiative_id}/test-runs/junit", json=body)
+
     async def write(self, initiative_id: int, ops: List[Dict], batch: str, agent: str) -> dict:
         return await self._call("POST", f"/api/initiatives/{initiative_id}/records", json={"ops": ops, "batch_id": batch, "agent": agent})
 

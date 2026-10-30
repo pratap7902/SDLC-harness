@@ -1,4 +1,4 @@
-"""A job's working copy, and the git/GitHub side of a task.
+"""GitHub mode (WORKSPACE_MODE=github): a job's working copy, and the git/GitHub side of a task.
 
 - The clone is shallow, over HTTPS, authenticated by a GitHub App installation token scoped
   to that one repository. The token is handed to git ONLY through the environment of each
@@ -115,6 +115,13 @@ class Workspace:
         self.base_sha = self.head()
         log.info("workspace_ready", repo=self.repo, branch=self.branch, continued=self.branch_existed, base=self.base_sha[:12])
         return self
+
+    def exclude(self, path: str) -> None:
+        """Never commit a generated file (the JUnit report)."""
+        f = self.path / ".git" / "info" / "exclude"
+        f.parent.mkdir(parents=True, exist_ok=True)
+        with f.open("a") as fh:
+            fh.write(f"\n{path}\n")
 
     def head(self) -> str:
         return self.git("rev-parse", "HEAD")

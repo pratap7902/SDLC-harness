@@ -1,32 +1,83 @@
-# The runner, GitHub, and the skills
+# The runner, the workspace modes, and the skills
 
 The record service (`srs`) is the system of record; it never runs a model. The work between
-the human touchpoints is done by two runners that both talk to it as **agents** (bearer agent
-tokens), using the seven skills in [`skills/`](../skills):
+the human touchpoints is done by the **Agent SDK runner** ([`runner/`](../runner)), which
+talks to the service as an **agent** (bearer agent token) and runs the seven skills in
+[`skills/`](../skills).
 
-| Runner | Where | Serves |
+The runner has two workspace modes:
+
+| `WORKSPACE_MODE` | Repositories | The "PR" | review-pr | GitHub needed |
+|---|---|---|---|---|
+| **`local` (default)** | paths on the runner host (`local_path` in the registry), cloned into a sandbox, **never pushed** | the sandbox branch `harness/<id>-<T-n>` + its head sha: `pr_url = local:<repo>@<branch>`, `pr_sha` | the runner, through the Agent SDK, on `git diff <base>...<branch>` (kind `pr_review`) | no — no gh CLI, no GitHub REST, no App key; the GitHub code is not even imported |
+| `github` (optional) | cloned over HTTPS as a GitHub App, pushed | a real PR opened/updated by the runner | GitHub Actions ([`runner/github/review-pr.yml`](../runner/github/review-pr.yml), claude-code-action) | yes: an App, webhooks to `/hooks/github` |
+
+| Kind (`next_work`) | Skill | Workspace |
 |---|---|---|
-| **Agent SDK runner** ([`runner/`](../runner)) | a long-running worker you deploy (container or VM) | `next_work` kinds `draft` (draft-from-ticket → review-draft), `review` (draft-from-ticket / plan-to-tasks), `plan` (plan-to-tasks), `task` (implement-task), `tests` (write-tests); `python -m runner harvest` on a weekly schedule (harvest-learnings) |
-| **claude-code-action** ([`runner/github/review-pr.yml`](../runner/github/review-pr.yml)) | GitHub Actions in each target repo | `pull_request` events → review-pr |
+| `draft` | draft-from-ticket, then review-draft once the draft is submitted | scratch dir |
+| `review` | draft-from-ticket (spec targets) / plan-to-tasks (task targets) | scratch dir |
+| `plan` | plan-to-tasks | scratch dir |
+| `task` | implement-task (also rework rounds) | repo branch |
+| `tests` | write-tests (its own lease, same branch) | repo branch |
+| `pr_review` | review-pr (local mode; GitHub mode leaves it to the Action) | repo branch, read-only |
+| — | harvest-learnings: `python -m runner harvest`, weekly | scratch dir |
 
 ```
              ┌──────────── record service (srs) ─────────────┐
- next_work ◄─┤ /api  REST: next-work, leases, records, repos  │◄── POST /hooks/github (HMAC)
- claim/hb/rel│ /mcp  MCP: read_record, write, drift_report,   │◄── POST …/test-runs/junit (CI)
+ next_work ◄─┤ /api  REST: next-work, leases, records, repos, │
+ claim/hb/rel│       test-runs/junit                          │
+             │ /mcp  MCP: read_record, write, drift_report,   │
              │        repos, kb_search, kb_get (Outline) …    │
-             └──────▲──────────────────────────▲──────────────┘
-                    │ REST (loop) + MCP (agent) │ MCP (agent)
-   ┌────────────────┴───────────┐   ┌──────────┴─────────────────────┐
-   │ Agent SDK runner           │   │ GitHub Actions: review-pr.yml   │
-   │  poll → claim → heartbeat  │   │  claude-code-action, skill from │
-   │  → workspace → query()     │   │  the base branch, inline        │
-   │  → push as App → PR        │   │  comments + findings @ head sha │
-   │  → records → release       │   └────────────────────────────────┘
-   └────────────┬───────────────┘
-                │ installation token (one repo), HTTPS
-                ▼
-             GitHub  ── webhooks (pull_request, push) ──► /hooks/github
+             └──────▲─────────────────────────────────────────┘
+                    │ REST (loop) + MCP (agent)
+   ┌────────────────┴──────────────────────────────────────────┐
+   │ Agent SDK runner: poll → claim → heartbeat → workspace →   │
+   │ query() → records → release                                │
+   │  local (default): sandbox = git clone --local --bare of    │
+   │    local_path (push URL `no_push`), a git worktree per job │
+   │    on harness/<id>-<T-n>; runs test_command and posts its  │
+   │    JUnit at the head sha; review-pr on the branch diff     │
+   │  github: clone/push/PR as a GitHub App ─► GitHub ─► webhooks│
+   └────────────────────────────────────────────────────────────┘
 ```
+
+## Local mode (the default)
+
+- **Register the repository** (a human: `local_path` and `test_command` are human-only,
+  because the runner executes against them):
+
+  ```bash
+  curl -X POST $SRS_URL/api/global/records -H "Authorization: Bearer $HUMAN_TOKEN" -H 'Content-Type: application/json' -d '{
+    "ops": [{"type": "repository", "fields": {"name": "wb-be", "local_path": "/path/to/repo",
+      "default_branch": "main", "test_command": "make test", "junit_path": "reports/junit.xml",
+      "templates": ["python-service"], "owners": ["priya"], "state": "active"}}]}'
+  ```
+
+  `default_branch` is the base. Tasks name the repository by `name` (`repo: wb-be`);
+  `GET /api/repos/wb-be` reads it.
+- **Sandbox.** On first use the runner makes `RUNNER_WORK_ROOT/sandboxes/<name>.git`, a bare
+  `git clone --local` of `local_path`, sets its push URL to `no_push` (so any push from it or
+  its worktrees fails) and, on every job, refreshes only the base branch from `local_path`.
+  The developer's repository is never written to.
+- **Per job** a `git worktree` of the sandbox on `harness/<initiative-id>-<task-ref>` (created
+  from the base the first time, continued on later rounds). Commits are made as
+  `sdlc-harness[bot]`; they land in the sandbox's refs directly. Jobs on the same branch
+  (implement-task, write-tests, review-pr) take turns — git allows one worktree per branch.
+- **The "PR"** is that branch and its head sha. The runner writes `pr_url =
+  local:<repo>@<branch>`, `pr_state = draft` while implement-task works and `open` when it is
+  done (`draft` again on a handoff), and `pr_sha` = the head after every job that moves it.
+  A human reads it with `git -C <sandbox> diff <base>...<branch>` (or fetches the branch into
+  their own clone: `git fetch <sandbox> harness/3-T-1`) and approves that sha in the harness
+  UI (touchpoint 3) — the approval pins it; a later commit makes it STALE.
+- **Evidence without CI.** After implement-task and write-tests, the runner itself (not the
+  agent) runs the registry's `test_command` at the head and posts the JUnit report at
+  `junit_path` to `POST /api/initiatives/{id}/test-runs/junit` (`run_url:
+  local:<repo>@<sha>`, level `RUNNER_LOCAL_TEST_LEVEL`, default `integration`). That is what
+  GATE_PR's `every_covered_ac_has_a_test` reads; a RED run comes back as a `rework: ci` item.
+  The report path is excluded from commits.
+- **review-pr** runs through the Agent SDK for `pr_review` items (an open task whose
+  `reviewed_sha` ≠ `pr_sha`): read-only worktree, `git diff/log/show` allowed, no edits, no
+  `gh`; findings bound to the head sha; the runner then sets `reviewed_sha`.
 
 ## The worker loop (`runner/worker.py`)
 
@@ -34,8 +85,9 @@ tokens), using the seven skills in [`skills/`](../skills):
 2. `POST /api/leases/claim` — 409 means another runner has it: skip. Concurrency is
    `RUNNER_CONCURRENCY` jobs at a time (one asyncio task each).
 3. A background heartbeat (`POST /api/leases/{key}/heartbeat` every `RUNNER_HEARTBEAT_S`).
-4. Workspace: a scratch dir (record-only skills) or a clone of the task's repository
-   (`runner/workspace.py`) on branch `harness/<initiative-id>-<task-ref>`.
+4. Workspace: a scratch dir (record-only skills); in local mode a worktree of the sandbox
+   (`runner/local_workspace.py`), in GitHub mode a clone (`runner/workspace.py`), on branch
+   `harness/<initiative-id>-<task-ref>`.
 5. The skill runs through `claude_agent_sdk.query()` (`runner/agent.py`): `cwd` = the
    workspace; system prompt = Claude Code's preset + the skill's SKILL.md;
    `setting_sources=["project"]` for repo skills (the repo's CLAUDE.md loads); MCP = the
@@ -43,37 +95,43 @@ tokens), using the seven skills in [`skills/`](../skills):
    knowledge base) and `strict_mcp_config` so a repo's `.mcp.json` cannot add servers;
    per-skill `allowed_tools` / `disallowed_tools` (`runner/skills.py`) with
    `permission_mode="dontAsk"`; `model` (`RUNNER_MODEL`, default `claude-opus-5-5`),
-   `max_turns`, `max_budget_usd`.
+   `max_turns`, `max_budget_usd`; `cli_path` from `CLAUDE_CLI_PATH`.
 6. Records the runner guarantees, whatever the agent did: for `task` / `tests`, commit as
-   the App's bot, run the registry's `test_command`, push, open or update the PR (body: task,
-   decisions, ACs, rollback, the task's drift report, `srs-task: <id>/<T-n>`), then write
-   `pr_url` / `pr_state` / `pr_sha` (with `base_rev`, deterministic batch id). For `draft`,
-   it checks the draft exists and runs review-draft once it is submitted.
-7. `DELETE /api/leases/{key}` and delete the workspace — always (`finally`).
+   the bot, run the registry's `test_command`, then — local: record the branch head and post
+   the JUnit evidence; GitHub: push, open or update the PR (body: task, decisions, ACs,
+   rollback, the task's drift report, `srs-task: <id>/<T-n>`) — and write `pr_url` /
+   `pr_state` / `pr_sha` (with `base_rev`, deterministic batch id). For `draft`, it checks the
+   draft exists and runs review-draft once it is submitted. For `pr_review`, `reviewed_sha`.
+7. `DELETE /api/leases/{key}` and delete the workspace — always (`finally`). Local mode keeps
+   the sandbox (it holds the branches).
 
 **Crash safety.** Every runner write has a deterministic `batch_id` (seed + the record's
 rev), so a retried job replays rather than doubles; a dead runner's lease expires on read and
-the item comes back; PR creation finds the branch's open PR first; branches are pushed, never
-force-pushed; an item this process has handled is not retaken for 30 minutes while it is in
-the same state (same `why` / rework cause) — a draft waiting on humans or tests waiting on
-CI are not re-run in a loop; a changed state is new work.
+the item comes back; a branch is continued, never reset or force-pushed; GitHub mode's PR
+creation finds the branch's open PR first; an item this process has handled is not retaken
+for 30 minutes while it is in the same state (same `why` / rework cause) — a draft waiting on
+humans or tests waiting on CI are not re-run in a loop; a changed state is new work.
 
-**Handoff.** A failed local verification, or a RED/ERROR JUnit run at the PR head (which
+**Handoff.** A failed local verification, or a RED/ERROR JUnit run at the head (which
 `next_work` turns into a `rework: ci` item), increments `task.ci_attempts`; a blocker/major
 finding at the head (`rework: review`) increments `task.review_rounds`. At 3 (blueprint
 `handoff:`) the task derives **STUCK**, `next_work` lists it in the human lane for the engg
-assignee, and the runner stops: on local failures it pushes what it has as a **draft** PR so
-the human can pick it up.
+assignee, and the runner stops; on local-verification failures it records what it has as a
+**draft** (GitHub mode: a draft PR) so the human can pick it up.
 
 ## Service additions the runner relies on
 
-- **Repo registry** — global `repository` records (`REPO-n`): `name` (owner/repo),
-  `default_branch`, `clone_url` (default `https://github.com/<name>.git`), `test_command`
-  (**human-only**: the runner executes it), `junit_path`, `templates` (paved-road ids a task
-  may name), `owners`, `state`. Write with `POST /api/global/records`; read `GET /api/repos`,
-  `GET /api/repos/{owner}/{name}`, MCP `repos`. plan-to-tasks may only name registered repos
-  and templates; the runner raises a gap (blocks the task) for an unregistered repo.
-- **GitHub webhooks** — `POST /hooks/github`, verified with `X-Hub-Signature-256` (HMAC
+- **Repo registry** — global `repository` records (`REPO-n`): `name` (`wb-be`, or
+  owner/repo in GitHub mode), `default_branch` (the base), `local_path` (local mode,
+  **human-only**), `clone_url` (GitHub mode; default `https://github.com/<name>.git`),
+  `test_command` (**human-only**: the runner executes it), `junit_path`, `templates`
+  (paved-road ids a task may name), `owners`, `state`. Write with `POST /api/global/records`;
+  read `GET /api/repos`, `GET /api/repos/{name}` or `/api/repos/{owner}/{name}`, MCP `repos`.
+  plan-to-tasks may only name registered repos and templates; the runner raises a gap (blocks
+  the task) for an unregistered repo, or one without `local_path` in local mode.
+- **`pr_review` work items** — `next_work` lists an open task whose `reviewed_sha` (new task
+  field) differs from its `pr_sha`; the runner's review-pr pass sets it.
+- **GitHub webhooks** (GitHub mode only) — `POST /hooks/github`, verified with `X-Hub-Signature-256` (HMAC
   SHA-256 of the raw body with `GITHUB_WEBHOOK_SECRET`; unset → 503). `pull_request`
   (opened, reopened, synchronize, ready_for_review, converted_to_draft, edited, closed/merged)
   and `push` to a `harness/…` branch update the task's `pr_url` / `pr_state` / `pr_sha` as
@@ -86,8 +144,8 @@ the human can pick it up.
   `{task, sha, level, run_url, junit_xml, environment?}` (agent/CI token) writes one
   `test_run` at that sha; `covers` rows come from AC refs in test names (`AC-3`, `AC_3`,
   `test_AC_3_…`, `testAc3…`; worst outcome per AC; skipped tests count for nothing). GATE_PR,
-  GATE_VALIDATED and the deploy guard read only runs at the relevant sha. Add to the target
-  repo's CI after the test step:
+  GATE_VALIDATED and the deploy guard read only runs at the relevant sha. In local mode the
+  runner posts these itself; in GitHub mode add to the target repo's CI after the test step:
 
   ```bash
   jq -n --arg task "$TASK" --arg sha "$GITHUB_SHA" --arg url "$RUN_URL" --rawfile xml reports/junit.xml \
@@ -98,9 +156,9 @@ the human can pick it up.
 
   (`TASK` / `INITIATIVE_ID` come from the branch name `harness/<id>-<T-n>`.)
 
-## GitHub App
+## GitHub mode (optional): the GitHub App
 
-Create one App for the organisation (Settings → Developer settings → GitHub Apps → New):
+Only with `WORKSPACE_MODE=github`. Create one App for the organisation (Settings → Developer settings → GitHub Apps → New):
 
 - **Repository permissions:** Contents *Read and write* · Pull requests *Read and write* ·
   Checks *Read-only* · Metadata *Read-only* (mandatory).
@@ -124,6 +182,8 @@ or the agent's environment. The agent never sees a GitHub credential and is deni
 | `ANTHROPIC_API_KEY` (or a cloud provider's `CLAUDE_CODE_USE_*` vars) | runner, Actions | Claude API auth (Agent SDK / claude-code-action). Set a spend limit per key. Never a claude.ai login. |
 | `CLAUDE_CLI_PATH` (optional) | runner | Claude Code CLI to drive; unset = the one bundled with `claude-agent-sdk` |
 | `SRS_URL`, `SRS_TOKEN` | runner | the service and an **agent** token: `make token ACTOR=runner-sdk KIND=agent` |
+| `WORKSPACE_MODE` | runner | `local` (default) or `github` |
+| *GitHub mode only:* | | |
 | `SRS_AGENT_TOKEN`, var `SRS_URL` | Actions | an agent token per repo (`review-pr-<repo>`) |
 | `SRS_CI_TOKEN` | target repo CI | an agent token with role `ci` for JUnit uploads |
 | `GITHUB_APP_ID`, `GITHUB_APP_SLUG`, `GITHUB_APP_PRIVATE_KEY` (or `…_PATH`), `GITHUB_INSTALLATION_ID` (optional) | runner | the App (the key is removed from the process environment after it is read) |
@@ -131,7 +191,8 @@ or the agent's environment. The agent never sees a GitHub credential and is deni
 | `OUTLINE_URL`, `OUTLINE_API_KEY`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET` | service | the knowledge base behind `kb_search` / `kb_get` (the runner reaches the KB only through the service) |
 | `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET` | Actions (optional) | when the service itself sits behind Cloudflare Access |
 
-Runner tuning: `RUNNER_KINDS` (default `draft,review,plan,task,tests`), `RUNNER_CONCURRENCY`
+Runner tuning: `RUNNER_KINDS` (default `draft,review,plan,task,tests,pr_review`; GitHub
+mode drops `pr_review`), `RUNNER_LOCAL_TEST_LEVEL` (`integration`), `RUNNER_CONCURRENCY`
 (2), `RUNNER_POLL_INTERVAL_S` (20), `RUNNER_LEASE_TTL_MIN` (15), `RUNNER_HEARTBEAT_S` (120),
 `RUNNER_MODEL` (`claude-opus-5-5`), `RUNNER_MAX_TURNS` (80), `RUNNER_MAX_BUDGET_USD` (15),
 `RUNNER_WORK_ROOT`, `RUNNER_SKILLS_DIR`, `RUNNER_EXECUTION_MODE` (`local` | `docker`),
@@ -161,8 +222,8 @@ Runner tuning: `RUNNER_KINDS` (default `draft,review,plan,task,tests`), `RUNNER_
 
 ```bash
 make runner-install                          # runner/.venv (separate from the service's venv)
-export SRS_URL=https://srs.example.com SRS_TOKEN=srs_… ANTHROPIC_API_KEY=…
-export GITHUB_APP_ID=… GITHUB_APP_SLUG=… GITHUB_APP_PRIVATE_KEY_PATH=/secrets/app.pem
+export SRS_URL=http://localhost:8791 SRS_TOKEN=srs_… ANTHROPIC_API_KEY=…   # local mode: that's all
+# GitHub mode instead: WORKSPACE_MODE=github GITHUB_APP_ID=… GITHUB_APP_SLUG=… GITHUB_APP_PRIVATE_KEY_PATH=/secrets/app.pem
 runner/.venv/bin/python -m runner check      # what is missing
 runner/.venv/bin/python -m runner run        # poll forever (SIGTERM: finish in-flight, release)
 runner/.venv/bin/python -m runner once       # cron-style: drain and exit
@@ -171,14 +232,17 @@ runner/.venv/bin/python -m runner harvest    # weekly
 
 Container: `docker build -f runner/Dockerfile -t sdlc-harness-runner .` (from the repo root:
 the image carries `skills/`), then
-`docker run -d --env-file runner.env -v /secrets/app.pem:/secrets/app.pem:ro sdlc-harness-runner run`.
-The runner needs outbound HTTPS to the Claude API, the service and GitHub; nothing inbound.
+`docker run -d --env-file runner.env -v /path/to/repos:/path/to/repos:ro -v /var/harness:/var/harness -e RUNNER_WORK_ROOT=/var/harness sdlc-harness-runner run`
+(local mode: mount the registered `local_path`s at the same paths, read-only is enough; GitHub
+mode: mount the App key instead). The runner needs outbound HTTPS to the Claude API and the
+service (and GitHub in GitHub mode); nothing inbound.
 
 ### Docker execution mode (recommended)
 
 `RUNNER_EXECUTION_MODE=docker` runs **each skill** in a fresh container
-(`docker run --rm --init --user <uid> -v <job dir>:/job sdlc-harness-runner exec-job
-/job/job.json`): the job dir holds the clone and the job file; the container gets
+(`docker run --rm --init --user <uid> -v <mount> sdlc-harness-runner exec-job <job.json>`).
+Local mode mounts `RUNNER_WORK_ROOT` at the same path (a worktree points into its sandbox);
+GitHub mode mounts just the job dir at `/job`. The container gets
 `ANTHROPIC_API_KEY`, `SRS_URL`, `SRS_TOKEN` and the model settings — never the GitHub App key
 or an installation token (the host process clones and pushes). The agent's Bash then runs in
 a throwaway container instead of on the runner host. When the poller itself runs in a
@@ -187,11 +251,11 @@ path** on the host, so job dirs resolve for sibling containers. `RUNNER_DOCKER_N
 restricts the job containers' network (e.g. a network whose egress allows only the Claude API
 and the service).
 
-In `local` mode the agent runs as a subprocess on the runner host: it can read the runner's
+With `RUNNER_EXECUTION_MODE=local` (the default) the agent runs as a subprocess on the runner host: it can read the runner's
 environment (the App key is scrubbed from it, `ANTHROPIC_API_KEY` and `SRS_TOKEN` are not) —
 use it for development and trusted hosts only.
 
-## review-pr in GitHub Actions
+## review-pr in GitHub Actions (GitHub mode)
 
 [`runner/github/review-pr.yml`](../runner/github/review-pr.yml) uses
 `anthropics/claude-code-action@v1.0.247` (a pinned release). To install in a target repo:
@@ -215,9 +279,15 @@ head sha). It uses the workflow's `GITHUB_TOKEN` (`pull-requests: write`).
 
 Verified by tests (`make test`, `make test-runner`; no network, no model): the webhook HMAC
 and PR/push → task updates and stale approvals; JUnit parsing, AC mapping and the gates
-reading it; the registry; the worker loop end to end against a real service process
-(SQLite, token auth, real MCP calls from a scripted fake `query`), a local bare repository
-standing in for GitHub and an `httpx.MockTransport` GitHub REST API: draft → review-draft →
+reading it; the registry; the `pr_review` item. **Local mode end to end** against a real
+service process (SQLite, token auth, real MCP calls from a scripted fake `query`) and a real
+local repository: sandbox clone, worktree branch, implement-task + write-tests on one
+branch, `local:<repo>@<branch>` + head sha recorded, the runner's JUnit evidence at the head,
+review-pr on `git diff base...branch`, a human approval at that sha passing GATE_PR, the
+developer's repository untouched, `git push` impossible, rework continuing the branch, the
+3-attempt handoff, heartbeats, and that local mode never imports the GitHub code. **GitHub
+mode** with a local bare repository standing in for GitHub and an `httpx.MockTransport`
+GitHub REST API: draft → review-draft →
 review item → plan → implement + write-tests on one branch → PR → records; CI-red and review
 rework rounds; the 3-attempt handoff to STUCK; crash and lease handling; the token never on
 disk; push-rebase over a concurrent push.
@@ -230,10 +300,12 @@ disk; push-rebase over a concurrent push.
 - That `setting_sources=["project"]` plus the `claude_code` preset loads a target repo's
   CLAUDE.md the way we expect, and that `dontAsk` + the allow/deny lists behave exactly as
   documented for every tool.
+- Local mode on a large real repository and a real test suite (sandbox refresh with a
+  diverged base, long test commands, JUnit reporters other than the stand-in).
 - GitHub itself: the App JWT → installation-token exchange, `POST /pulls`, the bot identity
   lookup, `http.extraHeader` auth on github.com, real webhook deliveries.
 - claude-code-action: the workflow follows the action's v1 documentation (inputs `prompt`,
   `claude_args`, `github_token`; `--mcp-config`, `--allowedTools`), but has not run.
-- Docker execution mode (command construction is unit-tested only).
+- Docker execution mode, in either workspace mode (command construction is unit-tested only).
 - The knowledge-base tools (`kb_search` / `kb_get`) live in the service and are only
   mock-tested there; the skills assume their documented `kb:outline/<doc-id>` citations.

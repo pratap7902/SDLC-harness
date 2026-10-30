@@ -18,9 +18,9 @@ from app.initiatives.services.status_rules import LIVE_AC
 from app.initiatives.services.views import record_json, review_item_json
 from config.settings import settings
 
-KINDS = ("review", "gap", "decision", "approval", "draft", "plan", "tests", "task", "promotion", "manual_ac")
-PRIORITY = {"review": 10, "gap": 20, "decision": 20, "approval": 25, "manual_ac": 28, "draft": 30, "plan": 40, "tests": 50, "task": 60, "promotion": 90}
-PHASE_OF_KIND = {"draft": "draft", "plan": "plan", "task": "build", "tests": "build", "review": "draft"}
+KINDS = ("review", "gap", "decision", "approval", "draft", "plan", "tests", "task", "pr_review", "promotion", "manual_ac")
+PRIORITY = {"review": 10, "gap": 20, "decision": 20, "approval": 25, "manual_ac": 28, "draft": 30, "plan": 40, "tests": 50, "task": 60, "pr_review": 65, "promotion": 90}
+PHASE_OF_KIND = {"draft": "draft", "plan": "plan", "task": "build", "tests": "build", "pr_review": "build", "review": "draft"}
 
 
 class WorklistService:
@@ -106,6 +106,9 @@ class WorklistService:
                     rework = self._rework(g, t)
                     if rework:
                         add("task", t.ref, t.title, rework["why"], rework=rework["cause"], rework_refs=rework["refs"])
+                    elif g.f(t, "pr_sha") and g.f(t, "reviewed_sha") != g.f(t, "pr_sha"):
+                        sha = g.f(t, "pr_sha")
+                        add("pr_review", t.ref, f"Review {t.ref} @ {sha[:7]}", f"AI first-pass review of {g.f(t, 'pr_url')} at {sha[:7]}", sha=sha)
                 tested = {row.get("ac") for run in g.of_type("test_run") for row in g.f(run, "covers") or []}
                 untested = [ac for ac in g.f(t, "covers") or [] if ac not in tested and g.f(ac, "manual") != "yes"]
                 if t.status in ("IN_PROGRESS", "IN_REVIEW") and untested:
@@ -205,7 +208,7 @@ class WorklistService:
         phase = PHASE_OF_KIND.get(item["kind"])
         if phase:
             ctx["catalog"] = catalog_state(g, phase)
-        if item["kind"] in ("task", "tests") and g.current_baseline() is not None:
+        if item["kind"] in ("task", "tests", "pr_review") and g.current_baseline() is not None:
             ctx["drift"] = g.drift(task=item["ref"]).summary()
         return ctx
 

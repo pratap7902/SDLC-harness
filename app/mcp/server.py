@@ -329,7 +329,9 @@ def repos(name: Optional[str] = None) -> str:
         if not rows:
             return "no repositories registered — raise a gap (domain engg) for a human to register one"
         return "\n".join(
-            f"{r['ref']} {r['name']} [{r['status']}] branch {r['default_branch']} · test `{r['test_command'] or '—'}`"
+            f"{r['ref']} {r['name']} [{r['status']}] branch {r['default_branch']}"
+            + (f" · local {r['local_path']}" if r["local_path"] else "")
+            + f" · test `{r['test_command'] or '—'}`"
             f" · junit {r['junit_path'] or '—'} · templates {', '.join(r['templates']) or '—'} · owners {', '.join(r['owners']) or '—'}"
             for r in rows
         )

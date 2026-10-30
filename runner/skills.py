@@ -8,7 +8,8 @@ Which skill serves a work item (next_work kind):
   plan   → plan-to-tasks
   task   → implement-task (repo workspace)
   tests  → write-tests (repo workspace, its own lease)
-  (harvest-learnings: scheduled, `python -m runner harvest`; review-pr: the GitHub Action)"""
+  pr_review → review-pr against the branch diff (local mode; in GitHub mode the Action runs it)
+  (harvest-learnings: scheduled, `python -m runner harvest`)"""
 
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -60,11 +61,18 @@ POLICIES: Dict[str, Policy] = {
     "plan-to-tasks": Policy(READ_ONLY + mcp(*READ_TOOLS, *WRITE_TOOLS), RECORDS_DENY + ["WebFetch"], "scratch", 50),
     "implement-task": Policy(CODE + mcp(*READ_TOOLS, "write"), CODE_DENY, "repo", None, True),
     "write-tests": Policy(CODE + mcp(*READ_TOOLS, "write"), CODE_DENY, "repo", None, True),
-    "review-pr": Policy(READ_ONLY + mcp(*READ_TOOLS, "write"), RECORDS_DENY + ["WebFetch"], "repo", 40, True),
+    # in the runner (local mode): read the branch diff with git, write findings; no edits, no gh
+    "review-pr": Policy(
+        READ_ONLY + ["Bash(git diff *)", "Bash(git log *)", "Bash(git show *)", "Bash(git status *)"] + mcp(*READ_TOOLS, "write"),
+        ["Edit", "Write", "MultiEdit", "NotebookEdit", "WebFetch", "WebSearch", "Bash(git push *)", "Bash(git commit *)", "Bash(gh *)", "Bash(curl *)"] + mcp(*FORBIDDEN_MCP),
+        "repo",
+        40,
+        True,
+    ),
     "harvest-learnings": Policy(READ_ONLY + mcp(*READ_TOOLS, "write"), RECORDS_DENY + ["WebFetch"], "scratch", 60),
 }
 
-KIND_SKILL = {"draft": "draft-from-ticket", "plan": "plan-to-tasks", "task": "implement-task", "tests": "write-tests"}
+KIND_SKILL = {"draft": "draft-from-ticket", "plan": "plan-to-tasks", "task": "implement-task", "tests": "write-tests", "pr_review": "review-pr"}
 
 
 @dataclass

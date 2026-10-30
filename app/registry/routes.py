@@ -17,6 +17,12 @@ def list_repos(service: Registry, include_retired: bool = False):
     return service.list(include_retired)
 
 
+@router.get("/repos/{name}")
+def get_local_repo(name: str, service: Registry):
+    """A repository registered under a short name (local mode: `wb-be`)."""
+    return service.get(name)
+
+
 @router.get("/repos/{owner}/{name}")
 def get_repo(owner: str, name: str, service: Registry):
     return service.get(f"{owner}/{name}")

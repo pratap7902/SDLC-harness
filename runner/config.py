@@ -8,8 +8,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional
 
-# Work-item kinds (next_work) → the skill that serves them.
-DEFAULT_KINDS = ("draft", "review", "plan", "task", "tests")
+# Work-item kinds (next_work) → the skill that serves them. In GitHub mode review-pr runs
+# in GitHub Actions instead (runner/github/review-pr.yml), so pr_review is not polled.
+DEFAULT_KINDS = ("draft", "review", "plan", "task", "tests", "pr_review")
+GITHUB_DEFAULT_KINDS = ("draft", "review", "plan", "task", "tests")
+WORKSPACE_MODES = ("local", "github")
 # API-key auth, or a documented cloud provider (Agent SDK docs). claude.ai login is not used.
 PROVIDER_ENV = ("CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CODE_USE_FOUNDRY", "CLAUDE_CODE_USE_ANTHROPIC_AWS")
 SCRUBBED = ("GITHUB_APP_PRIVATE_KEY", "GITHUB_APP_PRIVATE_KEY_PATH", "GITHUB_WEBHOOK_SECRET")
@@ -46,7 +49,10 @@ class Settings:
     max_turns: int = 80
     max_budget_usd: Optional[float] = 15.0
     skills_dir: Path = Path(__file__).resolve().parent.parent / "skills"
-    # where work happens
+    # where work happens. local (default): repos are paths on this host, cloned into a
+    # sandbox, never pushed. github: clone/push/PR as a GitHub App (optional backend).
+    workspace_mode: str = "local"
+    local_test_level: str = "integration"  # the level the runner's local JUnit runs are filed at
     work_root: Path = Path(os.environ.get("TMPDIR", "/tmp")) / "harness-runner"
     execution_mode: str = "local"  # local | docker
     docker_image: str = "sdlc-harness-runner:latest"
@@ -74,11 +80,15 @@ class Settings:
         key_path = env.get("GITHUB_APP_PRIVATE_KEY_PATH", "")
         if not key and key_path:
             key = Path(key_path).read_text()
+        mode = (env.get("WORKSPACE_MODE") or "local").strip().lower()
+        default_kinds = DEFAULT_KINDS if mode == "local" else GITHUB_DEFAULT_KINDS
         s = cls(
+            workspace_mode=mode,
+            local_test_level=env.get("RUNNER_LOCAL_TEST_LEVEL") or cls.local_test_level,
             srs_url=(env.get("SRS_URL") or cls.srs_url).rstrip("/"),
             srs_token=env.get("SRS_TOKEN", ""),
             principal=env.get("RUNNER_PRINCIPAL", cls.principal),
-            kinds=[k.strip() for k in (env.get("RUNNER_KINDS") or ",".join(DEFAULT_KINDS)).split(",") if k.strip()],
+            kinds=[k.strip() for k in (env.get("RUNNER_KINDS") or ",".join(default_kinds)).split(",") if k.strip()],
             concurrency=_int(env, "RUNNER_CONCURRENCY", cls.concurrency),
             poll_interval_s=float(env.get("RUNNER_POLL_INTERVAL_S") or cls.poll_interval_s),
             lease_ttl_min=_int(env, "RUNNER_LEASE_TTL_MIN", cls.lease_ttl_min),
@@ -107,6 +117,8 @@ class Settings:
         if scrub and from_os:
             for name in SCRUBBED:
                 os.environ.pop(name, None)
+        if s.workspace_mode not in WORKSPACE_MODES:
+            raise ValueError("WORKSPACE_MODE: local (default) | github")
         if s.execution_mode not in ("local", "docker"):
             raise ValueError("RUNNER_EXECUTION_MODE: local | docker")
         return s
@@ -129,7 +141,7 @@ class Settings:
             out.append("ANTHROPIC_API_KEY (or a documented cloud provider: " + " / ".join(PROVIDER_ENV) + "): how the Agent SDK authenticates — never a claude.ai login")
         if self.cli_path and not Path(self.cli_path).exists():
             out.append(f"CLAUDE_CLI_PATH: {self.cli_path} does not exist (unset it to use the CLI bundled with claude-agent-sdk)")
-        if {"task", "tests"} & set(self.kinds):
+        if self.workspace_mode == "github" and {"task", "tests"} & set(self.kinds):
             if not self.github_app_id or not self.github_private_key:
                 out.append("GITHUB_APP_ID + GITHUB_APP_PRIVATE_KEY(_PATH): the GitHub App the runner pushes and opens PRs as")
         if not self.skills_dir.is_dir():

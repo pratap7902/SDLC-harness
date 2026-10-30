@@ -157,19 +157,31 @@ def cli_info(settings: Settings) -> Dict[str, str]:
 # ── docker mode ──────────────────────────────────────────────────────────────
 
 
+def job_paths(settings: Settings, job_dir: Path) -> Dict[str, str]:
+    """Paths as the container sees them. GitHub mode: the job dir (a self-contained clone) at
+    /job. Local mode: a worktree points into its sandbox, so RUNNER_WORK_ROOT (job dirs and
+    sandboxes) is mounted at the same path."""
+    repo = job_dir / "repo"
+    if settings.workspace_mode == "local":
+        root = str(settings.work_root)
+        return {"mount": f"{root}:{root}", "job": str(job_dir / "job.json"), "cwd": str(repo if repo.exists() else job_dir)}
+    return {"mount": f"{job_dir}:/job", "job": "/job/job.json", "cwd": "/job/repo" if repo.exists() else "/job"}
+
+
 def docker_command(settings: Settings, job_dir: Path, network: str = "") -> List[str]:
-    """`docker run` for one job: the job dir (clone + job.json) is the only mount; the
-    container gets the Anthropic key and the record-service token — never the GitHub App
-    key or an installation token (the host runner pushes)."""
+    """`docker run` for one job: only the job's files are mounted; the container gets the
+    Claude API auth and the record-service token — never a GitHub App key or installation
+    token (in GitHub mode the host runner pushes)."""
     import os
 
+    paths = job_paths(settings, job_dir)
     # same uid as the runner so the clone stays writable on both sides; HOME for Claude Code's state
-    cmd = ["docker", "run", "--rm", "--init", "--user", f"{os.getuid()}:{os.getgid()}", "-e", "HOME=/tmp", "-v", f"{job_dir}:/job", "-w", "/job/repo"]
+    cmd = ["docker", "run", "--rm", "--init", "--user", f"{os.getuid()}:{os.getgid()}", "-e", "HOME=/tmp", "-v", paths["mount"], "-w", paths["cwd"]]
     for name in ("ANTHROPIC_API_KEY", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CODE_USE_FOUNDRY", "CLAUDE_CODE_USE_ANTHROPIC_AWS", "ANTHROPIC_AWS_WORKSPACE_ID", "SRS_TOKEN", "SRS_URL", "RUNNER_MODEL", "RUNNER_MAX_TURNS", "RUNNER_MAX_BUDGET_USD", "RUNNER_EXTRA_MCP_JSON"):
         cmd += ["-e", name]
     if network or settings.docker_network:
         cmd += ["--network", network or settings.docker_network]
-    cmd += [settings.docker_image, "exec-job", "/job/job.json"]  # the image's entrypoint is `python -m runner`
+    cmd += [settings.docker_image, "exec-job", paths["job"]]  # the image's entrypoint is `python -m runner`
     return cmd
 
 
@@ -177,7 +189,7 @@ async def run_in_docker(settings: Settings, skill: Skill, prompt: str, job_dir: 
     import asyncio
     import os
 
-    (job_dir / "job.json").write_text(json.dumps({"skill": skill.name, "prompt": prompt, "cwd": "/job/repo" if (job_dir / "repo").exists() else "/job", "env": env or {}}))
+    (job_dir / "job.json").write_text(json.dumps({"skill": skill.name, "prompt": prompt, "cwd": job_paths(settings, job_dir)["cwd"], "env": env or {}}))
     cmd = docker_command(settings, job_dir)
     child_env = {**os.environ, "SRS_TOKEN": settings.srs_token, "SRS_URL": settings.srs_url}
     proc = await asyncio.to_thread(subprocess.run, cmd, env=child_env, capture_output=True, text=True)

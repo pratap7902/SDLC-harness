@@ -46,7 +46,8 @@ decision, `blocks: ["AC-n"]`, the reason and a proposed testable wording in
 
 - Read implementation code to decide expectations, or weaken a test to make it pass.
 - Edit production code (that is implement-task) — test files, fixtures and test config only.
-- Push or open a PR — the runner pushes your commits to the task's branch.
+- Push or open a PR — your commits land on the task's branch (local mode: the sandbox branch
+  is the change; GitHub mode: the runner pushes it).
 - Write `test_run` records yourself; evidence comes from CI at a sha.
 
 Finish with: AC → test name(s) written, ACs skipped (manual) and gaps raised.

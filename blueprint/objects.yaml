@@ -170,6 +170,7 @@ types:
       pr_url:      {type: string, max: 300}
       pr_state:    {type: enum, vocab: pr_state, material: true}
       pr_sha:      {type: string, max: 64, material: true, help: "head sha the pr_state refers to"}
+      reviewed_sha: {type: string, max: 64, help: "the head sha the AI review-pr pass last reviewed (empty → a pr_review work item)"}
       ci_attempts: {type: string, max: 4}
       review_rounds: {type: string, max: 4}
       tracker_id:  {type: string, max: 60}
@@ -311,9 +312,10 @@ types:
     line: name
     index: {columns: [name, default_branch, owners]}
     fields:
-      name:           {type: string, max: 200, required: true, help: "owner/name, as GitHub writes it (example/orders)"}
-      default_branch: {type: string, max: 100, required: true}
-      clone_url:      {type: string, max: 300, help: "HTTPS clone URL; empty → https://github.com/<name>.git"}
+      name:           {type: string, max: 200, required: true, help: "a short name (wb-be) or, for GitHub mode, owner/name"}
+      default_branch: {type: string, max: 100, required: true, help: "the base branch work starts from (main)"}
+      local_path:     {type: string, max: 400, actor: human, help: "local mode (the default): the repository on the runner host; the runner clones it into a sandbox and never pushes"}
+      clone_url:      {type: string, max: 300, help: "GitHub mode: HTTPS clone URL; empty → https://github.com/<name>.git"}
       test_command:   {type: string, max: 400, actor: human, help: "what the runner runs to verify a change (executed in the clone): a human sets it"}
       junit_path:     {type: string, max: 300, help: "where test_command writes its JUnit XML, relative to the repo root"}
       templates:      {type: bullets, max: 120, help: "paved-road template / IaC module ids a task in this repo may name"}

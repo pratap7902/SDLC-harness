@@ -146,7 +146,7 @@ def test_settings_from_env(tmp_path):
 
 
 def test_docker_command_carries_no_github_secret(tmp_path):
-    s = Settings(docker_image="sdlc-harness-runner:test", github_private_key=PRIVATE_PEM)
+    s = Settings(docker_image="sdlc-harness-runner:test", github_private_key=PRIVATE_PEM, workspace_mode="github")
     cmd = agent_mod.docker_command(s, tmp_path)
     joined = " ".join(cmd)
     assert cmd[:3] == ["docker", "run", "--rm"] and f"{tmp_path}:/job" in joined
@@ -186,3 +186,12 @@ def test_auth_is_api_key_or_a_cloud_provider_never_a_login(monkeypatch):
     assert Settings.api_auth() == "CLAUDE_CODE_USE_BEDROCK"
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
     assert Settings.api_auth() == "ANTHROPIC_API_KEY"
+
+
+def test_docker_local_mode_mounts_the_work_root_at_the_same_path(tmp_path):
+    s = Settings(docker_image="img", work_root=tmp_path)
+    job = tmp_path / "1-T-1-x"
+    (job / "repo").mkdir(parents=True)
+    cmd = agent_mod.docker_command(s, job)
+    assert f"{tmp_path}:{tmp_path}" in cmd and cmd[cmd.index("-w") + 1] == str(job / "repo")
+    assert cmd[-1] == str(job / "job.json")

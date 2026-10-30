@@ -99,8 +99,13 @@ class Srs:
         body = {"title": "Order events outbox", "slug": "order-events", "requirement": "# Order events\nEmit an event per order change.", "dri": "chandra", "engg": "priya", "product": "maya", "qa": "sam"}
         return self.ok(self.as_("chandra").post("/api/initiatives", json=body), 201)["initiative"]["id"]
 
-    def register_repo(self, clone_url: str, test_command: str = "sh check.sh", name: str = "example/orders"):
-        op = {"type": "repository", "fields": {"name": name, "default_branch": "main", "clone_url": clone_url, "test_command": test_command, "junit_path": "reports/junit.xml", "templates": ["python-service"], "owners": ["priya"], "state": "active"}}
+    def register_repo(self, clone_url: str = "", test_command: str = "sh check.sh", name: str = "example/orders", local_path: str = ""):
+        fields = {"name": name, "default_branch": "main", "test_command": test_command, "junit_path": "reports/junit.xml", "templates": ["python-service"], "owners": ["priya"], "state": "active"}
+        if clone_url:
+            fields["clone_url"] = clone_url
+        if local_path:
+            fields["local_path"] = local_path
+        op = {"type": "repository", "fields": fields}
         return self.ok(self.as_("priya").post("/api/global/records", json={"ops": [op]}))
 
     def record(self, iid: int, ref: str) -> dict:
@@ -140,3 +145,29 @@ def bare_repo(tmp_path):
 
 
 sys.path.insert(0, str(ROOT))
+
+
+# A stand-in test suite: AC-1 always has a test; AC-2/AC-3 only once write-tests added them.
+CHECK_SH = """mkdir -p reports
+if [ -f orders/relay.py ]; then r=""; else r='<failure message="no relay">missing</failure>'; fi
+more=""
+if [ -f tests/test_relay.py ]; then more='<testcase classname="t" name="test_AC_2_relay"/><testcase classname="t" name="test_AC_3_key"/>'; fi
+cat > reports/junit.xml <<XML
+<testsuite><testcase classname="t" name="test_AC_1_outbox_row">$r</testcase>$more</testsuite>
+XML
+test -f orders/relay.py
+"""
+
+
+@pytest.fixture
+def local_repo(tmp_path):
+    """A developer's repository on this machine (local mode's source): never modified."""
+    src = tmp_path / "wb-be"
+    src.mkdir()
+    git("init", "-q", "-b", "main", cwd=src)
+    (src / "README.md").write_text("# wb-be\n")
+    (src / "CLAUDE.md").write_text("House rules: small commits.\n")
+    (src / "check.sh").write_text(CHECK_SH)
+    git("add", "-A", cwd=src)
+    git("-c", "user.name=dev", "-c", "user.email=dev@example.com", "commit", "-q", "-m", "seed", cwd=src)
+    return src

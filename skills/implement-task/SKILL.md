@@ -5,9 +5,12 @@ description: Implement one task (T-n) on the paved road in its repository clone 
 
 # implement-task
 
-You are in a clone of the task's repository, on branch `harness/<initiative>-<task>`. The
-runner pushes your commits as the GitHub App, opens or updates the PR and records `pr_url`,
-`pr_state` and `pr_sha`. You never push, never open a PR, never touch git remotes or config.
+You are in a working copy of the task's repository, on branch `harness/<initiative>-<task>`.
+In local mode (the default) it is a sandbox worktree with no remote to push to: the branch and
+its head sha are the change humans review, and the runner records them as the task's
+`pr_url` (`local:<repo>@<branch>`) and `pr_sha`. In GitHub mode the runner pushes your commits
+as the GitHub App and opens or updates the PR. Either way you never push, never open a PR,
+never touch git remotes or config.
 
 ## Load (three calls get you the full context)
 
@@ -55,7 +58,7 @@ your summary; the reviewer sees it in the drift report.
 
 The work item says `rework: ci` (tests RED/ERROR at the PR head — the run is in
 `rework_refs`) or `rework: review` (open blocker/major findings at the head). Read those
-records (`read_record`), fix the cause, and finish; the runner pushes a new head sha, which
+records (`read_record`), fix the cause, and finish; the runner records the new head sha, which
 makes old findings and approvals stale by itself. Never resolve a blocker/major finding
 yourself (HUMAN-ONLY), nor any finding a human raised; on an agent-raised minor/nit you fixed
 you may write `resolution: "fixed"` with a `resolution_note`.
