@@ -18,6 +18,10 @@ running service against the demo data (`make seed`). Regenerate with
   a caller (403 `KIND_NOT_ALLOWED`). Human-only endpoints (marked **human**) return
   **403** with `error_code: "HUMAN_ONLY"` to anyone else. `GET /api/inbox` and
   `GET /api/overview` are the caller's.
+- **Integrations** (people directory admin, Microsoft Teams, Outline `kb`, Azure DevOps
+  Boards, webhooks under `/api/hooks/…` and `/api/teams/messages`) are documented with
+  their setup in `docs/integrations.md`; they talk to external systems, so they have no
+  live examples here. `GET /api/people` (below) now carries the directory fields.
 - **Ids in paths**: an initiative is addressed by its numeric `id`
   (`/api/initiatives/{id}/…`, `initiative_id` in the deploy guard and MCP tools); `slug` is
   a display label. Records are addressed by their ref within the initiative
@@ -211,6 +215,10 @@ Response:
     ],
     "yes_no": [
       "yes",
+      "… (+1 more)"
+    ],
+    "channel": [
+      "web",
       "… (+1 more)"
     ],
     "gap_kind": [
@@ -655,9 +663,9 @@ Response:
     "title": "Partner webhook signing",
     "work_item_url": null,
     "created_by": "rahul",
-    "created_at": "2026-10-28T23:41:00Z",
+    "created_at": "2026-10-30T07:35:00Z",
     "closed_at": null,
-    "snapshot_hash": "c088e76b9290c3244a2048b305e8fb774e1bb8459e400cf0c9797a5e27d09cee",
+    "snapshot_hash": "6034c8c1e9f65dda7cea51ae62a60898fa72719cae36c16dd429f978eaadf443",
     "phase": "DRAFT",
     "pill": "amber",
     "summary": "",
@@ -679,9 +687,9 @@ Response:
     "title": "Menu sync retries",
     "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4833",
     "created_by": "priya",
-    "created_at": "2026-10-27T21:47:00Z",
+    "created_at": "2026-10-29T05:41:00Z",
     "closed_at": null,
-    "snapshot_hash": "955b0a384f28d904cef937c5ee0b594bb358539468a9bc313f6fc74063497c12",
+    "snapshot_hash": "3097d30d3c0ef5cc69b40b07b6ffb41959ba287e244ebe43959366e39c6a7030",
     "phase": "DRAFT",
     "pill": "amber",
     "summary": "",
@@ -725,9 +733,9 @@ Response:
       "title": "Partner webhook signing",
       "work_item_url": null,
       "created_by": "rahul",
-      "created_at": "2026-10-28T23:41:00Z",
+      "created_at": "2026-10-30T07:35:00Z",
       "closed_at": null,
-      "snapshot_hash": "c088e76b9290c3244a2048b305e8fb774e1bb8459e400cf0c9797a5e27d09cee",
+      "snapshot_hash": "6034c8c1e9f65dda7cea51ae62a60898fa72719cae36c16dd429f978eaadf443",
       "phase": "DRAFT",
       "pill": "amber",
       "summary": "",
@@ -766,7 +774,7 @@ Response:
       },
       "baseline": null,
       "drift": null,
-      "updated_at": "2026-10-28T23:41:00Z",
+      "updated_at": "2026-10-30T07:35:00Z",
       "agents": {
         "queued": 0,
         "leased": 1,
@@ -788,9 +796,9 @@ Response:
       "title": "Menu sync retries",
       "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4833",
       "created_by": "priya",
-      "created_at": "2026-10-27T21:47:00Z",
+      "created_at": "2026-10-29T05:41:00Z",
       "closed_at": null,
-      "snapshot_hash": "955b0a384f28d904cef937c5ee0b594bb358539468a9bc313f6fc74063497c12",
+      "snapshot_hash": "3097d30d3c0ef5cc69b40b07b6ffb41959ba287e244ebe43959366e39c6a7030",
       "phase": "DRAFT",
       "pill": "amber",
       "summary": "",
@@ -818,7 +826,7 @@ Response:
         "label": "G-1 · gap",
         "title": "Is the retry budget per partner or global?",
         "overdue": false,
-        "due_at": "2026-10-29T19:47:00Z"
+        "due_at": "2026-10-31T03:41:00Z"
       },
       "prs": {
         "total": 0,
@@ -840,7 +848,7 @@ Response:
       },
       "baseline": null,
       "drift": null,
-      "updated_at": "2026-10-28T19:47:00Z",
+      "updated_at": "2026-10-30T03:41:00Z",
       "agents": {
         "queued": 1,
         "leased": 0,
@@ -871,10 +879,10 @@ Response:
         "fallback": false
       },
       "person": "arjun",
-      "since": "2026-10-28T21:47:00Z",
+      "since": "2026-10-30T05:41:00Z",
       "age_hours": 2.0,
       "sla_hours": 24,
-      "due_at": "2026-10-29T21:47:00Z",
+      "due_at": "2026-10-31T05:41:00Z",
       "overdue": false,
       "priority": 10,
       "title": "The outbox table can't be added to the orders schema in time",
@@ -916,9 +924,9 @@ Response:
           "proposed_change": "D-1 verdict: outbox → CDC via Debezium on the orders table. Add AC: CDC lag over 5 s for 2 min fires the alert. LLD event delivery section rewritten."
         },
         "created_by": "runner-sdk/implement-task",
-        "created_at": "2026-10-28T21:47:00Z",
+        "created_at": "2026-10-30T05:41:00Z",
         "updated_by": "runner-sdk/implement-task",
-        "updated_at": "2026-10-28T21:47:00Z"
+        "updated_at": "2026-10-30T05:41:00Z"
       },
       "question": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
       "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
@@ -957,10 +965,10 @@ Response:
         "fallback": false
       },
       "person": "arjun",
-      "since": "2026-10-27T20:47:00Z",
+      "since": "2026-10-29T04:41:00Z",
       "age_hours": 27.0,
       "sla_hours": 48,
-      "due_at": "2026-10-29T20:47:00Z",
+      "due_at": "2026-10-31T04:41:00Z",
       "overdue": false,
       "priority": 20,
       "title": "Review the drift of T-3: Refunds ledger API",
@@ -977,7 +985,7 @@ Response:
         "pending_decisions": 0,
         "other_changes": 0
       },
-      "digest": "29ee1cd6b1d755e556ce7df88b2ed4fb3dadd04c2cc738053116cb61a268ce23",
+      "digest": "aa08550c5085fccfd40c398a894c019678e5627b4bcfce8694fa0e4decf65bfa",
       "stale_approvals": []
     },
     "… (+6 more)"
@@ -997,10 +1005,10 @@ Response:
         "fallback": false
       },
       "person": "arjun",
-      "since": "2026-10-28T21:47:00Z",
+      "since": "2026-10-30T05:41:00Z",
       "age_hours": 2.0,
       "sla_hours": 24,
-      "due_at": "2026-10-29T21:47:00Z",
+      "due_at": "2026-10-31T05:41:00Z",
       "overdue": false,
       "priority": 10,
       "title": "The outbox table can't be added to the orders schema in time",
@@ -1042,9 +1050,9 @@ Response:
           "proposed_change": "D-1 verdict: outbox → CDC via Debezium on the orders table. Add AC: CDC lag over 5 s for 2 min fires the alert. LLD event delivery section rewritten."
         },
         "created_by": "runner-sdk/implement-task",
-        "created_at": "2026-10-28T21:47:00Z",
+        "created_at": "2026-10-30T05:41:00Z",
         "updated_by": "runner-sdk/implement-task",
-        "updated_at": "2026-10-28T21:47:00Z"
+        "updated_at": "2026-10-30T05:41:00Z"
       },
       "question": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
       "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
@@ -1083,10 +1091,10 @@ Response:
         "fallback": false
       },
       "person": "arjun",
-      "since": "2026-10-28T03:47:00Z",
+      "since": "2026-10-29T11:41:00Z",
       "age_hours": 20.0,
       "sla_hours": 48,
-      "due_at": "2026-10-30T03:47:00Z",
+      "due_at": "2026-10-31T11:41:00Z",
       "overdue": false,
       "priority": 30,
       "title": "D-2 ← G-1: does it still hold?",
@@ -1112,10 +1120,10 @@ Response:
         "fallback": false
       },
       "person": "arjun",
-      "since": "2026-10-27T20:47:00Z",
+      "since": "2026-10-29T04:41:00Z",
       "age_hours": 27.0,
       "sla_hours": 48,
-      "due_at": "2026-10-29T20:47:00Z",
+      "due_at": "2026-10-31T04:41:00Z",
       "overdue": false,
       "priority": 20,
       "title": "Review the drift of T-3: Refunds ledger API",
@@ -1132,7 +1140,7 @@ Response:
         "pending_decisions": 0,
         "other_changes": 0
       },
-      "digest": "29ee1cd6b1d755e556ce7df88b2ed4fb3dadd04c2cc738053116cb61a268ce23",
+      "digest": "aa08550c5085fccfd40c398a894c019678e5627b4bcfce8694fa0e4decf65bfa",
       "stale_approvals": []
     }
   ]
@@ -1169,9 +1177,9 @@ Response:
     "title": "Payment webhooks",
     "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
     "created_by": "priya",
-    "created_at": "2026-10-28T23:47:11Z",
+    "created_at": "2026-10-30T07:41:34Z",
     "closed_at": null,
-    "snapshot_hash": "e9fd5ee49c205a97c26a92a8036e1cc93874977a347661b8aaba0dc52f232f05",
+    "snapshot_hash": "a98a462dac3c82099ff1a3e5fd850ac1dcc41a30612f84ef9abb4c4661ff2d0d",
     "phase": "DRAFT",
     "pill": "amber",
     "summary": "",
@@ -1179,7 +1187,7 @@ Response:
       "requirement": "# Payment webhooks\nMerchants want a webhook when a payment settles.",
       "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
       "created_by": "priya",
-      "at": "2026-10-28T23:47:11Z"
+      "at": "2026-10-30T07:41:34Z"
     }
   },
   "phase": "DRAFT",
@@ -1369,9 +1377,9 @@ Response:
     "title": "Order events for downstream consumers",
     "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4821",
     "created_by": "priya",
-    "created_at": "2026-10-22T23:47:00Z",
+    "created_at": "2026-10-24T07:41:00Z",
     "closed_at": null,
-    "snapshot_hash": "b89b1787f6cbf9782f595603aea29a5835be8d116a33816a4e79404a55ff8152",
+    "snapshot_hash": "0cd67b2220cbd2fc69ae3c5323d37a804d69bae80dfb18441708da9c20291b94",
     "phase": "BUILD",
     "pill": "amber",
     "summary": "",
@@ -1379,7 +1387,7 @@ Response:
       "requirement": "# Order events for downstream consumers\n\nNotifications-svc polls the orders database every minute to find new and cancelled orders.\nEmails go out late, and the polling query is the orders DB's top loa…",
       "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4821",
       "created_by": "priya",
-      "at": "2026-10-22T23:47:00Z"
+      "at": "2026-10-24T07:41:00Z"
     }
   },
   "phase": "BUILD",
@@ -1521,9 +1529,9 @@ Response:
         "rollback": "Revert the PR; the change is behind a flag."
       },
       "created_by": "runner-sdk/plan-to-tasks",
-      "created_at": "2026-10-24T03:47:00Z",
+      "created_at": "2026-10-25T11:41:00Z",
       "updated_by": "runner-sdk/plan-to-tasks",
-      "updated_at": "2026-10-24T03:47:00Z",
+      "updated_at": "2026-10-25T11:41:00Z",
       "gate_pr": {
         "status": "BLOCKED",
         "failing_rules": [
@@ -1567,9 +1575,9 @@ Response:
         "rollback": "Revert the PR; the change is behind a flag."
       },
       "created_by": "runner-sdk/plan-to-tasks",
-      "created_at": "2026-10-24T03:47:00Z",
+      "created_at": "2026-10-25T11:41:00Z",
       "updated_by": "runner-sdk/plan-to-tasks",
-      "updated_at": "2026-10-24T03:47:00Z",
+      "updated_at": "2026-10-25T11:41:00Z",
       "gate_pr": {
         "status": "BLOCKED",
         "failing_rules": [
@@ -1614,9 +1622,9 @@ Response:
         "review_rounds": "1"
       },
       "created_by": "runner-sdk/plan-to-tasks",
-      "created_at": "2026-10-24T03:47:00Z",
+      "created_at": "2026-10-25T11:41:00Z",
       "updated_by": "runner-sdk/implement-task",
-      "updated_at": "2026-10-26T23:47:00Z",
+      "updated_at": "2026-10-28T07:41:00Z",
       "gate_pr": {
         "status": "PASSED",
         "failing_rules": []
@@ -1691,7 +1699,7 @@ Response:
       "D-2",
       "… (+8 more)"
     ],
-    "created_at": "2026-10-24T01:47:00Z"
+    "created_at": "2026-10-25T09:41:00Z"
   },
   "drift": {
     "changes": 0,
@@ -1805,9 +1813,9 @@ Response:
     "title": "Menu sync retries",
     "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4833",
     "created_by": "priya",
-    "created_at": "2026-10-27T21:47:00Z",
+    "created_at": "2026-10-29T05:41:00Z",
     "closed_at": null,
-    "snapshot_hash": "955b0a384f28d904cef937c5ee0b594bb358539468a9bc313f6fc74063497c12",
+    "snapshot_hash": "3097d30d3c0ef5cc69b40b07b6ffb41959ba287e244ebe43959366e39c6a7030",
     "phase": "DRAFT",
     "pill": "amber",
     "summary": "",
@@ -1815,7 +1823,7 @@ Response:
       "requirement": "# Menu sync retries\nMenu pushes to partners fail on timeouts and are never retried, so stores show stale menus until someone pushes again by hand.\n\n**Done:** failed pushes retry on their own and no st…",
       "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4833",
       "created_by": "priya",
-      "at": "2026-10-27T21:47:00Z"
+      "at": "2026-10-29T05:41:00Z"
     }
   },
   "draft": {
@@ -1851,9 +1859,9 @@ Response:
       ]
     },
     "created_by": "runner-sdk/draft-from-ticket",
-    "created_at": "2026-10-27T23:47:00Z",
+    "created_at": "2026-10-29T07:41:00Z",
     "updated_by": "runner-sdk/draft-from-ticket",
-    "updated_at": "2026-10-28T19:47:00Z",
+    "updated_at": "2026-10-30T03:41:00Z",
     "links": {
       "out": [
         {
@@ -1877,42 +1885,42 @@ Response:
       "problem": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-27T23:47:00"
+        "at": "2026-10-29T07:41:00"
       },
       "hld": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-28T19:47:00"
+        "at": "2026-10-30T03:41:00"
       },
       "lld": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-27T23:47:00"
+        "at": "2026-10-29T07:41:00"
       },
       "scope_in": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-27T23:47:00"
+        "at": "2026-10-29T07:41:00"
       },
       "scope_out": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-27T23:47:00"
+        "at": "2026-10-29T07:41:00"
       },
       "test_strategy": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-27T23:47:00"
+        "at": "2026-10-29T07:41:00"
       },
       "decisions": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-27T23:47:00"
+        "at": "2026-10-29T07:41:00"
       },
       "criteria": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-27T23:47:00"
+        "at": "2026-10-29T07:41:00"
       }
     },
     "stale": [],
@@ -1947,12 +1955,12 @@ Response:
         "verdict": "Delayed queue in the menu-sync worker",
         "rationale": "Cites STD-2 retries with backoff and jitter; reuses the worker.",
         "decided_by": "runner-sdk/draft-skill",
-        "decided_on": "2026-10-27"
+        "decided_on": "2026-10-29"
       },
       "created_by": "runner-sdk/draft-from-ticket",
-      "created_at": "2026-10-27T23:47:00Z",
+      "created_at": "2026-10-29T07:41:00Z",
       "updated_by": "runner-sdk/draft-from-ticket",
-      "updated_at": "2026-10-27T23:47:00Z",
+      "updated_at": "2026-10-29T07:41:00Z",
       "links": {
         "out": [
           {
@@ -1976,42 +1984,42 @@ Response:
         "question": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T23:47:00"
+          "at": "2026-10-29T07:41:00"
         },
         "domain": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T23:47:00"
+          "at": "2026-10-29T07:41:00"
         },
         "level": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T23:47:00"
+          "at": "2026-10-29T07:41:00"
         },
         "options": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T23:47:00"
+          "at": "2026-10-29T07:41:00"
         },
         "verdict": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T23:47:00"
+          "at": "2026-10-29T07:41:00"
         },
         "rationale": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T23:47:00"
+          "at": "2026-10-29T07:41:00"
         },
         "decided_by": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T23:47:00"
+          "at": "2026-10-29T07:41:00"
         },
         "decided_on": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T23:47:00"
+          "at": "2026-10-29T07:41:00"
         }
       },
       "stale": [],
@@ -2048,9 +2056,9 @@ Response:
         ]
       },
       "created_by": "runner-sdk/draft-from-ticket",
-      "created_at": "2026-10-27T23:47:00Z",
+      "created_at": "2026-10-29T07:41:00Z",
       "updated_by": "runner-sdk/draft-from-ticket",
-      "updated_at": "2026-10-27T23:47:00Z",
+      "updated_at": "2026-10-29T07:41:00Z",
       "links": {
         "out": [],
         "in": [
@@ -2069,22 +2077,22 @@ Response:
         "question": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T23:47:00"
+          "at": "2026-10-29T07:41:00"
         },
         "domain": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T23:47:00"
+          "at": "2026-10-29T07:41:00"
         },
         "level": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T23:47:00"
+          "at": "2026-10-29T07:41:00"
         },
         "options": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T23:47:00"
+          "at": "2026-10-29T07:41:00"
         }
       },
       "stale": [],
@@ -2112,9 +2120,9 @@ Response:
         ]
       },
       "created_by": "runner-sdk/draft-from-ticket",
-      "created_at": "2026-10-27T23:47:00Z",
+      "created_at": "2026-10-29T07:41:00Z",
       "updated_by": "runner-sdk/draft-from-ticket",
-      "updated_at": "2026-10-28T19:47:00Z",
+      "updated_at": "2026-10-30T03:41:00Z",
       "links": {
         "out": [
           {
@@ -2133,17 +2141,17 @@ Response:
         "text": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T23:47:00"
+          "at": "2026-10-29T07:41:00"
         },
         "level": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T23:47:00"
+          "at": "2026-10-29T07:41:00"
         },
         "source": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T23:47:00"
+          "at": "2026-10-29T07:41:00"
         }
       },
       "stale": [],
@@ -2165,9 +2173,9 @@ Response:
         ]
       },
       "created_by": "runner-sdk/draft-from-ticket",
-      "created_at": "2026-10-27T23:47:00Z",
+      "created_at": "2026-10-29T07:41:00Z",
       "updated_by": "runner-sdk/draft-from-ticket",
-      "updated_at": "2026-10-28T19:47:00Z",
+      "updated_at": "2026-10-30T03:41:00Z",
       "links": {
         "out": [
           {
@@ -2190,17 +2198,17 @@ Response:
         "text": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T23:47:00"
+          "at": "2026-10-29T07:41:00"
         },
         "level": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T23:47:00"
+          "at": "2026-10-29T07:41:00"
         },
         "source": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-27T23:47:00"
+          "at": "2026-10-29T07:41:00"
         }
       },
       "stale": [],
@@ -2245,9 +2253,9 @@ Response:
         ]
       },
       "created_by": "runner-sdk/draft-from-ticket",
-      "created_at": "2026-10-28T19:47:00Z",
+      "created_at": "2026-10-30T03:41:00Z",
       "updated_by": "runner-sdk/draft-from-ticket",
-      "updated_at": "2026-10-28T19:47:00Z",
+      "updated_at": "2026-10-30T03:41:00Z",
       "links": {
         "out": [
           {
@@ -2271,57 +2279,57 @@ Response:
         "question": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T19:47:00"
+          "at": "2026-10-30T03:41:00"
         },
         "kind": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T19:47:00"
+          "at": "2026-10-30T03:41:00"
         },
         "domain": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T19:47:00"
+          "at": "2026-10-30T03:41:00"
         },
         "level": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T19:47:00"
+          "at": "2026-10-30T03:41:00"
         },
         "asked_by": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T19:47:00"
+          "at": "2026-10-30T03:41:00"
         },
         "why_now": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T19:47:00"
+          "at": "2026-10-30T03:41:00"
         },
         "context": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T19:47:00"
+          "at": "2026-10-30T03:41:00"
         },
         "options": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T19:47:00"
+          "at": "2026-10-30T03:41:00"
         },
         "recommendation": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T19:47:00"
+          "at": "2026-10-30T03:41:00"
         },
         "recommendation_why": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T19:47:00"
+          "at": "2026-10-30T03:41:00"
         },
         "blocks": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-28T19:47:00"
+          "at": "2026-10-30T03:41:00"
         }
       },
       "stale": [],
@@ -2424,9 +2432,9 @@ Response:
     "title": "Order events for downstream consumers",
     "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4821",
     "created_by": "priya",
-    "created_at": "2026-10-22T23:47:00Z",
+    "created_at": "2026-10-24T07:41:00Z",
     "closed_at": null,
-    "snapshot_hash": "b89b1787f6cbf9782f595603aea29a5835be8d116a33816a4e79404a55ff8152",
+    "snapshot_hash": "0cd67b2220cbd2fc69ae3c5323d37a804d69bae80dfb18441708da9c20291b94",
     "phase": "BUILD",
     "pill": "amber",
     "summary": "",
@@ -2434,7 +2442,7 @@ Response:
       "requirement": "# Order events for downstream consumers\n\nNotifications-svc polls the orders database every minute to find new and cancelled orders.\nEmails go out late, and the polling query is the orders DB's top loa…",
       "work_item_url": "https://dev.azure.com/navanta/commerce/_workitems/edit/4821",
       "created_by": "priya",
-      "at": "2026-10-22T23:47:00Z"
+      "at": "2026-10-24T07:41:00Z"
     }
   },
   "draft": {
@@ -2473,9 +2481,9 @@ Response:
       "submitted_rev": "3"
     },
     "created_by": "runner-sdk/draft-from-ticket",
-    "created_at": "2026-10-23T01:47:00Z",
+    "created_at": "2026-10-24T09:41:00Z",
     "updated_by": "runner-sdk/draft-from-ticket",
-    "updated_at": "2026-10-23T18:47:00Z",
+    "updated_at": "2026-10-25T02:41:00Z",
     "links": {
       "out": [
         {
@@ -2503,52 +2511,52 @@ Response:
       "summary": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-23T01:47:00"
+        "at": "2026-10-24T09:41:00"
       },
       "problem": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-23T01:47:00"
+        "at": "2026-10-24T09:41:00"
       },
       "hld": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-23T01:47:00"
+        "at": "2026-10-24T09:41:00"
       },
       "lld": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-23T01:47:00"
+        "at": "2026-10-24T09:41:00"
       },
       "scope_in": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-23T01:47:00"
+        "at": "2026-10-24T09:41:00"
       },
       "scope_out": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-23T01:47:00"
+        "at": "2026-10-24T09:41:00"
       },
       "test_strategy": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-23T04:47:00"
+        "at": "2026-10-24T12:41:00"
       },
       "decisions": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-23T01:47:00"
+        "at": "2026-10-24T09:41:00"
       },
       "criteria": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-23T18:47:00"
+        "at": "2026-10-25T02:41:00"
       },
       "submitted_rev": {
         "by": "runner-sdk/draft-from-ticket",
         "kind": "agent",
-        "at": "2026-10-23T18:47:00"
+        "at": "2026-10-25T02:41:00"
       }
     },
     "stale": [
@@ -2586,12 +2594,12 @@ Response:
         "rationale": "STD-1 needs exactly-once to the broker; dual-write breaks it and CDC is not set up on orders. Menu sync (D-55) chose the same.",
         "provisional": "no",
         "decided_by": "priya",
-        "decided_on": "2026-10-23"
+        "decided_on": "2026-10-24"
       },
       "created_by": "runner-sdk/draft-from-ticket",
-      "created_at": "2026-10-23T01:47:00Z",
+      "created_at": "2026-10-24T09:41:00Z",
       "updated_by": "priya",
-      "updated_at": "2026-10-23T08:47:00Z",
+      "updated_at": "2026-10-24T16:41:00Z",
       "links": {
         "out": [
           {
@@ -2615,47 +2623,47 @@ Response:
         "question": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "domain": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "level": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "options": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "verdict": {
           "by": "priya",
           "kind": "human",
-          "at": "2026-10-23T08:47:00"
+          "at": "2026-10-24T16:41:00"
         },
         "rationale": {
           "by": "priya",
           "kind": "human",
-          "at": "2026-10-23T08:47:00"
+          "at": "2026-10-24T16:41:00"
         },
         "provisional": {
           "by": "priya",
           "kind": "human",
-          "at": "2026-10-23T08:47:00"
+          "at": "2026-10-24T16:41:00"
         },
         "decided_by": {
           "by": "priya",
           "kind": "human",
-          "at": "2026-10-23T08:47:00"
+          "at": "2026-10-24T16:41:00"
         },
         "decided_on": {
           "by": "priya",
           "kind": "human",
-          "at": "2026-10-23T08:47:00"
+          "at": "2026-10-24T16:41:00"
         }
       },
       "stale": [],
@@ -2683,12 +2691,12 @@ Response:
         "rationale": "Follows the default menu-sync chose (D-55 there). A human answer later would supersede it.",
         "provisional": "yes",
         "decided_by": "runner-sdk/draft-skill",
-        "decided_on": "2026-10-22"
+        "decided_on": "2026-10-24"
       },
       "created_by": "runner-sdk/draft-from-ticket",
-      "created_at": "2026-10-23T01:47:00Z",
+      "created_at": "2026-10-24T09:41:00Z",
       "updated_by": "runner-sdk/draft-from-ticket",
-      "updated_at": "2026-10-23T01:47:00Z",
+      "updated_at": "2026-10-24T09:41:00Z",
       "links": {
         "out": [],
         "in": [
@@ -2707,42 +2715,42 @@ Response:
         "question": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "domain": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "level": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "verdict": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "rationale": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "provisional": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "decided_by": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "decided_on": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         }
       },
       "stale": [],
@@ -2770,9 +2778,9 @@ Response:
         ]
       },
       "created_by": "runner-sdk/draft-from-ticket",
-      "created_at": "2026-10-23T01:47:00Z",
+      "created_at": "2026-10-24T09:41:00Z",
       "updated_by": "runner-sdk/draft-from-ticket",
-      "updated_at": "2026-10-23T01:47:00Z",
+      "updated_at": "2026-10-24T09:41:00Z",
       "links": {
         "out": [
           {
@@ -2795,17 +2803,17 @@ Response:
         "text": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "level": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "source": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         }
       },
       "stale": [],
@@ -2827,9 +2835,9 @@ Response:
         ]
       },
       "created_by": "runner-sdk/draft-from-ticket",
-      "created_at": "2026-10-23T01:47:00Z",
+      "created_at": "2026-10-24T09:41:00Z",
       "updated_by": "runner-sdk/draft-from-ticket",
-      "updated_at": "2026-10-23T01:47:00Z",
+      "updated_at": "2026-10-24T09:41:00Z",
       "links": {
         "out": [
           {
@@ -2852,17 +2860,17 @@ Response:
         "text": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "level": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "source": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         }
       },
       "stale": [],
@@ -2907,15 +2915,16 @@ Response:
         "answer": "Yes — cancellations matter for notifications; refunds are out of scope.",
         "choice": "yes",
         "answered_by": "meera",
-        "answered_on": "2026-10-23T17:47:00Z",
+        "answered_on": "2026-10-25T01:41:00Z",
         "assigned_to": "meera",
         "assigned_role": "product",
+        "answered_via": "web",
         "resolution": "AC-7 added; order.cancelled is in scope."
       },
       "created_by": "runner-sdk/draft-from-ticket",
-      "created_at": "2026-10-23T01:47:00Z",
+      "created_at": "2026-10-24T09:41:00Z",
       "updated_by": "runner-sdk/draft-from-ticket",
-      "updated_at": "2026-10-23T18:47:00Z",
+      "updated_at": "2026-10-25T02:41:00Z",
       "links": {
         "out": [
           {
@@ -2938,92 +2947,97 @@ Response:
         "question": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "kind": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "domain": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "level": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "asked_by": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "why_now": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "context": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "options": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "recommendation": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "recommendation_why": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "blocks": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T01:47:00"
+          "at": "2026-10-24T09:41:00"
         },
         "answer": {
           "by": "meera",
           "kind": "human",
-          "at": "2026-10-23T17:47:00"
+          "at": "2026-10-25T01:41:00"
         },
         "choice": {
           "by": "meera",
           "kind": "human",
-          "at": "2026-10-23T17:47:00"
+          "at": "2026-10-25T01:41:00"
         },
         "answered_by": {
           "by": "meera",
           "kind": "human",
-          "at": "2026-10-23T17:47:00"
+          "at": "2026-10-25T01:41:00"
         },
         "answered_on": {
           "by": "meera",
           "kind": "human",
-          "at": "2026-10-23T17:47:00"
+          "at": "2026-10-25T01:41:00"
         },
         "assigned_to": {
           "by": "meera",
           "kind": "human",
-          "at": "2026-10-23T17:47:00"
+          "at": "2026-10-25T01:41:00"
         },
         "assigned_role": {
           "by": "meera",
           "kind": "human",
-          "at": "2026-10-23T17:47:00"
+          "at": "2026-10-25T01:41:00"
+        },
+        "answered_via": {
+          "by": "meera",
+          "kind": "human",
+          "at": "2026-10-25T01:41:00"
         },
         "resolution": {
           "by": "runner-sdk/draft-from-ticket",
           "kind": "agent",
-          "at": "2026-10-23T18:47:00"
+          "at": "2026-10-25T02:41:00"
         }
       },
       "stale": [],
@@ -3067,9 +3081,9 @@ Response:
         "proposed_change": "D-1 verdict: outbox → CDC via Debezium on the orders table. Add AC: CDC lag over 5 s for 2 min fires the alert. LLD event delivery section rewritten."
       },
       "created_by": "runner-sdk/implement-task",
-      "created_at": "2026-10-28T21:47:00Z",
+      "created_at": "2026-10-30T05:41:00Z",
       "updated_by": "runner-sdk/implement-task",
-      "updated_at": "2026-10-28T21:47:00Z",
+      "updated_at": "2026-10-30T05:41:00Z",
       "links": {
         "out": [
           {
@@ -3088,62 +3102,62 @@ Response:
         "question": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T21:47:00"
+          "at": "2026-10-30T05:41:00"
         },
         "kind": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T21:47:00"
+          "at": "2026-10-30T05:41:00"
         },
         "domain": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T21:47:00"
+          "at": "2026-10-30T05:41:00"
         },
         "level": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T21:47:00"
+          "at": "2026-10-30T05:41:00"
         },
         "asked_by": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T21:47:00"
+          "at": "2026-10-30T05:41:00"
         },
         "why_now": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T21:47:00"
+          "at": "2026-10-30T05:41:00"
         },
         "context": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T21:47:00"
+          "at": "2026-10-30T05:41:00"
         },
         "options": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T21:47:00"
+          "at": "2026-10-30T05:41:00"
         },
         "recommendation": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T21:47:00"
+          "at": "2026-10-30T05:41:00"
         },
         "recommendation_why": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T21:47:00"
+          "at": "2026-10-30T05:41:00"
         },
         "blocks": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T21:47:00"
+          "at": "2026-10-30T05:41:00"
         },
         "proposed_change": {
           "by": "runner-sdk/implement-task",
           "kind": "agent",
-          "at": "2026-10-28T21:47:00"
+          "at": "2026-10-30T05:41:00"
         }
       },
       "stale": [],
@@ -3231,9 +3245,9 @@ Response:
         "note": "Scope is right. Ship behind the flag."
       },
       "created_by": "priya",
-      "created_at": "2026-10-24T01:47:00Z",
+      "created_at": "2026-10-25T09:41:00Z",
       "updated_by": "priya",
-      "updated_at": "2026-10-24T01:47:00Z"
+      "updated_at": "2026-10-25T09:41:00Z"
     }
   ],
   "baselines": [
@@ -3249,7 +3263,7 @@ Response:
         "D-1",
         "… (+9 more)"
       ],
-      "created_at": "2026-10-24T01:47:00Z"
+      "created_at": "2026-10-25T09:41:00Z"
     }
   ],
   "review_items": []
@@ -3297,12 +3311,12 @@ Response:
       "rationale": "STD-1 needs exactly-once to the broker; dual-write breaks it and CDC is not set up on orders. Menu sync (D-55) chose the same.",
       "provisional": "no",
       "decided_by": "priya",
-      "decided_on": "2026-10-23"
+      "decided_on": "2026-10-24"
     },
     "created_by": "runner-sdk/draft-from-ticket",
-    "created_at": "2026-10-23T01:47:00Z",
+    "created_at": "2026-10-24T09:41:00Z",
     "updated_by": "priya",
-    "updated_at": "2026-10-23T08:47:00Z"
+    "updated_at": "2026-10-24T16:41:00Z"
   },
   {
     "ref": "D-2",
@@ -3320,12 +3334,12 @@ Response:
       "rationale": "Follows the default menu-sync chose (D-55 there). A human answer later would supersede it.",
       "provisional": "yes",
       "decided_by": "runner-sdk/draft-skill",
-      "decided_on": "2026-10-22"
+      "decided_on": "2026-10-24"
     },
     "created_by": "runner-sdk/draft-from-ticket",
-    "created_at": "2026-10-23T01:47:00Z",
+    "created_at": "2026-10-24T09:41:00Z",
     "updated_by": "runner-sdk/draft-from-ticket",
-    "updated_at": "2026-10-23T01:47:00Z"
+    "updated_at": "2026-10-24T09:41:00Z"
   }
 ]
 ```
@@ -3377,9 +3391,9 @@ Response:
     "proposed_change": "D-1 verdict: outbox → CDC via Debezium on the orders table. Add AC: CDC lag over 5 s for 2 min fires the alert. LLD event delivery section rewritten."
   },
   "created_by": "runner-sdk/implement-task",
-  "created_at": "2026-10-28T21:47:00Z",
+  "created_at": "2026-10-30T05:41:00Z",
   "updated_by": "runner-sdk/implement-task",
-  "updated_at": "2026-10-28T21:47:00Z",
+  "updated_at": "2026-10-30T05:41:00Z",
   "links": {
     "out": [
       {
@@ -3398,62 +3412,62 @@ Response:
     "question": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T21:47:00"
+      "at": "2026-10-30T05:41:00"
     },
     "kind": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T21:47:00"
+      "at": "2026-10-30T05:41:00"
     },
     "domain": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T21:47:00"
+      "at": "2026-10-30T05:41:00"
     },
     "level": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T21:47:00"
+      "at": "2026-10-30T05:41:00"
     },
     "asked_by": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T21:47:00"
+      "at": "2026-10-30T05:41:00"
     },
     "why_now": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T21:47:00"
+      "at": "2026-10-30T05:41:00"
     },
     "context": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T21:47:00"
+      "at": "2026-10-30T05:41:00"
     },
     "options": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T21:47:00"
+      "at": "2026-10-30T05:41:00"
     },
     "recommendation": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T21:47:00"
+      "at": "2026-10-30T05:41:00"
     },
     "recommendation_why": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T21:47:00"
+      "at": "2026-10-30T05:41:00"
     },
     "blocks": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T21:47:00"
+      "at": "2026-10-30T05:41:00"
     },
     "proposed_change": {
       "by": "runner-sdk/implement-task",
       "kind": "agent",
-      "at": "2026-10-28T21:47:00"
+      "at": "2026-10-30T05:41:00"
     }
   },
   "stale": [],
@@ -3497,17 +3511,17 @@ Response:
       "rationale": "STD-1 needs exactly-once to the broker; dual-write breaks it and CDC is not set up on orders. Menu sync (D-55) chose the same.",
       "provisional": "no",
       "decided_by": "priya",
-      "decided_on": "2026-10-23"
+      "decided_on": "2026-10-24"
     },
     "links": [
       "mentions:STD-1"
     ],
     "actor": "priya",
     "actor_kind": "human",
-    "batch_id": "d90f2d4d-6faf-4094-b737-6647d625312d",
+    "batch_id": "ac780616-1e74-4446-b101-837e4bc0863d",
     "note": "ruled in the inbox",
     "because": [],
-    "at": "2026-10-23T08:47:00Z"
+    "at": "2026-10-24T16:41:00Z"
   },
   {
     "rev": 1,
@@ -3537,10 +3551,10 @@ Response:
     ],
     "actor": "runner-sdk/draft-from-ticket",
     "actor_kind": "agent",
-    "batch_id": "49c0692b-0c83-4fe1-b4cd-96965adfaaa7",
+    "batch_id": "57c19647-761c-4e81-8c2d-55c9df7f5fa7",
     "note": "",
     "because": [],
-    "at": "2026-10-23T01:47:00Z"
+    "at": "2026-10-24T09:41:00Z"
   }
 ]
 ```
@@ -3728,7 +3742,7 @@ Response:
   "error_code": "VALIDATION_ERROR",
   "error_data": {
     "ok": false,
-    "batch_id": "3489e2b2-493c-419d-9e51-7dd02d51b6bb",
+    "batch_id": "b5b9acef-8645-4240-b40a-9e159e71d807",
     "results": [
       {
         "index": 0,
@@ -3800,10 +3814,10 @@ Response:
         "fallback": false
       },
       "person": "arjun",
-      "since": "2026-10-28T21:47:00Z",
+      "since": "2026-10-30T05:41:00Z",
       "age_hours": 2.0,
       "sla_hours": 24,
-      "due_at": "2026-10-29T21:47:00Z",
+      "due_at": "2026-10-31T05:41:00Z",
       "overdue": false,
       "priority": 10,
       "title": "The outbox table can't be added to the orders schema in time",
@@ -3845,9 +3859,9 @@ Response:
           "proposed_change": "D-1 verdict: outbox → CDC via Debezium on the orders table. Add AC: CDC lag over 5 s for 2 min fires the alert. LLD event delivery section rewritten."
         },
         "created_by": "runner-sdk/implement-task",
-        "created_at": "2026-10-28T21:47:00Z",
+        "created_at": "2026-10-30T05:41:00Z",
         "updated_by": "runner-sdk/implement-task",
-        "updated_at": "2026-10-28T21:47:00Z"
+        "updated_at": "2026-10-30T05:41:00Z"
       },
       "question": "The outbox table can't be added to the orders schema in time. How should events be delivered instead?",
       "context": "Approved decision D-1 needs an outbox table written in the same transaction as orders. The repo's rules say the orders schema is DBA-owned and new tables need a two-week change window.\n\n> \"New tables …",
@@ -3886,10 +3900,10 @@ Response:
         "fallback": false
       },
       "person": "arjun",
-      "since": "2026-10-27T20:47:00Z",
+      "since": "2026-10-29T04:41:00Z",
       "age_hours": 27.0,
       "sla_hours": 48,
-      "due_at": "2026-10-29T20:47:00Z",
+      "due_at": "2026-10-31T04:41:00Z",
       "overdue": false,
       "priority": 20,
       "title": "Review the drift of T-3: Refunds ledger API",
@@ -3906,7 +3920,7 @@ Response:
         "pending_decisions": 0,
         "other_changes": 0
       },
-      "digest": "29ee1cd6b1d755e556ce7df88b2ed4fb3dadd04c2cc738053116cb61a268ce23",
+      "digest": "aa08550c5085fccfd40c398a894c019678e5627b4bcfce8694fa0e4decf65bfa",
       "stale_approvals": []
     },
     "… (+1 more)"
@@ -3937,7 +3951,12 @@ Response:
       },
       "… (+2 more)"
     ],
-    "inbox": 3
+    "inbox": 3,
+    "name": null,
+    "email": null,
+    "in_directory": false,
+    "teams_user_id": null,
+    "identities": []
   },
   {
     "person": "meera",
@@ -3952,7 +3971,12 @@ Response:
       },
       "… (+4 more)"
     ],
-    "inbox": 1
+    "inbox": 1,
+    "name": null,
+    "email": null,
+    "in_directory": false,
+    "teams_user_id": null,
+    "identities": []
   },
   "… (+4 more)"
 ]
@@ -3978,7 +4002,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "76ca1fe2-d9dc-4fd0-8f76-9795a6c16d4c",
+  "batch_id": "719934f8-3f61-4690-96d9-b3443c34c567",
   "results": [
     {
       "index": 0,
@@ -4049,15 +4073,16 @@ Response:
     "answer": "Per partner: one flaky partner must not starve the rest.",
     "choice": "per-partner",
     "answered_by": "priya",
-    "answered_on": "2026-10-28T23:47:11Z",
+    "answered_on": "2026-10-30T07:41:34Z",
     "assigned_to": "meera",
     "assigned_role": "product",
-    "answered_for": "meera"
+    "answered_for": "meera",
+    "answered_via": "web"
   },
   "created_by": "runner-sdk/draft-from-ticket",
-  "created_at": "2026-10-28T19:47:00Z",
+  "created_at": "2026-10-30T03:41:00Z",
   "updated_by": "priya",
-  "updated_at": "2026-10-28T23:47:11Z",
+  "updated_at": "2026-10-30T07:41:34Z",
   "links": {
     "out": [
       {
@@ -4085,92 +4110,97 @@ Response:
     "question": {
       "by": "runner-sdk/draft-from-ticket",
       "kind": "agent",
-      "at": "2026-10-28T19:47:00"
+      "at": "2026-10-30T03:41:00"
     },
     "kind": {
       "by": "runner-sdk/draft-from-ticket",
       "kind": "agent",
-      "at": "2026-10-28T19:47:00"
+      "at": "2026-10-30T03:41:00"
     },
     "domain": {
       "by": "runner-sdk/draft-from-ticket",
       "kind": "agent",
-      "at": "2026-10-28T19:47:00"
+      "at": "2026-10-30T03:41:00"
     },
     "level": {
       "by": "runner-sdk/draft-from-ticket",
       "kind": "agent",
-      "at": "2026-10-28T19:47:00"
+      "at": "2026-10-30T03:41:00"
     },
     "asked_by": {
       "by": "runner-sdk/draft-from-ticket",
       "kind": "agent",
-      "at": "2026-10-28T19:47:00"
+      "at": "2026-10-30T03:41:00"
     },
     "why_now": {
       "by": "runner-sdk/draft-from-ticket",
       "kind": "agent",
-      "at": "2026-10-28T19:47:00"
+      "at": "2026-10-30T03:41:00"
     },
     "context": {
       "by": "runner-sdk/draft-from-ticket",
       "kind": "agent",
-      "at": "2026-10-28T19:47:00"
+      "at": "2026-10-30T03:41:00"
     },
     "options": {
       "by": "runner-sdk/draft-from-ticket",
       "kind": "agent",
-      "at": "2026-10-28T19:47:00"
+      "at": "2026-10-30T03:41:00"
     },
     "recommendation": {
       "by": "runner-sdk/draft-from-ticket",
       "kind": "agent",
-      "at": "2026-10-28T19:47:00"
+      "at": "2026-10-30T03:41:00"
     },
     "recommendation_why": {
       "by": "runner-sdk/draft-from-ticket",
       "kind": "agent",
-      "at": "2026-10-28T19:47:00"
+      "at": "2026-10-30T03:41:00"
     },
     "blocks": {
       "by": "runner-sdk/draft-from-ticket",
       "kind": "agent",
-      "at": "2026-10-28T19:47:00"
+      "at": "2026-10-30T03:41:00"
     },
     "answer": {
       "by": "priya",
       "kind": "human",
-      "at": "2026-10-28T23:47:11"
+      "at": "2026-10-30T07:41:34"
     },
     "choice": {
       "by": "priya",
       "kind": "human",
-      "at": "2026-10-28T23:47:11"
+      "at": "2026-10-30T07:41:34"
     },
     "answered_by": {
       "by": "priya",
       "kind": "human",
-      "at": "2026-10-28T23:47:11"
+      "at": "2026-10-30T07:41:34"
     },
     "answered_on": {
       "by": "priya",
       "kind": "human",
-      "at": "2026-10-28T23:47:11"
+      "at": "2026-10-30T07:41:34"
     },
     "assigned_to": {
       "by": "priya",
       "kind": "human",
-      "at": "2026-10-28T23:47:11"
+      "at": "2026-10-30T07:41:34"
     },
     "assigned_role": {
       "by": "priya",
       "kind": "human",
-      "at": "2026-10-28T23:47:11"
+      "at": "2026-10-30T07:41:34"
     },
     "answered_for": {
       "by": "priya",
       "kind": "human",
-      "at": "2026-10-28T23:47:11"
+      "at": "2026-10-30T07:41:34"
+    },
+    "answered_via": {
+      "by": "priya",
+      "kind": "human",
+      "at": "2026-10-30T07:41:34"
     }
   },
   "stale": [],
@@ -4198,7 +4228,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "9cdc9280-e449-45e5-8c60-253406a81485",
+  "batch_id": "05ab8ba0-5920-43e5-a4c5-45534ac6343a",
   "results": [
     {
       "index": 0,
@@ -4256,7 +4286,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "cdba73c8-e4bb-4d58-97fd-7a69a9c17c4e",
+  "batch_id": "3c87ca38-0308-4e08-aa6f-b55a43d14d8f",
   "results": [
     {
       "index": 0,
@@ -4306,7 +4336,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "b665f71f-930b-42f0-93d5-92013ac910e0",
+  "batch_id": "111f14f6-c949-46bb-bfe8-35e6efee91bb",
   "results": [
     {
       "index": 0,
@@ -4347,7 +4377,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "179cf3dd-cf20-4459-9009-e290aa7451cb",
+  "batch_id": "e08e3cb9-d05d-4707-9c15-100877176277",
   "results": [
     {
       "index": 0,
@@ -4402,9 +4432,9 @@ Response:
       "title": "Payment webhooks",
       "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
       "created_by": "priya",
-      "created_at": "2026-10-28T23:47:11Z",
+      "created_at": "2026-10-30T07:41:34Z",
       "closed_at": null,
-      "snapshot_hash": "c4475b1426e38d16e930675dffc910963a03c1df2b36ac69fdb1bc5fd7d87ee4",
+      "snapshot_hash": "3e1d0980654a7e1f11252a40a60e77f88085137c7dd361b379fa08ec41566e8c",
       "phase": "PLAN",
       "pill": "amber",
       "summary": "",
@@ -4412,9 +4442,9 @@ Response:
         "requirement": "# Payment webhooks\nMerchants want a webhook when a payment settles **or is refunded**.",
         "work_item_url": "https://dev.azure.com/acme/commerce/_workitems/edit/4410",
         "created_by": "priya",
-        "at": "2026-10-28T23:47:11Z",
-        "previous_hash": "e9fd5ee49c205a97c26a92a8036e1cc93874977a347661b8aaba0dc52f232f05",
-        "previous_at": "2026-10-28T23:47:11Z"
+        "at": "2026-10-30T07:41:34Z",
+        "previous_hash": "a98a462dac3c82099ff1a3e5fd850ac1dcc41a30612f84ef9abb4c4661ff2d0d",
+        "previous_at": "2026-10-30T07:41:34Z"
       }
     },
     "phase": "PLAN",
@@ -4497,7 +4527,7 @@ Response:
         "draft",
         "… (+3 more)"
       ],
-      "created_at": "2026-10-28T23:47:11Z"
+      "created_at": "2026-10-30T07:41:34Z"
     },
     "drift": {
       "changes": 2,
@@ -4550,7 +4580,7 @@ Response:
   },
   "write": {
     "ok": true,
-    "batch_id": "7a980e79-ca96-4df8-8c5d-6c934da6bcda",
+    "batch_id": "2c92461c-2657-4cb6-b4cb-d4fe0de51ea3",
     "results": [
       {
         "index": 0,
@@ -4565,7 +4595,7 @@ Response:
     ],
     "minted": {},
     "review_items": [
-      "draft ← initiative: snapshot_hash: “e9fd5ee49c205a97c26a92a8036e1cc93874977a347661b8aaba0dc52f2…” → “c4475b1426e38d16e930675dffc910963a03c1df2b36ac69fdb1bc5fd7d…” (→ priya)"
+      "draft ← initiative: snapshot_hash: “a98a462dac3c82099ff1a3e5fd850ac1dcc41a30612f84ef9abb4c4661f…” → “3e1d0980654a7e1f11252a40a60e77f88085137c7dd361b379fa08ec415…” (→ priya)"
     ],
     "stale": [],
     "gates_changed": [],
@@ -4592,7 +4622,7 @@ Response:
     "target": "draft",
     "cause": "initiative",
     "cause_rev": 3,
-    "what_moved": "snapshot_hash: “e9fd5ee49c205a97c26a92a8036e1cc93874977a347661b8aaba0dc52f2…” → “c4475b1426e38d16e930675dffc910963a03c1df2b36ac69fdb1bc5fd7d…”",
+    "what_moved": "snapshot_hash: “a98a462dac3c82099ff1a3e5fd850ac1dcc41a30612f84ef9abb4c4661f…” → “3e1d0980654a7e1f11252a40a60e77f88085137c7dd361b379fa08ec415…”",
     "path": "scope",
     "status": "open",
     "route_to": "priya",
@@ -4600,7 +4630,7 @@ Response:
     "judged_by": "rules",
     "note": null,
     "created_by": "priya",
-    "created_at": "2026-10-28T23:47:11Z",
+    "created_at": "2026-10-30T07:41:34Z",
     "resolved_by": null,
     "resolved_at": null
   }
@@ -4630,7 +4660,7 @@ Response:
   "target": "draft",
   "cause": "initiative",
   "cause_rev": 3,
-  "what_moved": "snapshot_hash: “e9fd5ee49c205a97c26a92a8036e1cc93874977a347661b8aaba0dc52f2…” → “c4475b1426e38d16e930675dffc910963a03c1df2b36ac69fdb1bc5fd7d…”",
+  "what_moved": "snapshot_hash: “a98a462dac3c82099ff1a3e5fd850ac1dcc41a30612f84ef9abb4c4661f…” → “3e1d0980654a7e1f11252a40a60e77f88085137c7dd361b379fa08ec415…”",
   "path": "scope",
   "status": "upheld",
   "route_to": "priya",
@@ -4638,9 +4668,9 @@ Response:
   "judged_by": "rules",
   "note": "Refunds are a separate initiative; the draft holds.",
   "created_by": "priya",
-  "created_at": "2026-10-28T23:47:11Z",
+  "created_at": "2026-10-30T07:41:34Z",
   "resolved_by": "priya",
-  "resolved_at": "2026-10-28T23:47:11Z"
+  "resolved_at": "2026-10-30T07:41:34Z"
 }
 ```
 
@@ -4683,9 +4713,9 @@ Response:
       "review_rounds": "1"
     },
     "created_by": "runner-sdk/plan-to-tasks",
-    "created_at": "2026-10-24T03:47:00Z",
+    "created_at": "2026-10-25T11:41:00Z",
     "updated_by": "runner-sdk/implement-task",
-    "updated_at": "2026-10-26T23:47:00Z",
+    "updated_at": "2026-10-28T07:41:00Z",
     "links": {
       "out": [
         {
@@ -4720,57 +4750,57 @@ Response:
       "goal": {
         "by": "runner-sdk/plan-to-tasks",
         "kind": "agent",
-        "at": "2026-10-24T03:47:00"
+        "at": "2026-10-25T11:41:00"
       },
       "repo": {
         "by": "runner-sdk/plan-to-tasks",
         "kind": "agent",
-        "at": "2026-10-24T03:47:00"
+        "at": "2026-10-25T11:41:00"
       },
       "template": {
         "by": "runner-sdk/plan-to-tasks",
         "kind": "agent",
-        "at": "2026-10-24T03:47:00"
+        "at": "2026-10-25T11:41:00"
       },
       "implements": {
         "by": "runner-sdk/plan-to-tasks",
         "kind": "agent",
-        "at": "2026-10-24T03:47:00"
+        "at": "2026-10-25T11:41:00"
       },
       "covers": {
         "by": "runner-sdk/plan-to-tasks",
         "kind": "agent",
-        "at": "2026-10-24T03:47:00"
+        "at": "2026-10-25T11:41:00"
       },
       "rollback": {
         "by": "runner-sdk/plan-to-tasks",
         "kind": "agent",
-        "at": "2026-10-24T03:47:00"
+        "at": "2026-10-25T11:41:00"
       },
       "pr_url": {
         "by": "runner-sdk/implement-task",
         "kind": "agent",
-        "at": "2026-10-26T23:47:00"
+        "at": "2026-10-28T07:41:00"
       },
       "pr_state": {
         "by": "runner-sdk/implement-task",
         "kind": "agent",
-        "at": "2026-10-26T23:47:00"
+        "at": "2026-10-28T07:41:00"
       },
       "pr_sha": {
         "by": "runner-sdk/implement-task",
         "kind": "agent",
-        "at": "2026-10-26T23:47:00"
+        "at": "2026-10-28T07:41:00"
       },
       "ci_attempts": {
         "by": "runner-sdk/implement-task",
         "kind": "agent",
-        "at": "2026-10-26T23:47:00"
+        "at": "2026-10-28T07:41:00"
       },
       "review_rounds": {
         "by": "runner-sdk/implement-task",
         "kind": "agent",
-        "at": "2026-10-26T23:47:00"
+        "at": "2026-10-28T07:41:00"
       }
     },
     "stale": [],
@@ -4826,7 +4856,7 @@ Response:
       "approval": "APR-1",
       "approved_by": "priya",
       "draft_rev": "3",
-      "created_at": "2026-10-24T01:47:00Z",
+      "created_at": "2026-10-25T09:41:00Z",
       "members": 11
     },
     "until": null,
@@ -4858,7 +4888,7 @@ Response:
           "T-1"
         ],
         "asked_by": "runner-sdk/implement-task",
-        "at": "2026-10-28T21:47:00Z"
+        "at": "2026-10-30T05:41:00Z"
       }
     ],
     "pending_decisions": [],
@@ -4992,7 +5022,7 @@ Response:
         "drift_digest": "2e955487883a09bdcd5582737e965530635e0a3b5ce49a656c761298c4ec4f93",
         "matches_digest": true,
         "note": "Topic, role and dashboard as in the HLD.",
-        "at": "2026-10-27T03:47:00Z"
+        "at": "2026-10-28T11:41:00Z"
       }
     ]
   },
@@ -5011,7 +5041,7 @@ Response:
         "level": "integration",
         "result": "GREEN",
         "at_sha": "a41c09e",
-        "run_url": "https://ci.navanta.dev/runs/57031",
+        "run_url": "https://ci.navanta.dev/runs/12005",
         "environment": "ci",
         "task": [
           "T-3"
@@ -5023,12 +5053,12 @@ Response:
             "test_id": "test_AC_4_topic_acl"
           }
         ],
-        "run_on": "2026-10-28T22:47"
+        "run_on": "2026-10-30T06:41"
       },
       "created_by": "runner-sdk/write-tests",
-      "created_at": "2026-10-26T23:47:00Z",
+      "created_at": "2026-10-28T07:41:00Z",
       "updated_by": "runner-sdk/write-tests",
-      "updated_at": "2026-10-26T23:47:00Z"
+      "updated_at": "2026-10-28T07:41:00Z"
     }
   ],
   "findings": [],
@@ -5056,7 +5086,7 @@ Response:
     "approval": "APR-1",
     "approved_by": "priya",
     "draft_rev": "1",
-    "created_at": "2026-10-09T23:47:00Z",
+    "created_at": "2026-10-11T07:41:00Z",
     "members": 7
   },
   "until": null,
@@ -5074,7 +5104,7 @@ Response:
     "pending_decisions": 0,
     "other_changes": 0
   },
-  "digest": "75558c81769d96ff0209ee1210f0e3ca4e5e3778c20f568074e33508284a9607",
+  "digest": "f4e2b3666dfbfc5cddc33fa34d72e3f09b2346e2db33663a485ceb3ab75540a3",
   "entries": [
     {
       "id": "gap_answered:G-1@2",
@@ -5082,7 +5112,7 @@ Response:
       "ref": "G-1",
       "type": "gap",
       "rev": 2,
-      "at": "2026-10-13T03:47:00Z",
+      "at": "2026-10-14T11:41:00Z",
       "actor": "meera",
       "actor_kind": "human",
       "summary": "G-1 answered by meera: “Delta sync — a minute is what partners were promised.”",
@@ -5122,7 +5152,7 @@ Response:
       "ref": "D-3",
       "type": "decision",
       "rev": 1,
-      "at": "2026-10-13T05:47:00Z",
+      "at": "2026-10-14T13:41:00Z",
       "actor": "runner-sdk/implement-task",
       "actor_kind": "agent",
       "summary": "D-3 supersedes D-1: verdict “Full sync every 5 minutes” → “Delta sync every 30 seconds”",
@@ -5261,10 +5291,10 @@ Response:
       "by": "nikhil",
       "status": "CURRENT",
       "at_sha": "8b9c0d1e",
-      "drift_digest": "75558c81769d96ff0209ee1210f0e3ca4e5e3778c20f568074e33508284a9607",
+      "drift_digest": "f4e2b3666dfbfc5cddc33fa34d72e3f09b2346e2db33663a485ceb3ab75540a3",
       "matches_digest": true,
       "note": "",
-      "at": "2026-10-24T23:47:00Z"
+      "at": "2026-10-26T07:41:00Z"
     }
   ]
 }
@@ -5279,13 +5309,13 @@ The same report as the PR's sticky comment.
 Response (`text/markdown; charset=utf-8`):
 
 ````markdown
-## Drift since baseline B-1 (approved by priya, 2026-10-09, draft rev 1) — scope: T-1
-**2 changes · 2 explained · 0 unexplained** · digest `75558c81…`
+## Drift since baseline B-1 (approved by priya, 2026-10-11, draft rev 1) — scope: T-1
+**2 changes · 2 explained · 0 unexplained** · digest `f4e2b366…`
 
 | when | who | change | because | |
 |---|---|---|---|---|
-| 10-13 03:47 | meera (human) | G-1 answered by meera: “Delta sync — a minute is what partners were promised.” | — | ✓ |
-| 10-13 05:47 | runner-sdk/implement-task | D-3 supersedes D-1: verdict “Full sync every 5 minutes” → “Delta sync every 30 seconds” | G-1 | ✓ |
+| 10-14 11:41 | meera (human) | G-1 answered by meera: “Delta sync — a minute is what partners were promised.” | — | ✓ |
+| 10-14 13:41 | runner-sdk/implement-task | D-3 supersedes D-1: verdict “Full sync every 5 minutes” → “Delta sync every 30 seconds” | G-1 | ✓ |
 
 ### Spec diff · decisions: 1 superseded
 - D-1 → D-3: “Full sync every 5 minutes” → “Delta sync every 30 seconds”
@@ -5311,7 +5341,7 @@ Response:
     "approval": "APR-1",
     "approved_by": "priya",
     "draft_rev": "3",
-    "created_at": "2026-10-24T01:47:00Z",
+    "created_at": "2026-10-25T09:41:00Z",
     "members": 11
   },
   "until": null,
@@ -5341,7 +5371,7 @@ Response:
         "… (+1 more)"
       ],
       "asked_by": "runner-sdk/implement-task",
-      "at": "2026-10-28T21:47:00Z"
+      "at": "2026-10-30T05:41:00Z"
     }
   ],
   "pending_decisions": [],
@@ -5458,7 +5488,7 @@ Response:
     "approval": "APR-1",
     "approved_by": "priya",
     "draft_rev": "1",
-    "created_at": "2026-10-20T23:47:00Z",
+    "created_at": "2026-10-22T07:41:00Z",
     "members": 8
   },
   "until": null,
@@ -5471,7 +5501,7 @@ Response:
     "pending_decisions": 0,
     "other_changes": 0
   },
-  "digest": "0f9c442c2765bb0920f0489d7c5aa4cc608e709d40a950e081e2739259e13c1c",
+  "digest": "6cb8ffda70a91ea5e03cc6fc4fe40fe7b2a7af3164f4c3da287000fe53fd17d0",
   "entries": [
     {
       "id": "ac_changed:AC-4@2",
@@ -5479,7 +5509,7 @@ Response:
       "ref": "AC-4",
       "type": "acceptance_criterion",
       "rev": 2,
-      "at": "2026-10-28T19:47:00Z",
+      "at": "2026-10-30T03:41:00Z",
       "actor": "runner-sdk/implement-task",
       "actor_kind": "agent",
       "summary": "AC-4 changed: text: “Points expire 365 days after earning” → “Points expire 365 days after the last purchase”",
@@ -5629,7 +5659,7 @@ Response:
     "approval": "APR-1",
     "approved_by": "priya",
     "draft_rev": "1",
-    "created_at": "2026-10-28T23:47:11Z",
+    "created_at": "2026-10-30T07:41:34Z",
     "members": 4
   },
   "until": null,
@@ -5642,7 +5672,7 @@ Response:
     "pending_decisions": 0,
     "other_changes": 0
   },
-  "digest": "92d017d2a50b1653e5bdddd50de7c13fa6c24480e05e50b7cbd86d953ba42952",
+  "digest": "5d3db0d113cb3fbd51d7d4587d0a42d5177b8297ac9fda17037e23256fe1265e",
   "entries": [
     {
       "id": "requirement_repinned:initiative@3",
@@ -5650,10 +5680,10 @@ Response:
       "ref": "initiative",
       "type": "initiative",
       "rev": 3,
-      "at": "2026-10-28T23:47:11Z",
+      "at": "2026-10-30T07:41:34Z",
       "actor": "priya",
       "actor_kind": "human",
-      "summary": "requirement re-pinned by priya (hash c4475b14)",
+      "summary": "requirement re-pinned by priya (hash 3e1d0980)",
       "what_moved": [
         "snapshot_hash"
       ],
@@ -5676,7 +5706,7 @@ Response:
       "ref": "AC-1",
       "type": "acceptance_criterion",
       "rev": 2,
-      "at": "2026-10-28T23:47:11Z",
+      "at": "2026-10-30T07:41:34Z",
       "actor": "priya",
       "actor_kind": "human",
       "summary": "AC-1 retired: Signature checks move to the shared webhook library.",
@@ -6236,9 +6266,9 @@ Response:
             "proposed_change": "D-1 verdict: outbox → CDC via Debezium on the orders table. Add AC: CDC lag over 5 s for 2 min fires the alert. LLD event delivery section rewritten."
           },
           "created_by": "runner-sdk/implement-task",
-          "created_at": "2026-10-28T21:47:00Z",
+          "created_at": "2026-10-30T05:41:00Z",
           "updated_by": "runner-sdk/implement-task",
-          "updated_at": "2026-10-28T21:47:00Z",
+          "updated_at": "2026-10-30T05:41:00Z",
           "links": {
             "out": [
               {
@@ -6253,62 +6283,62 @@ Response:
             "question": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T21:47:00"
+              "at": "2026-10-30T05:41:00"
             },
             "kind": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T21:47:00"
+              "at": "2026-10-30T05:41:00"
             },
             "domain": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T21:47:00"
+              "at": "2026-10-30T05:41:00"
             },
             "level": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T21:47:00"
+              "at": "2026-10-30T05:41:00"
             },
             "asked_by": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T21:47:00"
+              "at": "2026-10-30T05:41:00"
             },
             "why_now": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T21:47:00"
+              "at": "2026-10-30T05:41:00"
             },
             "context": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T21:47:00"
+              "at": "2026-10-30T05:41:00"
             },
             "options": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T21:47:00"
+              "at": "2026-10-30T05:41:00"
             },
             "recommendation": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T21:47:00"
+              "at": "2026-10-30T05:41:00"
             },
             "recommendation_why": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T21:47:00"
+              "at": "2026-10-30T05:41:00"
             },
             "blocks": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T21:47:00"
+              "at": "2026-10-30T05:41:00"
             },
             "proposed_change": {
               "by": "runner-sdk/implement-task",
               "kind": "agent",
-              "at": "2026-10-28T21:47:00"
+              "at": "2026-10-30T05:41:00"
             }
           },
           "stale": [],
@@ -6357,9 +6387,9 @@ Response:
 {
   "item_key": "task:5:T-2",
   "holder": "runner-sdk",
-  "acquired_at": "2026-10-28T23:47:11Z",
-  "heartbeat_at": "2026-10-28T23:47:11Z",
-  "expires_at": "2026-10-29T00:02:11Z"
+  "acquired_at": "2026-10-30T07:41:34Z",
+  "heartbeat_at": "2026-10-30T07:41:34Z",
+  "expires_at": "2026-10-30T07:56:34Z"
 }
 ```
 
@@ -6381,9 +6411,9 @@ Response:
 {
   "item_key": "task:5:T-2",
   "holder": "runner-sdk",
-  "acquired_at": "2026-10-28T23:47:11Z",
-  "heartbeat_at": "2026-10-28T23:47:11Z",
-  "expires_at": "2026-10-29T00:17:11Z"
+  "acquired_at": "2026-10-30T07:41:34Z",
+  "heartbeat_at": "2026-10-30T07:41:34Z",
+  "expires_at": "2026-10-30T08:11:34Z"
 }
 ```
 
@@ -6414,7 +6444,7 @@ Response:
 [
   {
     "kind": "revision",
-    "at": "2026-10-28T23:47:11Z",
+    "at": "2026-10-30T07:41:34Z",
     "ref": "DEP-1",
     "type": "deploy",
     "rev": 1,
@@ -6425,11 +6455,11 @@ Response:
     "actor_kind": "agent",
     "note": "deploy_guard NO-GO",
     "because": [],
-    "batch_id": "adb24ae0-9417-4c1d-8dc8-e692321fa952"
+    "batch_id": "b2522050-1124-4892-a2e7-32aa036364ce"
   },
   {
     "kind": "revision",
-    "at": "2026-10-28T21:47:00Z",
+    "at": "2026-10-30T05:41:00Z",
     "ref": "G-2",
     "type": "gap",
     "rev": 1,
@@ -6440,11 +6470,11 @@ Response:
     "actor_kind": "agent",
     "note": "",
     "because": [],
-    "batch_id": "6da6afe9-88f7-46f9-8ee9-2321c467de6b"
+    "batch_id": "5b4629d2-5ba1-4625-93e6-e4e38ed5267c"
   },
   {
     "kind": "revision",
-    "at": "2026-10-27T03:47:00Z",
+    "at": "2026-10-28T11:41:00Z",
     "ref": "APR-2",
     "type": "approval",
     "rev": 1,
@@ -6455,11 +6485,11 @@ Response:
     "actor_kind": "human",
     "note": "completed by the service",
     "because": [],
-    "batch_id": "d3031008-b7f4-4b28-ab10-5e369b19a447"
+    "batch_id": "093e4a7b-ce02-4d37-a582-00446791384c"
   },
   {
     "kind": "revision",
-    "at": "2026-10-26T23:47:00Z",
+    "at": "2026-10-28T07:41:00Z",
     "ref": "R-1",
     "type": "test_run",
     "rev": 1,
@@ -6470,7 +6500,7 @@ Response:
     "actor_kind": "agent",
     "note": "",
     "because": [],
-    "batch_id": "a8b6a61a-2805-4698-adfd-9d5602654759"
+    "batch_id": "770381ba-669a-4e84-9dab-a49b72a1853a"
   }
 ]
 ```
@@ -6487,7 +6517,7 @@ Response:
 [
   {
     "id": 202,
-    "ts": "2026-10-22T23:47:00Z",
+    "ts": "2026-10-24T07:41:00Z",
     "kind": "initiative_created",
     "subject": "order-events",
     "actor": "priya",
@@ -6498,11 +6528,11 @@ Response:
   },
   {
     "id": 203,
-    "ts": "2026-10-22T23:47:00Z",
+    "ts": "2026-10-24T07:41:00Z",
     "kind": "record_written",
     "subject": "initiative",
     "actor": "priya",
-    "batch_id": "0f5f2cc7-b53b-46b6-9336-e106bfa77300",
+    "batch_id": "11b5cd15-c316-422c-a83e-02b912157321",
     "payload": {
       "type": "initiative",
       "rev": 1,
@@ -6512,11 +6542,11 @@ Response:
   },
   {
     "id": 204,
-    "ts": "2026-10-22T23:47:00Z",
+    "ts": "2026-10-24T07:41:00Z",
     "kind": "record_written",
     "subject": "A-1",
     "actor": "priya",
-    "batch_id": "0f5f2cc7-b53b-46b6-9336-e106bfa77300",
+    "batch_id": "11b5cd15-c316-422c-a83e-02b912157321",
     "payload": {
       "type": "assignment",
       "rev": 1,
@@ -6553,9 +6583,9 @@ Response:
       "state": "enforced"
     },
     "created_by": "priya",
-    "created_at": "2026-09-28T23:47:00Z",
+    "created_at": "2026-09-30T07:41:00Z",
     "updated_by": "priya",
-    "updated_at": "2026-09-28T23:47:00Z"
+    "updated_at": "2026-09-30T07:41:00Z"
   },
   {
     "ref": "STD-2",
@@ -6573,9 +6603,9 @@ Response:
       "state": "active"
     },
     "created_by": "priya",
-    "created_at": "2026-09-28T23:47:00Z",
+    "created_at": "2026-09-30T07:41:00Z",
     "updated_by": "priya",
-    "updated_at": "2026-09-28T23:47:00Z"
+    "updated_at": "2026-09-30T07:41:00Z"
   },
   "… (+1 more)"
 ]
@@ -6604,9 +6634,9 @@ Response:
       "provenance": "inventory-sync-v3 delta sync deviation, answered by meera"
     },
     "created_by": "runner-sdk/retro-skill",
-    "created_at": "2026-09-28T23:47:00Z",
+    "created_at": "2026-09-30T07:41:00Z",
     "updated_by": "runner-sdk/retro-skill",
-    "updated_at": "2026-09-28T23:47:00Z"
+    "updated_at": "2026-09-30T07:41:00Z"
   }
 ]
 ```
@@ -6622,7 +6652,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "fc624ef7-7e9c-4c83-83e9-9b6f61508a14",
+  "batch_id": "50c81000-fe4a-486f-abcb-cfad656ce89b",
   "results": [
     {
       "index": 0,
@@ -6673,7 +6703,7 @@ Response:
 ```json
 {
   "ok": true,
-  "batch_id": "36e3ac7b-46d9-4c0e-bbf8-57e6bacb8acd",
+  "batch_id": "bf698c48-052c-4079-9391-c2284fcb4259",
   "results": [
     {
       "index": 0,

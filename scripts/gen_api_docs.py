@@ -111,6 +111,10 @@ running service against the demo data (`make seed`). Regenerate with
   a caller (403 `KIND_NOT_ALLOWED`). Human-only endpoints (marked **human**) return
   **403** with `error_code: "HUMAN_ONLY"` to anyone else. `GET /api/inbox` and
   `GET /api/overview` are the caller's.
+- **Integrations** (people directory admin, Microsoft Teams, Outline `kb`, Azure DevOps
+  Boards, webhooks under `/api/hooks/…` and `/api/teams/messages`) are documented with
+  their setup in `docs/integrations.md`; they talk to external systems, so they have no
+  live examples here. `GET /api/people` (below) now carries the directory fields.
 - **Ids in paths**: an initiative is addressed by its numeric `id`
   (`/api/initiatives/{id}/…`, `initiative_id` in the deploy guard and MCP tools); `slug` is
   a display label. Records are addressed by their ref within the initiative
