@@ -22,6 +22,7 @@ status_rules:
   baseline:   {rule: baseline_status, text: "CURRENT for the newest baseline of an initiative, SUPERSEDED for older"}
   standard:   {rule: field_status, field: state, text: "= state, upper-cased"}
   learning:   {rule: field_status, field: stage, text: "= stage, upper-cased (DRAFT when empty)"}
+  repository: {rule: field_status, field: state, text: "= state, upper-cased (ACTIVE | RETIRED)"}
 
 # Per phase: what every initiative must address before leaving it. `derived: true` items
 # are answered by the service itself; the rest are rows in initiative.catalog.

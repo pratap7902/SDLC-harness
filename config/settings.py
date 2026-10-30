@@ -2,6 +2,7 @@ from .app import AppSettings
 from .auth import AuthSettings
 from .blueprint import BlueprintSettings
 from .database import DatabaseSettings
+from .github import GithubSettings
 from .review import ReviewSettings
 
 
@@ -11,6 +12,7 @@ class Settings:
     db = DatabaseSettings()
     blueprint = BlueprintSettings()
     review = ReviewSettings()
+    github = GithubSettings()
 
 
 settings = Settings()

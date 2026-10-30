@@ -311,3 +311,25 @@ def activity(initiative_id: int, since: Optional[str] = None, ref: Optional[str]
     """Revisions and review-queue moves, newest first."""
     with _services() as records:
         return fmt.activity_text(ActivityService(records).feed(initiative_id, since, ref, actor, limit))
+
+
+# ── repo registry (global `repository` records) ─────────────────────────────
+
+
+@mcp.tool()
+def repos(name: Optional[str] = None) -> str:
+    """The repo registry: per repository its default branch, test command, JUnit report
+    path, paved-road template ids and owners. `name` (owner/repo) for one. A task's
+    `repo` and `template` must come from here; a missing repo or template is a gap."""
+    from app.registry.services.registry_service import RegistryService
+
+    with _services() as records:
+        service = RegistryService(records)
+        rows = [service.get(name)] if name else service.list()
+        if not rows:
+            return "no repositories registered — raise a gap (domain engg) for a human to register one"
+        return "\n".join(
+            f"{r['ref']} {r['name']} [{r['status']}] branch {r['default_branch']} · test `{r['test_command'] or '—'}`"
+            f" · junit {r['junit_path'] or '—'} · templates {', '.join(r['templates']) or '—'} · owners {', '.join(r['owners']) or '—'}"
+            for r in rows
+        )

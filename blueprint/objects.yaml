@@ -301,3 +301,22 @@ types:
       source:     {type: string, max: 300, required: true, help: "initiative:ref the learning came from, e.g. order-events:F-3"}
       provenance: {type: string, max: 400, required: true}
       stage:      {type: enum, vocab: learning_stage, material: true, actor: human, help: "draft (default) → promoted; promotion is human-only"}
+
+  repository:
+    title: Repository
+    plural: Repositories
+    scope: global
+    ref: {prefix: REPO}
+    status: repository_status
+    line: name
+    index: {columns: [name, default_branch, owners]}
+    fields:
+      name:           {type: string, max: 200, required: true, help: "owner/name, as GitHub writes it (example/orders)"}
+      default_branch: {type: string, max: 100, required: true}
+      clone_url:      {type: string, max: 300, help: "HTTPS clone URL; empty → https://github.com/<name>.git"}
+      test_command:   {type: string, max: 400, actor: human, help: "what the runner runs to verify a change (executed in the clone): a human sets it"}
+      junit_path:     {type: string, max: 300, help: "where test_command writes its JUnit XML, relative to the repo root"}
+      templates:      {type: bullets, max: 120, help: "paved-road template / IaC module ids a task in this repo may name"}
+      owners:         {type: bullets, max: 80, help: "people (handles) who own the repo"}
+      state:          {type: enum, vocab: repo_state, required: true}
+      notes:          {type: markdown}

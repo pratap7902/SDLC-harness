@@ -13,6 +13,7 @@ from app.core.middlewares.exception_handling_middleware import (
     ExceptionHandlingMiddleware,
 )
 from app.core.middlewares.request_logging_middleware import RequestLoggingMiddleware
+from app.github.routes import router as github_hooks_router
 from app.mcp.server import mcp
 from app.web.rendering import STATIC_DIR
 from app.web.spa import router as spa_router
@@ -68,6 +69,7 @@ app.add_middleware(
 )
 
 app.include_router(api_router)
+app.include_router(github_hooks_router)  # /hooks/github: HMAC-verified, no bearer token
 app.include_router(spa_router)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 

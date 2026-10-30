@@ -16,6 +16,7 @@ vocab:
   baseline_status: [CURRENT, SUPERSEDED]
   standard_status_derived: [DRAFT, ACTIVE, ENFORCED, RETIRED]
   learning_status: [DRAFT, PROMOTED]
+  repository_status: [DRAFT, ACTIVE, RETIRED]
 
   # ── field vocabularies ───────────────────────────────────────────────
   role: [dri, product, design, engg, qa]
@@ -33,6 +34,7 @@ vocab:
   catalog_disposition: [addressed, not_applicable]
   learning_stage: [draft, promoted]
   standard_status: [draft, active, enforced, retired]
+  repo_state: [active, retired]
 
 # Statuses that still need someone to act — drives worklist / inbox membership.
 open:

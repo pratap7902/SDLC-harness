@@ -102,11 +102,37 @@ class WorklistService:
                     add("task", t.ref, t.title, f"implement {', '.join(g.f(t, 'implements') or [])}; cover {', '.join(g.f(t, 'covers') or [])}")
                 elif t.status == "STUCK":
                     add("task", t.ref, t.title, "STUCK — hand off to a human", lane="human", person=g.person_for("engg", t.ref))
+                elif t.status == "IN_REVIEW":
+                    rework = self._rework(g, t)
+                    if rework:
+                        add("task", t.ref, t.title, rework["why"], rework=rework["cause"], rework_refs=rework["refs"])
                 tested = {row.get("ac") for run in g.of_type("test_run") for row in g.f(run, "covers") or []}
                 untested = [ac for ac in g.f(t, "covers") or [] if ac not in tested and g.f(ac, "manual") != "yes"]
                 if t.status in ("IN_PROGRESS", "IN_REVIEW") and untested:
                     add("tests", t.ref, f"Tests for {t.ref}", f"no test run row for {', '.join(untested)}")
         return out
+
+    @staticmethod
+    def _rework(g: RecordGraph, t) -> Optional[dict]:
+        """A PR at its head sha that the agent lane must work again: a red/errored test run
+        at that sha (cause `ci`), or an OPEN blocker/major finding bound to that sha (cause
+        `review`). Evidence at an older sha does not count — a new push answers it."""
+        sha = g.f(t, "pr_sha")
+        if not sha:
+            return None
+        runs = [r for r in g.of_type("test_run") if g.f(r, "at_sha") == sha and t.ref in (g.f(r, "task") or [])]
+        if runs:
+            latest = max(runs, key=lambda r: (g.f(r, "run_on") or "", r.ref))
+            if g.f(latest, "result") in ("RED", "ERROR"):
+                return {"cause": "ci", "refs": [latest.ref], "why": f"tests {g.f(latest, 'result')} at {sha[:7]} ({latest.ref}) — fix and push"}
+        findings = [
+            f.ref
+            for f in g.of_type("finding")
+            if f.status == "OPEN" and g.f(f, "severity") in ("blocker", "major") and t.ref in (g.f(f, "target") or []) and g.f(f, "at_sha") == sha
+        ]
+        if findings:
+            return {"cause": "review", "refs": findings, "why": f"review findings at {sha[:7]}: {', '.join(findings)} — address and push"}
+        return None
 
     def worklist(self, slug: str) -> dict:
         g = self.records.graph(self.records.initiative(slug))
