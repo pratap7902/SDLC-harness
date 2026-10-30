@@ -469,7 +469,7 @@ class RecordService:
         if type_key == "baseline":
             # Only _create_baseline (a dri approval's side effect) mints B-n — never an op.
             errors.append("type: baselines are written by the service when the DRI approves the draft")
-        if existing is not None and actor.kind != "human":
+        if existing is not None and actor.kind == "agent":
             errors += self._lease_errors(initiative, type_key, ref, actor)
         if type_key == "approval" and existing is not None:
             errors.append("approval: approvals are immutable — approve again to record a new one")
@@ -588,7 +588,8 @@ class RecordService:
         return revs[0].actor_kind if revs else ""
 
     def _lease_errors(self, initiative: Initiative, type_key: str, ref: str, actor: Actor) -> List[str]:
-        """A leased work item is written only by its holder (or a human)."""
+        """A leased work item is written by its holder only, among agents (humans and the
+        service's own integrations are not lease-bound)."""
         suffix = f":{initiative.id}:{ref}"
         for key, lease in (getattr(self, "_leases", None) or {}).items():
             singleton = key == f"{type_key}:{initiative.id}" and self.bp.types[type_key].ref_kind == "singleton"

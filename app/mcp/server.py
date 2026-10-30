@@ -146,6 +146,29 @@ def create_initiative(
 
 
 @mcp.tool()
+def import_work_item(
+    work_item: str,
+    ctx: Context,
+    dri: Optional[str] = None,
+    engg: Optional[str] = None,
+    product: Optional[str] = None,
+    qa: Optional[str] = None,
+    slug: Optional[str] = None,
+    agent: Optional[str] = None,
+) -> str:
+    """Start a feature from an Azure DevOps work item (id or link): its title, description
+    and acceptance criteria become the requirement; the DRI / engg come from the item when
+    they are in the people directory, else pass them."""
+    from app.azure_devops.services.boards_service import BoardsService
+
+    with _services() as records:
+        state = BoardsService(records.db).import_item(
+            work_item, _actor(ctx, agent), {"dri": dri, "engg": engg, "product": product, "qa": qa, "slug": slug}
+        )
+        return fmt.state_text(state)
+
+
+@mcp.tool()
 def get_state(initiative_id: int) -> str:
     """Phase, each gate PASSED/BLOCKED with the failing rules, tasks with GATE_PR, counts by
     status, baseline and drift counts, stale narratives, unassessed catalog items."""

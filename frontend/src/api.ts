@@ -382,6 +382,25 @@ export interface Person {
   person: string;
   roles: { initiative: string; role: string }[];
   inbox: number;
+  /** From the people directory (null when the handle has no person row yet). */
+  name: string | null;
+  email: string | null;
+  in_directory: boolean;
+  teams_user_id: string | null;
+  identities: { source: string; external_id: string; email: string | null; active: boolean }[];
+}
+
+/** GET /api/azure-devops/preview — what importing a work item would start. */
+export interface AdoPreview {
+  work_item_id: number;
+  work_item_type: string | null;
+  rev: number;
+  title: string;
+  requirement: string;
+  work_item_url: string;
+  people: { dri?: string; engg?: string };
+  unmatched: Record<string, string>;
+  already_imported: number[];
 }
 
 export interface WorklistItem {

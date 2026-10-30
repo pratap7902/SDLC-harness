@@ -1,5 +1,6 @@
 from .app import AppSettings
 from .auth import AuthSettings
+from .azure_devops import AzureDevOpsSettings
 from .blueprint import BlueprintSettings
 from .database import DatabaseSettings
 from .knowledge import KnowledgeSettings
@@ -17,6 +18,7 @@ class Settings:
     people = PeopleSettings()
     teams = TeamsSettings()
     knowledge = KnowledgeSettings()
+    azure_devops = AzureDevOpsSettings()
 
 
 settings = Settings()

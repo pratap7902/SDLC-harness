@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import type { InitiativeState } from '../api';
-import { ApiError, postJson, useRefresh } from '../lib/api';
+import type { AdoPreview, InitiativeState } from '../api';
+import { ApiError, getJson, postJson, useRefresh } from '../lib/api';
 import { ROLE_LABEL, nm } from '../lib/format';
 import { usePersona } from '../lib/persona';
 import { useToast } from '../lib/toast';
@@ -35,7 +35,7 @@ function PersonPicker({ id, value, onChange, required, hint, label }: { id: stri
         <option value="">{required ? 'Choose…' : 'Not needed'}</option>
         {people.map((p) => (
           <option key={p.person} value={p.person}>
-            {nm(p.person)}
+            {p.name && p.name !== p.person ? `${p.name} (${p.person})` : nm(p.person)}
             {p.roles.length ? ` · ${Array.from(new Set(p.roles.map((r) => ROLE_LABEL[r.role] || r.role))).join(', ')}` : ''}
           </option>
         ))}
@@ -55,9 +55,36 @@ export default function NewFeaturePage() {
   const [form, setForm] = useState({ title: '', requirement: '', work_item_url: '', dri: '', engg: '', product: '', design: '', qa: '' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [ado, setAdo] = useState({ ref: '', busy: false, note: '' });
   const set = (k: keyof typeof form) => (v: string) => {
     setForm((f) => ({ ...f, [k]: v }));
     setError('');
+  };
+
+  // Paste an Azure DevOps link or id: the service reads the work item and fills the form
+  // (title, requirement from description + acceptance criteria, link, DRI / engg when they
+  // are in the people directory). Starting still goes through the same intake.
+  const prefill = async () => {
+    if (!ado.ref.trim()) return;
+    setAdo((a) => ({ ...a, busy: true, note: '' }));
+    try {
+      const p = await getJson<AdoPreview>(`/api/azure-devops/preview?work_item=${encodeURIComponent(ado.ref.trim())}`);
+      setForm((f) => ({
+        ...f,
+        title: p.title || f.title,
+        requirement: p.requirement,
+        work_item_url: p.work_item_url,
+        dri: p.people.dri || f.dri,
+        engg: p.people.engg || f.engg,
+      }));
+      const unmatched = Object.entries(p.unmatched).map(([role, email]) => `${ROLE_LABEL[role] || role}: ${email} is not in the people directory`);
+      const already = p.already_imported.length ? [`already imported as feature ${p.already_imported.join(', ')}`] : [];
+      setAdo({ ref: ado.ref, busy: false, note: [`Filled from work item ${p.work_item_id} (rev ${p.rev}).`, ...already, ...unmatched].join(' · ') });
+      setError('');
+    } catch (err) {
+      setAdo((a) => ({ ...a, busy: false, note: '' }));
+      setError((err as Error).message);
+    }
   };
 
   const submit = async (e: FormEvent) => {
@@ -101,6 +128,27 @@ export default function NewFeaturePage() {
       </PageHeader>
       <div className="flex flex-wrap gap-[22px] items-start">
         <form className="card flex-[999_1_560px] min-w-0 flex flex-col gap-4 px-6 py-[22px]" onSubmit={submit} noValidate>
+          <Field label="Start from Azure DevOps" htmlFor="fadoref" optional="optional" hint="A work item link or id fills the form below.">
+            <div className="flex gap-2">
+              <input
+                id="fadoref"
+                className="input font-mono flex-1"
+                value={ado.ref}
+                onChange={(e) => setAdo({ ...ado, ref: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    prefill();
+                  }
+                }}
+                placeholder="https://dev.azure.com/your-org/your-project/_workitems/edit/1234 or 1234"
+              />
+              <button type="button" className="btn" onClick={prefill} disabled={ado.busy || !ado.ref.trim()}>
+                {ado.busy ? 'Reading…' : 'Fill from work item'}
+              </button>
+            </div>
+            {ado.note && <span className="small">{ado.note}</span>}
+          </Field>
           <Field label="Title" htmlFor="ftitle" required>
             <input id="ftitle" className="input" type="text" value={form.title} onChange={(e) => set('title')(e.target.value)} placeholder="e.g. Order events for downstream consumers" />
           </Field>
@@ -117,7 +165,7 @@ export default function NewFeaturePage() {
               type="url"
               value={form.work_item_url}
               onChange={(e) => set('work_item_url')(e.target.value)}
-              placeholder="https://dev.azure.com/navanta/project/_workitems/edit/1234"
+              placeholder="https://dev.azure.com/your-org/your-project/_workitems/edit/1234"
             />
           </Field>
           <fieldset className="border-0 p-0 m-0">

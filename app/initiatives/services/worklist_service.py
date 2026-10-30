@@ -18,8 +18,8 @@ from app.initiatives.services.status_rules import LIVE_AC
 from app.initiatives.services.views import record_json, review_item_json
 from config.settings import settings
 
-KINDS = ("review", "gap", "decision", "approval", "draft", "plan", "tests", "task", "promotion", "manual_ac")
-PRIORITY = {"review": 10, "gap": 20, "decision": 20, "approval": 25, "manual_ac": 28, "draft": 30, "plan": 40, "tests": 50, "task": 60, "promotion": 90}
+KINDS = ("review", "gap", "decision", "approval", "draft", "plan", "tests", "task", "tracker", "promotion", "manual_ac")
+PRIORITY = {"review": 10, "gap": 20, "decision": 20, "approval": 25, "manual_ac": 28, "draft": 30, "plan": 40, "tests": 50, "task": 60, "tracker": 70, "promotion": 90}
 PHASE_OF_KIND = {"draft": "draft", "plan": "plan", "task": "build", "tests": "build", "review": "draft"}
 
 
@@ -106,6 +106,14 @@ class WorklistService:
                 untested = [ac for ac in g.f(t, "covers") or [] if ac not in tested and g.f(ac, "manual") != "yes"]
                 if t.status in ("IN_PROGRESS", "IN_REVIEW") and untested:
                     add("tests", t.ref, f"Tests for {t.ref}", f"no test run row for {', '.join(untested)}")
+        for t in g.of_type("task"):
+            if g.f(t, "tracker_edited") == "yes":
+                add(
+                    "tracker", t.ref, f"{t.ref} was edited in Azure DevOps",
+                    f"its ADO copy ({g.f(t, 'tracker_url') or g.f(t, 'tracker_id')}) changed; the record here wins — "
+                    "carry over what matters (as a gap or an edit), then set tracker_edited: no",
+                    lane="human", person=g.person_for("engg", t.ref),
+                )
         return out
 
     def worklist(self, slug: str) -> dict:
