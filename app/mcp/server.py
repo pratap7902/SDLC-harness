@@ -41,6 +41,8 @@ DECIDED decision is never edited — write a new one with `supersedes: ["D-3"]`.
 must deviate from the approved spec, raise a gap (kind deviation, blocks the D/AC/T) and
 wait for the human answer; then supersede / add with `because`.
 Fields marked HUMAN-ONLY (a gap's answer, an approval, a MUST verdict) refuse agent writes.
+Knowledge base: kb_search / kb_get (Outline); cite a result as `kb:outline/<doc-id>` in a
+record's `cites`.
 Who you are: your bearer token (X-Actor in local dev); `agent` says which agent or skill. Call blueprint once
 before your first write to learn each type's fields."""
 
@@ -312,3 +314,34 @@ def activity(initiative_id: int, since: Optional[str] = None, ref: Optional[str]
     with _services() as records:
         return fmt.activity_text(ActivityService(records).feed(initiative_id, since, ref, actor, limit))
 
+
+# ── knowledge base (Outline) ────────────────────────────────────────────────
+
+
+@mcp.tool()
+def kb_search(query: str, limit: int = 8) -> str:
+    """Search the knowledge base (Outline: standards, ADRs, runbooks). Each hit starts with
+    its citation `kb:outline/<doc-id>` — put that in a record's `cites` to cite it."""
+    from app.knowledge.services.outline import OutlineClient
+
+    try:
+        hits = OutlineClient().search(query, limit)
+    except BaseAppException as e:
+        raise ValueError(e.message) from e
+    if not hits:
+        return f"no knowledge-base results for “{query}”"
+    return "\n".join(f"{h.citation} — {h.title}\n  {h.snippet}" for h in hits)
+
+
+@mcp.tool()
+def kb_get(citation: str, max_chars: int = 12000) -> str:
+    """A knowledge-base document as markdown, by citation (`kb:outline/<doc-id>`, add
+    `#<heading-anchor>` for one section) or a bare document id."""
+    from app.knowledge.services.outline import OutlineClient
+
+    try:
+        doc = OutlineClient().get(citation)
+    except BaseAppException as e:
+        raise ValueError(e.message) from e
+    text = doc.text if len(doc.text) <= max_chars else doc.text[:max_chars] + "\n… (truncated; cite a #section)"
+    return f"{doc.citation} — {doc.title}\n{doc.url}\n\n{text}"

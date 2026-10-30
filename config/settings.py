@@ -2,6 +2,7 @@ from .app import AppSettings
 from .auth import AuthSettings
 from .blueprint import BlueprintSettings
 from .database import DatabaseSettings
+from .knowledge import KnowledgeSettings
 from .people import PeopleSettings
 from .review import ReviewSettings
 from .teams import TeamsSettings
@@ -15,6 +16,7 @@ class Settings:
     review = ReviewSettings()
     people = PeopleSettings()
     teams = TeamsSettings()
+    knowledge = KnowledgeSettings()
 
 
 settings = Settings()

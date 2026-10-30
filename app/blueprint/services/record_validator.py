@@ -3,7 +3,7 @@ import difflib
 import re
 from typing import Any, Dict, List, Optional
 
-from app.blueprint.schemas.blueprint import EXTERNAL_PREFIX, Blueprint, FieldSpec
+from app.blueprint.schemas.blueprint import EXTERNAL_PREFIX, KB_CITATION_RE, Blueprint, FieldSpec
 
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 TEXT_TYPES = ("string", "markdown", "narrative", "enum", "date")
@@ -110,6 +110,8 @@ class RecordValidator:
                 if item.startswith(EXTERNAL_PREFIX):
                     if "external" not in f.targets:
                         out.append(f"{n}[{i}]: external refs are not allowed here; name a {' | '.join(f.targets)}")
+                    elif item.startswith("kb:") and not KB_CITATION_RE.match(item):
+                        out.append(f"{n}[{i}]: '{item}' is not a citation — kb:<source>/<doc-id>[#anchor], as kb_search returns")
                     continue
                 type_key = self.bp.type_of_ref(item)
                 if type_key is None or type_key not in f.targets:
@@ -150,7 +152,7 @@ class RecordValidator:
 
     def _shape(self, type_key: str) -> str:
         if type_key == "external":
-            return "external:<url>"
+            return "external:<url> | kb:<source>/<doc-id>[#anchor]"
         t = self.bp.types[type_key]
         return f"{t.ref_value}-n" if t.ref_kind == "prefix" else f"'{t.ref_value}'"
 

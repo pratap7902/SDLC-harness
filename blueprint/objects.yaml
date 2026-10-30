@@ -191,7 +191,7 @@ types:
       summary:    {type: string, max: 400, required: true}
       severity:   {type: enum, vocab: severity, required: true}
       target:     {type: refs, targets: [draft, decision, acceptance_criterion, task], required: true, link_kind: targets}
-      cites:      {type: refs, targets: [standard, learning, decision], link_kind: cites}
+      cites:      {type: refs, targets: [standard, learning, decision, external], link_kind: cites}
       at_rev:     {type: string, max: 10}
       at_sha:     {type: string, max: 64}
       where:      {type: string, max: 400}
