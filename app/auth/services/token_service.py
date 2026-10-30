@@ -34,6 +34,8 @@ class TokenService:
             raise ValidationException(message="principal: required (the person or runner the token speaks for)")
         if kind not in CALLER_KINDS:
             raise ValidationException(message=f"kind: one of {' | '.join(CALLER_KINDS)} — `system` is the service itself")
+        if kind == "human":
+            principal = self._person(principal)
         token = TOKEN_PREFIX + secrets.token_urlsafe(32)
         row = self.repo.add(
             ActorToken(
@@ -49,6 +51,18 @@ class TokenService:
         )
         self.db.commit()
         return token, row
+
+    def _person(self, value: str) -> str:
+        """A human token speaks for a canonical person: an email or handle resolves through
+        the people directory (the same person Cloudflare Access maps the email to)."""
+        from app.people.services.people_service import PeopleService
+
+        handle = PeopleService(self.db).resolve_handle(value)
+        if handle:
+            return handle
+        if "@" in value:
+            raise ValidationException(message=f"{value} is not in the people directory — add the person first")
+        return value  # a handle not in the directory yet (dev); assignments name it as is
 
     def lookup(self, token: str) -> Optional[ActorToken]:
         """The live token row, or None (unknown, revoked, expired)."""

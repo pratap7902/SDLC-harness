@@ -30,6 +30,12 @@ test-mysql:    ## the suite on MySQL (make db first)
 token:         ## mint a bearer token: make token ACTOR=runner-sdk KIND=agent [ROLES=ci] [LABEL=…] [DAYS=90]
 	$(BIN)/python scripts/mint_token.py mint --actor "$(ACTOR)" --kind "$(KIND)" --roles "$(ROLES)" --label "$(LABEL)" --days "$(or $(DAYS),0)"
 
+sync-people:   ## pull Teams users (Microsoft Graph) into the people directory, merged by email
+	$(BIN)/python scripts/integrations.py sync-people
+
+notify:        ## send due Teams notifications (idempotent; schedule it every minute)
+	$(BIN)/python scripts/integrations.py notify
+
 lint:
 	$(BIN)/ruff check .
 
@@ -48,4 +54,4 @@ frontend-dev:  ## Vite dev server on :5173 (proxies /api to the backend on :8791
 reset:         ## delete the SQLite dev DB
 	rm -f var/dev.db
 
-.PHONY: install db migrate check dev test test-mysql lint seed reset frontend frontend-dev token
+.PHONY: install db migrate check dev test test-mysql lint seed reset frontend frontend-dev token sync-people notify

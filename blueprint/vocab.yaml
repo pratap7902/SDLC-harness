@@ -22,6 +22,7 @@ vocab:
   domain: [product, design, engg]
   std_level: [MUST, SHOULD]
   yes_no: ["yes", "no"]
+  channel: [web, teams]
   gap_kind: [unknown, deviation, conflict, prd_drift, untestable_ac]
   test_level: [unit, integration, e2e, manual]
   pr_state: [none, draft, open, approved, merged, closed]

@@ -41,7 +41,7 @@ DECIDED decision is never edited — write a new one with `supersedes: ["D-3"]`.
 must deviate from the approved spec, raise a gap (kind deviation, blocks the D/AC/T) and
 wait for the human answer; then supersede / add with `because`.
 Fields marked HUMAN-ONLY (a gap's answer, an approval, a MUST verdict) refuse agent writes.
-Who you are: the X-Actor header; `agent` says which agent or skill. Call blueprint once
+Who you are: your bearer token (X-Actor in local dev); `agent` says which agent or skill. Call blueprint once
 before your first write to learn each type's fields."""
 
 mcp = FastMCP("srs", instructions=INSTRUCTIONS, stateless_http=True, json_response=True)
@@ -311,3 +311,4 @@ def activity(initiative_id: int, since: Optional[str] = None, ref: Optional[str]
     """Revisions and review-queue moves, newest first."""
     with _services() as records:
         return fmt.activity_text(ActivityService(records).feed(initiative_id, since, ref, actor, limit))
+

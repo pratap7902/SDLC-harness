@@ -126,6 +126,7 @@ types:
       assigned_to: {type: string, max: 80, actor: human, help: "who the gap was routed to when it was answered (frozen)"}
       assigned_role: {type: string, max: 20, actor: human, help: "the role it was routed by when it was answered (frozen)"}
       answered_for: {type: string, max: 80, actor: human, help: "set when answered_by is not assigned_to: answered on the assignee's behalf"}
+      answered_via: {type: enum, vocab: channel, actor: human, help: "where the human answered: web (the inbox) | teams (a card button)"}
       withdrawn_because: {type: string, max: 300}
       conversation: {type: rows, verbatim: true, columns: ["on", by, text]}
       resolution:  {type: string, max: 600, help: "What the agent did with the answer: D-n superseded, AC-n added"}
@@ -172,8 +173,9 @@ types:
       pr_sha:      {type: string, max: 64, material: true, help: "head sha the pr_state refers to"}
       ci_attempts: {type: string, max: 4}
       review_rounds: {type: string, max: 4}
-      tracker_id:  {type: string, max: 60}
+      tracker_id:  {type: string, max: 60, help: "Azure DevOps child work item id (one-way push)"}
       tracker_url: {type: string, max: 300}
+      tracker_edited: {type: enum, vocab: yes_no, help: "yes = the ADO copy was edited there; the record here still wins (worklist: reconcile)"}
     rules:
       - when: {pr_state: [open, approved, merged]}
         require: [pr_url, pr_sha]
