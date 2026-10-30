@@ -1,0 +1,5 @@
+# The SDLC harness runner — deployed separately from the record service.
+claude-agent-sdk==0.2.175   # bundles the Claude Code CLI; ResultError needs >= 0.2.140
+httpx==0.28.1
+pyjwt[crypto]==2.10.1       # App JWT (RS256)
+pyyaml==6.0.2               # SKILL.md frontmatter

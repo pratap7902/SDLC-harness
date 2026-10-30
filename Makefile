@@ -30,6 +30,14 @@ test-mysql:    ## the suite on MySQL (make db first)
 token:         ## mint a bearer token: make token ACTOR=runner-sdk KIND=agent [ROLES=ci] [LABEL=…] [DAYS=90]
 	$(BIN)/python scripts/mint_token.py mint --actor "$(ACTOR)" --kind "$(KIND)" --roles "$(ROLES)" --label "$(LABEL)" --days "$(or $(DAYS),0)"
 
+runner-install: ## the runner's own venv (runner/.venv; its deps differ from the service's)
+	$(PYTHON) -m venv runner/.venv
+	runner/.venv/bin/pip install -q --upgrade pip
+	runner/.venv/bin/pip install -q -r runner/requirements-dev.txt
+
+test-runner:   ## the runner's tests: a real service (this venv, make install) + fake agent + local repo
+	SRS_PYTHON=$(abspath $(BIN))/python runner/.venv/bin/pytest -q runner/tests
+
 lint:
 	$(BIN)/ruff check .
 
@@ -48,4 +56,4 @@ frontend-dev:  ## Vite dev server on :5173 (proxies /api to the backend on :8791
 reset:         ## delete the SQLite dev DB
 	rm -f var/dev.db
 
-.PHONY: install db migrate check dev test test-mysql lint seed reset frontend frontend-dev token
+.PHONY: install db migrate check dev test test-mysql lint seed reset frontend frontend-dev token runner-install test-runner

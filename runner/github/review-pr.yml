@@ -1,0 +1,106 @@
+# review-pr — the AI first pass at the per-task PR review (GATE_PR), on pull_request events.
+#
+# Install into a target repository (see docs/runner.md § "review-pr in GitHub Actions"):
+#   1. copy this file to .github/workflows/harness-review-pr.yml
+#   2. copy skills/review-pr/SKILL.md to .harness/skills/review-pr/SKILL.md and merge it to the
+#      default branch — the workflow reads the skill from the PR's BASE, so a PR cannot
+#      rewrite its own review instructions
+#   3. repository variables: SRS_URL (https://srs.example.com), optional HARNESS_MODEL
+#      repository secrets:   ANTHROPIC_API_KEY, SRS_AGENT_TOKEN (an agent token minted for
+#      e.g. `review-pr-<repo>`), optional CF_ACCESS_CLIENT_ID / CF_ACCESS_CLIENT_SECRET when
+#      the record service sits behind Cloudflare Access
+#
+# Fork PRs get no secrets on `pull_request` (by design): the job is skipped for them. Do NOT
+# switch this to `pull_request_target` — it would run fork code with secrets.
+name: harness review-pr
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: harness-review-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Check out the PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 50
+
+      - name: Read the review config from the base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: .harness-base
+          sparse-checkout: .harness
+          persist-credentials: false
+
+      - name: Load the skill
+        id: skill
+        run: |
+          f=.harness-base/.harness/skills/review-pr/SKILL.md
+          test -f "$f" || { echo "::error::$f is missing on the base branch"; exit 1; }
+          # the body after the frontmatter
+          { echo 'text<<HARNESS_SKILL_EOF'; awk 'n>=2 {print} /^---$/ && n<2 {n++}' "$f"; echo 'HARNESS_SKILL_EOF'; } >> "$GITHUB_OUTPUT"
+          rm -rf .harness-base
+
+      - name: MCP config (record service + its knowledge-base tools)
+        env:
+          SRS_URL: ${{ vars.SRS_URL }}
+          SRS_AGENT_TOKEN: ${{ secrets.SRS_AGENT_TOKEN }}
+          CF_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          headers = {"Authorization": "Bearer " + os.environ["SRS_AGENT_TOKEN"]}
+          if os.environ.get("CF_ID"):
+              headers["CF-Access-Client-Id"] = os.environ["CF_ID"]
+              headers["CF-Access-Client-Secret"] = os.environ["CF_SECRET"]
+          url = os.environ["SRS_URL"].rstrip("/") + "/mcp"
+          path = os.path.join(os.environ["RUNNER_TEMP"], "harness-mcp.json")
+          with open(path, "w") as f:
+              json.dump({"mcpServers": {"srs": {"type": "http", "url": url, "headers": headers}}}, f)
+          os.chmod(path, 0o600)
+          PY
+
+      - name: Review
+        uses: anthropics/claude-code-action@v1.0.247
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # the workflow's own token (pull-requests: write above) — no extra GitHub App needed
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+            HEAD SHA: ${{ github.event.pull_request.head.sha }}
+            HEAD BRANCH: ${{ github.event.pull_request.head.ref }}
+            The PR head is checked out in the working directory.
+
+            Run the review-pr skill below for this pull request. Bind every finding to the
+            HEAD SHA above. Post inline comments with
+            mcp__github_inline_comment__create_inline_comment (confirmed: true) and one summary
+            with `gh pr comment`. Only post GitHub comments and records — no review text as
+            messages.
+
+            ${{ steps.skill.outputs.text }}
+          claude_args: |
+            --model ${{ vars.HARNESS_MODEL || 'claude-opus-5-5' }}
+            --max-turns 40
+            --mcp-config ${{ runner.temp }}/harness-mcp.json
+            --allowedTools "Read,Glob,Grep,mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),mcp__srs__blueprint,mcp__srs__get_state,mcp__srs__read_record,mcp__srs__search_records,mcp__srs__history,mcp__srs__gate_status,mcp__srs__drift_report,mcp__srs__repos,mcp__srs__kb_search,mcp__srs__kb_get,mcp__srs__write"
+            --disallowedTools "Edit,Write,WebFetch,WebSearch,mcp__srs__claim,mcp__srs__heartbeat,mcp__srs__release,mcp__srs__create_initiative,mcp__srs__deploy_guard,mcp__srs__resolve_review_item"
+
+      - name: Remove the MCP config
+        if: always()
+        run: rm -f "${{ runner.temp }}/harness-mcp.json"

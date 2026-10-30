@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sdlc-harness-runner"
+version = "0.1.0"
+description = "Agent SDK worker for the SDLC record service: polls next_work, leases items, runs skills, pushes PRs as a GitHub App."
+requires-python = ">=3.12"
+dependencies = [
+  "claude-agent-sdk==0.2.175",
+  "httpx==0.28.1",
+  "pyjwt[crypto]==2.10.1",
+  "pyyaml==6.0.2",
+]
+
+[project.scripts]
+harness-runner = "runner.__main__:main"
+
+# This directory IS the `runner` package (imported as runner.worker, runner.workspace, …).
+[tool.setuptools]
+packages = ["runner"]
+package-dir = {"runner" = "."}
